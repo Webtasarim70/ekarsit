@@ -1878,77 +1878,134 @@ function copyExcelCellStyle(src,dst){
 }
 async function buildOutputWorkbookFromRealTemplate(templateKey,cols,rows){
   /*
-     Örnek Excel yalnızca FORMAT ŞABLONUDUR.
-     Şablondaki mevcut kayıtlar hiçbir şekilde çıktıya taşınmaz.
-     Özellikle spliceRows/addRow kullanılmaz; bunlar bazı ExcelJS
-     sürümlerinde çalışma kitabının XML yapısını bozabiliyor.
-     Bunun yerine mevcut veri satırları temizlenir ve gerçek kayıtlar
-     doğrudan 2. satırdan başlayarak aynı satırlara yazılır.
+    ÖNEMLİ:
+    Gerçek Excel şablonu artık çıktı çalışma kitabının kendisi olarak
+    değiştirilmez. Şablon sadece biçim/başlık/yardımcı sayfa kaynağıdır.
+    Böylece örnek satırlar, gizli satır yapıları veya şablonun iç XML'i
+    çıktı dosyasına veri olarak taşınmaz ve Excel'in "dosyada onarım yapıldı"
+    uyarısına yol açabilecek spliceRows/addRow işlemleri yapılmaz.
   */
-  const wb=new ExcelJS.Workbook();
-  await wb.xlsx.load(outputTemplateBytes(OUTPUT_XLSX_TEMPLATES[templateKey]));
-  const ws=wb.worksheets[0];
+  const sourceWb=new ExcelJS.Workbook();
+  await sourceWb.xlsx.load(outputTemplateBytes(OUTPUT_XLSX_TEMPLATES[templateKey]));
+  const sourceWs=sourceWb.worksheets[0];
 
-  // 2. satırın biçimini veri satırlarının şablonu olarak sakla.
-  const templateRow=ws.getRow(2);
-  const templateStyles=cols.map((_,i)=>({
-    style:templateRow.getCell(i+1),
-    height:templateRow.height
-  }));
+  const outWb=new ExcelJS.Workbook();
+  outWb.creator='KDV Karşıt İnceleme Arşiv Sihirbazı';
+  outWb.created=new Date();
 
-  const originalRowCount=ws.rowCount;
-  const maxCols=Math.max(ws.columnCount,cols.length);
+  function cloneStyle(src,dst){
+    if(!src || !dst) return;
+    if(src.font) dst.font=JSON.parse(JSON.stringify(src.font));
+    if(src.fill) dst.fill=JSON.parse(JSON.stringify(src.fill));
+    if(src.border) dst.border=JSON.parse(JSON.stringify(src.border));
+    if(src.alignment) dst.alignment=JSON.parse(JSON.stringify(src.alignment));
+    if(src.protection) dst.protection=JSON.parse(JSON.stringify(src.protection));
+    if(src.numFmt) dst.numFmt=src.numFmt;
+  }
 
-  // Şablondaki ÖRNEK VERİLERİ temizle. Başlık (1. satır) korunur.
-  // Satırlar silinmez; böylece workbook XML yapısı ve Excel biçim bilgileri
-  // spliceRows nedeniyle bozulmaz.
-  for(let r=2;r<=originalRowCount;r++){
-    const row=ws.getRow(r);
-    for(let c=1;c<=maxCols;c++){
-      const cell=row.getCell(c);
-      cell.value=null;
-      if(cell.hyperlink) cell.hyperlink=null;
-      if(cell.comment) cell.comment=null;
+  function copySheetLayout(src,dst,maxCol){
+    for(let c=1;c<=maxCol;c++){
+      const sc=src.getColumn(c), dc=dst.getColumn(c);
+      if(sc.width!=null) dc.width=sc.width;
+      if(sc.hidden!=null) dc.hidden=sc.hidden;
+      if(sc.outlineLevel!=null) dc.outlineLevel=sc.outlineLevel;
+    }
+    if(src.views) dst.views=JSON.parse(JSON.stringify(src.views));
+    if(src.pageSetup) dst.pageSetup=JSON.parse(JSON.stringify(src.pageSetup));
+    if(src.pageMargins) dst.pageMargins=JSON.parse(JSON.stringify(src.pageMargins));
+    if(src.printOptions) dst.printOptions=JSON.parse(JSON.stringify(src.printOptions));
+    if(src.properties) {
+      if(src.properties.defaultRowHeight!=null) dst.properties.defaultRowHeight=src.properties.defaultRowHeight;
+      if(src.properties.defaultColWidth!=null) dst.properties.defaultColWidth=src.properties.defaultColWidth;
     }
   }
 
-  // Yalnızca uygulamanın o anda oluşturduğu kayıtları 2. satırdan itibaren
-  // doğrudan mevcut satırlara yaz. Fatura çalışma kitabında Tutar ve KDV
-  // alanları özellikle Excel NUMBER tipi olarak yazılır; Türkçe biçimindeki
-  // '16.842,24' gibi metinler sayıya dönüştürülür.
-  const toExcelNumber = (value) => {
-    if (value === null || value === undefined || value === '') return '';
-    if (typeof value === 'number' && Number.isFinite(value)) return value;
-    let raw = String(value).trim().replace(/₺/g,'').replace(/\s/g,'');
-    if (!raw) return '';
-    // 1.234,56 -> 1234.56 ; 1234.56 -> 1234.56 ; 2500 -> 2500
-    if (raw.includes(',') && raw.includes('.')) raw = raw.replace(/\./g,'').replace(',','.');
-    else if (raw.includes(',')) raw = raw.replace(',','.');
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : value;
+  // 1) Ana "Veriler" sayfasını sıfırdan oluştur.
+  const ws=outWb.addWorksheet(sourceWs.name || 'Veriler');
+  const maxCols=Math.max(sourceWs.columnCount,cols.length);
+
+  copySheetLayout(sourceWs,ws,maxCols);
+
+  // Başlık: şablondaki gerçek başlıklar aynen korunur.
+  const srcHeader=sourceWs.getRow(1);
+  const dstHeader=ws.getRow(1);
+  dstHeader.height=srcHeader.height;
+  for(let c=1;c<=maxCols;c++){
+    const sc=srcHeader.getCell(c), dc=dstHeader.getCell(c);
+    dc.value=sc.value ?? (cols[c-1]?.label ?? '');
+    cloneStyle(sc,dc);
+  }
+
+  // Veri satırı için şablondaki 2. satırın yalnızca biçimini kullan.
+  const srcDataRow=sourceWs.getRow(2);
+  const toExcelNumber=(value)=>{
+    if(value===null || value===undefined || value==='') return null;
+    if(typeof value==='number' && Number.isFinite(value)) return value;
+    let raw=String(value).trim().replace(/₺/g,'').replace(/\s/g,'');
+    if(!raw) return null;
+    if(raw.includes(',') && raw.includes('.')) raw=raw.replace(/\./g,'').replace(',','.');
+    else if(raw.includes(',')) raw=raw.replace(',','.');
+    const n=Number(raw);
+    return Number.isFinite(n)?n:null;
   };
+
   (rows||[]).forEach((item,idx)=>{
     const r=ws.getRow(idx+2);
-    if(templateRow.height!=null) r.height=templateRow.height;
-    cols.forEach((c,i)=>{
+    if(srcDataRow.height!=null) r.height=srcDataRow.height;
+
+    for(let c=1;c<=maxCols;c++){
+      const sc=srcDataRow.getCell(c);
+      const dc=r.getCell(c);
+      cloneStyle(sc,dc);
+      dc.value=null;
+    }
+
+    cols.forEach((col,i)=>{
       const cell=r.getCell(i+1);
-      let value=item[c.key] ?? '';
-      if(templateKey==='fatura' && (c.key==='tutar' || c.key==='kdv')) {
-        value=toExcelNumber(value);
-        // Örnek dosyanın mevcut sayı biçimi varsa onu koru; yoksa iki ondalık
-        // basamaklı Excel sayı biçimi uygula.
-        if(typeof value==='number' && !cell.numFmt) cell.numFmt='#,##0.00';
+      let value=item[col.key] ?? '';
+      if(templateKey==='fatura' && (col.key==='tutar' || col.key==='kdv')){
+        const num=toExcelNumber(value);
+        value=(num===null?'':num);
+        if(typeof value==='number'){
+          // Gerçek Excel sayısı + şablonun sayı biçimi.
+          if(!cell.numFmt) cell.numFmt='#,##0.00';
+        }
       }
       cell.value=value;
-      copyExcelCellStyle(templateStyles[i].style,cell);
-      if(templateKey==='fatura' && (c.key==='tutar' || c.key==='kdv') && typeof value==='number' && !cell.numFmt) cell.numFmt='#,##0.00';
     });
   });
 
-  // Gerçek kayıt sayısından sonra kalan şablon satırları boş kalır.
-  // Bunlar veri içermez ve Excel tarafından bozuk/kopyalanmış kayıt olarak
-  // değerlendirilmez.
-  return wb;
+  /*
+    Fatura örnek dosyasındaki "Ödeme Şekli Referans" yardımcı sayfası
+    veri kaynağı değil, gerçek referans sayfasıdır. Bu nedenle sadece bu
+    sayfa aynen kopyalanır; örnek fatura kayıtları hiçbir şekilde kopyalanmaz.
+  */
+  if(templateKey==='fatura' && sourceWb.worksheets.length>1){
+    for(let si=1;si<sourceWb.worksheets.length;si++){
+      const src=sourceWb.worksheets[si];
+      const dst=outWb.addWorksheet(src.name);
+      const mc=Math.max(src.columnCount,1);
+      copySheetLayout(src,dst,mc);
+
+      for(let r=1;r<=src.rowCount;r++){
+        const sr=src.getRow(r), dr=dst.getRow(r);
+        if(sr.height!=null) dr.height=sr.height;
+        for(let c=1;c<=mc;c++){
+          const sc=sr.getCell(c), dc=dr.getCell(c);
+          dc.value=sc.value;
+          cloneStyle(sc,dc);
+        }
+      }
+
+      if(src.mergedCells){
+        src.mergedCells.forEach(range=>{
+          try{ dst.mergeCells(range); }catch(e){}
+        });
+      }
+    }
+  }
+
+  return outWb;
 }
 
 /* ============================================================
