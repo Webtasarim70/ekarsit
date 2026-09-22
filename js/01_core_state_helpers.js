@@ -455,82 +455,72 @@ function grabTelefon(text, label, stopLabels = []) {
 // tespit sırasına göre eşleştirilir — bu nedenle sonuç her zaman kontrol
 // edilmelidir.
 function extractFaturaRowsFromBlock(blockText) {
-  // Tutanak PDF'sindeki tablo sütunları PDF metnine çoğu zaman
-  // "Tarih -> Seri -> Tutarlar -> Defter Tarihi -> Yevmiye -> Ödeme -> Numara"
-  // sırasıyla düşmektedir. Bu nedenle fatura başlangıcını seri+numara+tarih
-  // dizilimine bağlamak dönem tespitini bozabilir. Tarihi fatura başlangıcı
-  // kabul ediyoruz; aynı tarih içindeki Defter Kayıt Tarihi yeni fatura sayılmaz.
+  // Fatura tablosu PDF'de sayfa sonunda bölünebilir. Bu nedenle tüm bloktaki
+  // tarih/tutarları ayrı ayrı toplamak yerine HER FATURA TARİHİNİ bir satır
+  // başlangıcı kabul ediyoruz. Böylece sonraki sayfadaki devam satırları da
+  // aynı sırayla okunur ve bir önceki sayfanın sütunlarıyla karışmaz.
   const raw = String(blockText || '').replace(/\r/g, ' ');
   const tokens = raw.split(/\s+/).map(x => x.trim()).filter(Boolean);
   const dateRe = /^\d{2}\.\d{2}\.\d{4}$/;
   const moneyRe = /^-?\d{1,3}(?:\.\d{3})*,\d{2}$/;
-  const letterDigitRe = /^[A-ZÇĞİÖŞÜ]{2,12}\d{3,}$/i;
-  const pureDigitRe = /^\d{2,12}$/;
+  const letterDigitRe = /^[A-ZÇĞİÖŞÜ]{2,8}\d{3,}$/i;
+  const pureDigitRe = /^\d{2,9}$/;
 
   const dateIndexes = [];
   tokens.forEach((t, i) => { if (dateRe.test(t)) dateIndexes.push(i); });
 
-  const starts = [];
-  for (let i = 0; i < dateIndexes.length; i++) {
-    const idx = dateIndexes[i];
-    // Aynı tarih, fatura satırındaki "Defter Kayıt Tarihi" olabilir.
-    // Sonraki farklı tarih yeni fatura başlangıcıdır.
-    const prev = starts.length ? starts[starts.length - 1] : -1;
-    if (prev >= 0 && tokens[prev] === tokens[idx]) continue;
-    starts.push(idx);
-  }
-
   const rows = [];
-  for (let si = 0; si < starts.length; si++) {
-    const start = starts[si];
-    const end = si + 1 < starts.length ? starts[si + 1] : tokens.length;
+  for (let di = 0; di < dateIndexes.length; di++) {
+    const start = dateIndexes[di];
+    const end = di + 1 < dateIndexes.length ? dateIndexes[di + 1] : tokens.length;
     const chunk = tokens.slice(start, end);
     const tarih = chunk[0] || '';
 
-    // TOPLAM satırının tutarları tarihsiz olduğu için son fatura chunk'ına
-    // gelebilir. İlk iki parasal değer her zaman fatura matrahı ve KDV'dir;
-    // toplam satırındaki değerler üçüncü ve dördüncü parasal değer olur.
+    // Bu fatura satırının ilk iki parasal değeri MATRAH ve KDV'dir.
+    // TOPLAM satırı bir tarih içermediği için hiçbir faturaya dahil edilmez.
     const moneyIndexes = [];
     chunk.forEach((t, i) => { if (moneyRe.test(t)) moneyIndexes.push(i); });
     if (moneyIndexes.length < 2) continue;
 
-    // Seri PDF metninde fatura tarihinden hemen sonra veya yakınında bulunur.
-    let seri = '';
+    // Fatura numarası çoğu tutanakta seri ile numaranın PDF satır kırılması
+    // nedeniyle iki ayrı token olarak gelir: SME2026000 + 000052.
+    // Önce harf+rakam parçasını, sonra ona en yakın salt rakam parçasını bul.
+    let seriFrag = '';
+    let noFrag = '';
     let seriIndex = -1;
-    for (let i = 1; i < Math.min(chunk.length, 12); i++) {
-      if (letterDigitRe.test(chunk[i])) { seri = chunk[i]; seriIndex = i; break; }
+    for (let i = 1; i < Math.min(chunk.length, moneyIndexes[0] + 4); i++) {
+      if (letterDigitRe.test(chunk[i])) {
+        seriFrag = chunk[i];
+        seriIndex = i;
+        break;
+      }
     }
-
-    // Fatura numarası bazı PDF'lerde yevmiye numarasından sonra gelir.
-    // Aynı fatura chunk'ındaki seri sonrasındaki son salt sayı tokenı,
-    // bu tablo düzeninde fatura numarasıdır.
-    let no = '';
-    if (seriIndex >= 0) {
+    if (seriFrag) {
+      // Numara parçası bazen tutarlardan sonra gelir; bu nedenle tüm chunk'ta
+      // ilk uygun salt sayı tokenını seri parçasıyla eşleştir.
       for (let i = seriIndex + 1; i < chunk.length; i++) {
-        if (pureDigitRe.test(chunk[i])) no = chunk[i];
+        if (pureDigitRe.test(chunk[i])) { noFrag = chunk[i]; break; }
       }
     } else {
+      // Seri ayrı bir sütun olarak gelmiyorsa salt sayı tokenını fatura no kabul
+      // et. Tutarları bu aramadan özellikle hariç tutuyoruz.
       for (let i = 1; i < moneyIndexes[0]; i++) {
-        if (pureDigitRe.test(chunk[i])) no = chunk[i];
+        if (pureDigitRe.test(chunk[i])) { noFrag = chunk[i]; break; }
       }
     }
 
-    const defterDatePos = chunk.findIndex((t, i) => i > 0 && dateRe.test(t));
-    let yevmiyeNo = '';
-    let odemeSekli = '';
-    if (defterDatePos >= 0) {
-      for (let i = defterDatePos + 1; i < chunk.length; i++) {
-        if (pureDigitRe.test(chunk[i])) { yevmiyeNo = chunk[i]; if (i + 1 < chunk.length) odemeSekli = chunk[i + 1]; break; }
-      }
-    }
-
+    const no = seriFrag ? `${seriFrag}${noFrag}` : noFrag;
     rows.push({
-      no, seri, tarih,
+      no,
+      seri: '',
+      tarih,
       tutar: chunk[moneyIndexes[0]] || '',
       kdv: chunk[moneyIndexes[1]] || '',
-      defterKayitTarihi: defterDatePos >= 0 ? chunk[defterDatePos] : '',
-      yevmiyeNo, odemeSekli,
-      aciklama:'', hataliSatir:''
+      defterKayitTarihi: '',
+      yevmiyeNo: '',
+      odemeSekli: '',
+      aciklama: '',
+      hataliSatir: ''
     });
   }
   return rows;
