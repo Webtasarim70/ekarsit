@@ -9,7 +9,7 @@ function getSharedArchiveParsed(){
 function requireSharedArchive(pageTitle){
   const parsed=getSharedArchiveParsed();
   if(!parsed){
-    alert(`Önce Arşiv → Arşiv Dosyası Yükle bağlantısından arşiv dosyasını yükleyin.`);
+    alert(`Önce Arşiv → Arşiv Dosyası Yükle / Oluştur bağlantısından arşiv dosyasını yükleyin.`);
     renderArchiveUploadPage();
     return null;
   }
@@ -25,8 +25,8 @@ function syncSharedArchiveRefs(parsed){
 function renderArchiveUploadPage(){
   currentPage='archive-upload';archiveMenuOpen=true;currentStep=-1;
   const content=document.getElementById('step-content');content.innerHTML='';
-  content.appendChild(el('h2',{class:'step-title'},'Arşiv Dosyası Yükle'));
-  content.appendChild(el('p',{class:'step-desc'},'Arşiv dosyasını yalnızca bu bölümden bir kez yükleyin. Yüklendikten sonra Arşiv Görüntüle, Arşiv Düzenle ve Dosyadan Veri Al bağlantıları aynı arşiv verisini otomatik kullanır; bu sayfalarda tekrar dosya yüklemeniz gerekmez.'));
+  content.appendChild(el('h2',{class:'step-title'},'Arşiv Dosyası Yükle / Oluştur'));
+  content.appendChild(el('p',{class:'step-desc'},'Mevcut arşiv dosyanızı yükleyebilir veya yeni, boş ve doldurulabilir bir arşiv dosyası oluşturabilirsiniz. Arşiv bir kez yüklendikten/oluşturulduktan sonra Arşiv Görüntüle, Arşiv Düzenle ve Dosyadan Veri Al bağlantıları aynı arşiv verisini otomatik kullanır.'));
   const card=el('div',{class:'card'});
   card.appendChild(el('h3',{},'📂 Mevcut Arşiv Dosyası'));
   card.appendChild(el('div',{class:'hint info'},'Gerçek arşiv Excel dosyanızı veya arşiv ZIP dosyanızı yükleyin. Yeni bir dosya yüklerseniz mevcut ortak arşiv verisi yeni dosyayla değiştirilir.'));
@@ -54,11 +54,41 @@ function renderArchiveUploadPage(){
     status.appendChild(el('div',{class:'hint ok'},`✓ Kullanılan arşiv: ${state.existingArchiveFile?.name||'—'} — ${m.unvan||'Ünvan bulunamadı'}`));
   }
   card.appendChild(status);content.appendChild(card);
+
+  const createCard=el('div',{class:'card',style:'margin-top:14px;'});
+  createCard.appendChild(el('h3',{},'🆕 Yeni Arşiv Dosyası Oluştur'));
+  createCard.appendChild(el('div',{class:'hint info'},'Yeni mükellef için boş arşiv oluşturmak üzere aşağıdaki genel bilgileri girin. Oluşturulan Excel, gerekli arşiv bölümlerini boş ve doldurulabilir şekilde içerir.'));
+  const createGrid=el('div',{class:'archive-create-grid',style:'margin-top:12px;'});
+  const newVkn=el('input',{class:'input',placeholder:'Vergi/T.C. Kimlik Numarası'});
+  const newUnvan=el('input',{class:'input',placeholder:'Adı ve Soyadı / Ünvanı'});
+  const newVD=el('input',{class:'input',placeholder:'Vergi Dairesi'});
+  const newAdres=el('input',{class:'input',placeholder:'Adres'});
+  const newTel=el('input',{class:'input',placeholder:'Telefon Numarası'});
+  [['Vergi/T.C. Kimlik Numarası',newVkn],['Adı ve Soyadı / Ünvanı',newUnvan],['Vergi Dairesi',newVD],['Adres',newAdres],['Telefon Numarası',newTel]].forEach(([label,input])=>{const f=el('div',{class:'field'});f.appendChild(el('label',{},label));f.appendChild(input);createGrid.appendChild(f);});
+  createCard.appendChild(createGrid);
+  const createStatus=el('div',{style:'margin-top:10px;'});
+  createCard.appendChild(el('button',{class:'btn btn-primary',style:'margin-top:12px;',onclick:async()=>{
+    createStatus.innerHTML='';
+    const vkn=String(newVkn.value||'').trim(), unvan=String(newUnvan.value||'').trim();
+    if(!vkn || !unvan){createStatus.appendChild(el('div',{class:'hint warn'},'⚠️ Vergi/T.C. Kimlik Numarası ile Adı ve Soyadı / Ünvanı zorunludur.'));return;}
+    const parsed={mukellef:{unvan,vkn,vergiDairesi:String(newVD.value||'').trim(),adres:String(newAdres.value||'').trim(),telefon:String(newTel.value||'').trim()},ortaklar:[],defterler:[],faturalar:[],isciler:[],kdvBeyanlari:[],imalatcilar:[],tedarikciler:[]};
+    try{
+      const wb=buildArchiveWorkbook(parsed);
+      const safe=unvan.replace(/[^\p{L}\p{N}]+/gu,'_').slice(0,80)||'MUKELLEF';
+      const filename=`Yeni_Arşiv_${safe}.xlsx`;
+      await downloadWorkbook(wb,filename);
+      state.existingArchiveParsed=parsed; state.existingArchiveFile={name:filename}; syncSharedArchiveRefs(parsed); archiveToState(parsed);
+      createStatus.appendChild(el('div',{class:'hint ok'},`✓ Yeni arşiv oluşturuldu: ${filename}`));
+      renderNav();
+      setTimeout(()=>renderArchiveViewPage(),80);
+    }catch(err){createStatus.appendChild(el('div',{class:'hint warn'},`⚠️ Yeni arşiv oluşturulamadı: ${err.message}`));}
+  }},'➕ Yeni Arşiv Dosyası Oluştur ve Devam Et'));
+  createCard.appendChild(createStatus);content.appendChild(createCard);
   const next=el('div',{class:'card',style:'margin-top:14px;'});
   next.appendChild(el('h3',{},'Arşiv bağlantıları'));next.appendChild(el('div',{class:'hint info'},'Dosyayı tekrar yüklemeden aşağıdaki bağlantılardan aynı arşiv üzerinde çalışabilirsiniz.'));
   [['archive-view','Arşiv Görüntüle'],['archive-edit','Arşiv Düzenle'],['archive-data-import','Dosyadan Veri Al']].forEach(([id,label])=>next.appendChild(el('button',{class:'btn btn-secondary',style:'margin:4px 6px 4px 0;',onclick:()=>id==='archive-view'?renderArchiveViewPage():id==='archive-edit'?renderArchiveEditPage():renderArchiveDataImportPage()},label)));
   content.appendChild(next);
-  document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('btn-next').textContent='Arşiv Dosyası Yükle';document.getElementById('footer-msg').textContent='Arşiv Dosyası Yükle';renderNav();
+  document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('btn-next').textContent='Arşiv Dosyası Yükle / Oluştur';document.getElementById('footer-msg').textContent='Arşiv Dosyası Yükle / Oluştur';renderNav();
 }
 
 

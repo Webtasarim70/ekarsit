@@ -255,3 +255,6 @@ details.raw-details summary {
 .version-note-form{display:grid;grid-template-columns:180px 1fr auto;gap:10px;align-items:start;margin-top:10px;}
 .version-note-form textarea{min-height:92px;resize:vertical;}
 @media(max-width:800px){.version-note-form{grid-template-columns:1fr;}}
+
+.archive-create-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px;}
+@media(max-width:800px){.archive-create-grid{grid-template-columns:1fr;}}

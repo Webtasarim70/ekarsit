@@ -231,7 +231,7 @@ function renderNav() {
     el('div',{class:'num'},archiveMenuOpen?'▾':'▸'), el('div',{},'Arşiv İşlemleri')
   ]));
   if(archiveMenuOpen){
-    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-upload'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveUploadPage()},[el('div',{},'Arşiv Dosyası Yükle')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-upload'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveUploadPage()},[el('div',{},'Arşiv Dosyası Yükle / Oluştur')]));
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-view'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveViewPage()},[el('div',{},'Arşiv Görüntüle')]));
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-edit'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveEditPage()},[el('div',{},'Arşiv Düzenle')]));
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-data-import'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveDataImportPage()},[el('div',{},'Dosyadan Veri Al')]));
