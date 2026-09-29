@@ -67,6 +67,13 @@ function kdvXmlInvoiceData(doc,file){
     kdv,
     kdvOrani:uniqueRates.length===1?Number(uniqueRates[0]):null,
     toplam:payable.value||dahil.value,
+    toplamIndirilenKdv:kdv,
+    cins:kdvXmlItemDescription(doc),
+    miktar:kdvXmlQuantity(doc),
+    tevkifatIndirilen:0,
+    tevkifat2No:0,
+    ggbTescilNo:'',
+    indirimDonemi:'',
     paraBirimi:matrah.currency||dahil.currency||payable.currency,
     dosya:file.name
   };
