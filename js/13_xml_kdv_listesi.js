@@ -28,8 +28,36 @@ function kdvXmlPartyId(party){
   return String(id?.textContent||'').trim();
 }
 function kdvXmlNumber(value){
-  const n=Number(String(value??'').replace(/\s/g,'').replace(',','.'));
+  const raw=String(value??'').trim().replace(/\s/g,'');
+  if(!raw) return 0;
+  const normalized=raw.includes(',') && raw.includes('.')
+    ? (raw.lastIndexOf(',')>raw.lastIndexOf('.') ? raw.replace(/\\./g,'').replace(',','.') : raw.replace(/,/g,''))
+    : raw.replace(',','.');
+  const n=Number(normalized);
   return Number.isFinite(n)?n:0;
+}
+function kdvXmlDirectChildren(doc,name){
+  const root=doc?.documentElement;
+  if(!root) return [];
+  return Array.from(root.children||[]).filter(n=>kdvXmlLocalName(n)===String(name).toLowerCase());
+}
+function kdvXmlTlNotes(doc){
+  const notes=kdvXmlNodes(doc,'Note').map(n=>String(n.textContent||'').replace(/\s+/g,' ').trim()).filter(Boolean);
+  const out={};
+  for(const note of notes){
+    let m=note.match(/Kur\s*:\s*([0-9.,]+)/i);
+    if(m) out.kur=kdvXmlNumber(m[1]);
+    m=note.match(/FTutar\s*([0-9.,]+).*?KDV\s*([0-9.,]+).*?GenelToplam\s*([0-9.,]+).*?TEVK[İI]FAT\s*([0-9.,]+)/i);
+    if(m){
+      out.matrah=kdvXmlNumber(m[1]);
+      out.kdv=kdvXmlNumber(m[2]);
+      out.toplam=kdvXmlNumber(m[3]);
+      out.tevkifat=kdvXmlNumber(m[4]);
+    }
+    m=note.match(/Karşılığı\s*([0-9.,]+)\s*TL/i);
+    if(m) out.toplam=kdvXmlNumber(m[1]);
+  }
+  return out;
 }
 function kdvXmlMoney(doc,name){
   const node=kdvXmlFirst(doc,name);
@@ -39,20 +67,54 @@ function kdvXmlInvoiceData(doc,file){
   if(kdvXmlLocalName(doc.documentElement)!=='invoice') throw new Error('UBL-TR Invoice XML değil.');
   const supplier=kdvXmlNodes(doc,'AccountingSupplierParty')[0];
   const customer=kdvXmlNodes(doc,'AccountingCustomerParty')[0];
-  const taxTotals=kdvXmlNodes(doc,'TaxTotal');
-  let kdv=0;
-  const rates=[];
-  taxTotals.forEach(t=>{
-    kdvXmlNodes(t,'TaxAmount').slice(0,1).forEach(n=>{kdv+=kdvXmlNumber(n.textContent);});
-    kdvXmlNodes(t,'TaxSubtotal').forEach(sub=>{
-      const percent=kdvXmlFirst(sub,'Percent')?.textContent;
-      if(String(percent||'').trim()!=='') rates.push(kdvXmlNumber(percent));
-    });
-  });
-  const uniqueRates=[...new Set(rates.map(x=>String(x)))];
+  const invoiceType=kdvXmlText(doc,'InvoiceTypeCode').toUpperCase();
+  const topTax=kdvXmlDirectChildren(doc,'TaxTotal')[0]||null;
+  const topWithholding=kdvXmlDirectChildren(doc,'WithholdingTaxTotal')[0]||null;
+
+  // Faturanın gerçek toplam KDV'si, tevkifatlı faturada TaxTotal/TaxAmount'tan
+  // farklı olabilir; TaxSubtotal/TaxAmount tam KDV'yi verir.
+  const topTaxSubtotals=topTax ? kdvXmlNodes(topTax,'TaxSubtotal') : [];
+  const fullKdvXml=topTaxSubtotals.length
+    ? topTaxSubtotals.reduce((sum,sub)=>sum+kdvXmlNumber(kdvXmlFirst(sub,'TaxAmount')?.textContent),0)
+    : kdvXmlNumber(kdvXmlFirst(topTax,'TaxAmount')?.textContent);
+
+  const buyerVatXml=kdvXmlNumber(kdvXmlFirst(topTax,'TaxAmount')?.textContent);
+  const withholdingXml=kdvXmlNumber(kdvXmlFirst(topWithholding,'TaxAmount')?.textContent);
   const matrah=kdvXmlMoney(doc,'TaxExclusiveAmount');
   const dahil=kdvXmlMoney(doc,'TaxInclusiveAmount');
   const payable=kdvXmlMoney(doc,'PayableAmount');
+  const tl=kdvXmlTlNotes(doc);
+  const isWithholding=invoiceType==='TEVKIFAT' || !!topWithholding || withholdingXml>0;
+
+  // Kullanıcının eklediği örneklerde yabancı para fatura için TL karşılığı
+  // Note alanında ayrıca veriliyor. Liste TL esaslı oluşturulduğu için bu
+  // değerler doğrudan kullanılır.
+  const matrahTl=Number.isFinite(tl.matrah)?tl.matrah:matrah.value;
+  const kdvTl=Number.isFinite(tl.kdv)?tl.kdv:fullKdvXml;
+  const withholdingTl=Number.isFinite(tl.tevkifat)?tl.tevkifat:withholdingXml;
+  const toplamTl=Number.isFinite(tl.toplam)?tl.toplam:(payable.value||dahil.value);
+
+  let tevkifatIndirilen=0;
+  let tevkifat2No=0;
+  let toplamIndirilenKdv=kdvTl;
+
+  if(isWithholding){
+    // 06/2024 sonrası kılavuz mantığı:
+    // L = tevkifata tabi olmayan ve bu dönemde indirilen KDV
+    // M = 2 No.lu beyannamede ödenen tevkifat KDV
+    // N = L + M, KDV'yi aşamaz.
+    tevkifat2No=Math.max(0,Math.min(withholdingTl,kdvTl));
+    tevkifatIndirilen=Math.max(0,kdvTl-tevkifat2No);
+    toplamIndirilenKdv=Math.min(kdvTl,tevkifatIndirilen+tevkifat2No);
+  }
+
+  const rates=[];
+  topTaxSubtotals.forEach(sub=>{
+    const percent=kdvXmlFirst(sub,'Percent')?.textContent;
+    if(String(percent||'').trim()!=='') rates.push(kdvXmlNumber(percent));
+  });
+  const uniqueRates=[...new Set(rates.map(x=>String(x)))];
+
   return {
     belgeTuru:'Fatura',
     vkn:kdvXmlPartyId(supplier),
@@ -62,19 +124,20 @@ function kdvXmlInvoiceData(doc,file){
     faturaNo:kdvXmlText(doc,'ID'),
     uuid:kdvXmlText(doc,'UUID'),
     profil:kdvXmlText(doc,'ProfileID'),
-    faturaTipi:kdvXmlText(doc,'InvoiceTypeCode'),
-    matrah:matrah.value,
-    kdv,
+    faturaTipi:invoiceType,
+    matrah:matrahTl,
+    kdv:kdvTl,
     kdvOrani:uniqueRates.length===1?Number(uniqueRates[0]):null,
-    toplam:payable.value||dahil.value,
-    toplamIndirilenKdv:kdv,
+    toplam:toplamTl,
+    toplamIndirilenKdv,
     cins:kdvXmlItemDescription(doc),
     miktar:kdvXmlQuantity(doc),
-    tevkifatIndirilen:0,
-    tevkifat2No:0,
+    tevkifatIndirilen,
+    tevkifat2No,
     ggbTescilNo:'',
     indirimDonemi:'',
-    paraBirimi:matrah.currency||dahil.currency||payable.currency,
+    paraBirimi:'TRY',
+    kaynakParaBirimi:matrah.currency||dahil.currency||payable.currency,
     dosya:file.name
   };
 }
@@ -133,7 +196,11 @@ function kdvCreateWorkbook(rows,errors){
     const row=ws.getRow(startRow+i);
     [
       i+1,kdvExcelDate(r.tarih),sn.series,sn.number,r.saticiUnvan,r.vkn,r.cins,r.miktar,
-      r.matrah,r.kdv,r.tevkifatIndirilen||0,r.tevkifat2No||0,r.toplamIndirilenKdv,r.ggbTescilNo||'',r.indirimDonemi||''
+      r.matrah,r.kdv,
+      r.tevkifatIndirilen||0,
+      r.tevkifat2No||0,
+      r.toplamIndirilenKdv,
+      r.ggbTescilNo||'',r.indirimDonemi||''
     ].forEach((v,j)=>row.getCell(j+2).value=v);
     row.eachCell({includeEmpty:true},c=>{
       if(c.column>=2&&c.column<=16){
