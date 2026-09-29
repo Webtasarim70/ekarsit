@@ -197,7 +197,7 @@ function renderEdefterXmlViewerPage(){
   content.appendChild(el('p',{class:'step-desc'},'e-Defter ve berat XML dosyaları, dosyanın XML içinde tanımladığı XSLT ile mümkün olduğunca orijinal e-Defter görünümünde oluşturulur. XSLT dosyanız ayrıysa XML ile birlikte seçebilirsiniz.'));
   const card=el('div',{class:'card edefter-no-print'});
   card.appendChild(el('h3',{},'📄 XML / XSLT Dosyalarını Yükle'));
-  card.appendChild(el('div',{class:'hint info'},'Desteklenen dosyalar: .xml, .xsl, .xslt. Örneğin YB/KB dosyaları için XML içindeki “berat.xslt” tanımı otomatik aranır. Yerleşik berat.xslt de ayrıca kullanılabilir.'));
+  card.appendChild(el('div',{class:'hint info'},'Desteklenen dosyalar: .xml, .xsl, .xslt. Örneğin YB/KB dosyaları için XML içindeki “berat.xslt” tanımı otomatik aranır. XML içinde belirtilen XSLT dosyasını XML ile birlikte seçmeniz yeterlidir.'));
   const result=el('div');
   fileUploadBox(card,{accept:'.xml,.xsl,.xslt',multiple:true,hint:'XML ve varsa XSLT dosyalarını birlikte sürükleyin veya seçin',onFiles:async(files,box)=>{
     result.innerHTML='';
