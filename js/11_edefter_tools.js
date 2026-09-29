@@ -198,7 +198,18 @@ function renderEdefterXmlViewerPage(){
   card.appendChild(el('div',{class:'hint info'},'Desteklenen dosyalar: .xml. Yevmiye, Kebir, Defter Raporu/Mizan ve YB/KB ile GİB onaylı berat dosyaları otomatik tür algılama ve yerleşik XSLT şablonuyla görüntülenir.'));
   const result=el('div');
   const xmlFilesByName=new Map();
-  fileUploadBox(card,{accept:'.xml',multiple:true,hint:'e-Defter veya berat XML dosyalarını sürükleyin veya seçin',onFiles:async(files,box)=>{
+  const uploadBoxHost=el('div');
+  const clearBtn=el('button',{class:'btn btn-secondary edefter-no-print',style:'margin-top:10px;',onclick:()=>{
+    xmlFilesByName.clear();
+    result.innerHTML='';
+    const input=uploadBoxHost.querySelector('input[type="file"]');
+    if(input) input.value='';
+    const chips=uploadBoxHost.querySelector('.file-chip-list');
+    if(chips) chips.remove();
+  }},'🧹 Temizle');
+  const actions=el('div',{class:'table-actions edefter-no-print',style:'margin-top:10px;'},[clearBtn]);
+  card.appendChild(uploadBoxHost);
+  fileUploadBox(uploadBoxHost,{accept:'.xml',multiple:true,hint:'e-Defter veya berat XML dosyalarını sürükleyin veya seçin',onFiles:async(files,box)=>{
     result.innerHTML='';
     for(const file of files) if(/\.xml$/i.test(file.name)) xmlFilesByName.set(file.name,file);
     for(const file of xmlFilesByName.values()){
@@ -241,45 +252,11 @@ function renderEdefterXmlViewerPage(){
       result.appendChild(item);
     }
   }});
+  card.appendChild(actions);
   card.appendChild(result);
   content.appendChild(card);
   content.appendChild(el('div',{class:'hint warn edefter-no-print'},'Not: XSLT ile oluşturulan görünüm dosyanın biçimlendirilmiş sunumudur; elektronik imza/mali mühür geçerliliğini doğrulamaz ve GİB kayıtlarıyla karşılaştırma yapmaz.'));
   document.getElementById('btn-prev').disabled=true; document.getElementById('btn-next').disabled=true; document.getElementById('footer-msg').textContent='Araçlar → e-Defter XML / Berat Görüntüleyici'; renderNav();
-}
-let edefterPdfObjectUrl='';
-
-function renderEdefterPdfViewerPage(){
-  currentToolPage='pdf';
-  currentPage='tools-pdf';
-  currentStep=-1;
-  const content=document.getElementById('step-content'); content.innerHTML='';
-  content.appendChild(el('h2',{class:'step-title'},'e-Defter PDF Görüntüleyici'));
-  content.appendChild(el('p',{class:'step-desc'},'Elinizdeki e-Defter PDF çıktısını ekranda görüntüleyin ve aynı dosyayı bilgisayarınıza kaydedin.'));
-  const card=el('div',{class:'card edefter-no-print'});
-  card.appendChild(el('h3',{},'📑 PDF Yükle'));
-  const status=el('div');
-  const viewer=el('div',{class:'edefter-pdf-viewer'});
-  fileUploadBox(card,{accept:'.pdf',multiple:false,hint:'e-Defter PDF dosyasını sürükleyin veya seçin',onFiles:async(files,box)=>{
-    const file=files[0]; if(!file) return;
-    markFileChip(box,file.name,true);
-    if(edefterPdfObjectUrl) URL.revokeObjectURL(edefterPdfObjectUrl);
-    edefterPdfObjectUrl=URL.createObjectURL(file);
-    status.innerHTML='';
-    const actions=el('div',{class:'table-actions'});
-    actions.appendChild(el('button',{class:'btn btn-primary',onclick:()=>downloadBlob(file,file.name)},'⬇ PDF Kaydet'));
-    actions.appendChild(el('a',{class:'btn btn-secondary',href:edefterPdfObjectUrl,target:'_blank',rel:'noopener noreferrer',style:'text-decoration:none;'},'↗ Yeni Sekmede Aç'));
-    status.appendChild(el('div',{class:'hint ok'},`✓ ${file.name} — ${(file.size/1024/1024).toFixed(2)} MB`));
-    status.appendChild(actions);
-    viewer.innerHTML='';
-    const iframe=document.createElement('iframe');
-    iframe.src=edefterPdfObjectUrl;
-    iframe.title='e-Defter PDF görüntüleme';
-    iframe.className='edefter-pdf-frame';
-    viewer.appendChild(iframe);
-  }});
-  card.appendChild(status); card.appendChild(viewer); content.appendChild(card);
-  content.appendChild(el('div',{class:'hint info edefter-no-print'},'PDF dosyası tarayıcının yerleşik PDF görüntüleyicisiyle açılır. “PDF Kaydet” düğmesi yüklediğiniz orijinal PDF dosyasını aynen indirir.'));
-  document.getElementById('btn-prev').disabled=true; document.getElementById('btn-next').disabled=true; document.getElementById('footer-msg').textContent='Araçlar → e-Defter PDF Görüntüleyici'; renderNav();
 }
 
 window.addEventListener('afterprint',()=>document.body.classList.remove('edefter-print-mode','edefter-render-print-mode'));
