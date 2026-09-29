@@ -250,36 +250,57 @@ function renderArchiveEditMuavin(container,refresh){
 function renderArchiveEditTedarikciKdvList(container,refresh){
   const wrap=el('div',{class:'card',style:'background:#fbfdfd;'});
   wrap.appendChild(el('h3',{},'📎 İndirilecek KDV Listesi — Her Dönem İçin En Yüksek Matrahlı 10 Fatura'));
-  wrap.appendChild(el('div',{class:'hint info'},'Yüklenen Excel birden fazla dönemi içerebilir. Sistem her ayı ayrı değerlendirir ve her ay için KDV hariç matrahı en yüksek 10 faturayı tespit eder. Dönem kontrolü yapılmaz; bu bölümde ana mükellef için belge dönemi kontrolü uygulanmaz.'));
+  wrap.appendChild(el('div',{class:'hint info'},'Yüklenen Excel birden fazla dönemi içerebilir. Sistem her dönemi ayrı değerlendirir ve her dönem için KDV hariç matrahı en yüksek 10 faturayı, Arşivdeki 8. Tedarikçi Firmalar kayıtlarıyla VKN + fatura tarihi + fatura numarası üzerinden karşılaştırır. Tutar kontrolünde KDV hariç matrah + KDV ile arşivdeki kayıt tutarı karşılaştırılır.'));
   const preview=el('div');
   fileUploadBox(wrap,{accept:'.xlsx,.xlsm,.xls',hint:'İndirilecek KDV listesi Excel — .xlsx / .xlsm / .xls',multiple:true,onFiles:async(files,box)=>{
     preview.innerHTML='';
-    const allRows=[]; const errors=[];
-    for(const file of files){
-      markFileChip(box,file.name);
-      try{ allRows.push(...await parseTedarikciExcel(file)); }
-      catch(e){ errors.push(`${file.name}: ${e.message}`); }
-    }
+    const allRows=[];const errors=[];
+    for(const file of files){markFileChip(box,file.name);try{allRows.push(...await parseTedarikciExcel(file));}catch(e){errors.push(`${file.name}: ${e.message}`);}}
     errors.forEach(msg=>preview.appendChild(el('div',{class:'hint warn',style:'margin-top:8px;'},`⚠️ ${msg}`)));
     if(!allRows.length)return;
     const monthGroups=new Map();
     allRows.forEach(item=>{const key=invoiceMonthKey(item.faturaTarihi)||`__BELIRSIZ__${item.faturaTarihi||''}`;if(!monthGroups.has(key))monthGroups.set(key,[]);monthGroups.get(key).push(item);});
-    const topRows=[]; const monthSummaries=[];
-    [...monthGroups.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([key,items])=>{
-      items.sort((a,b)=>parseMoneyNumber(b.faturaMatrahi)-parseMoneyNumber(a.faturaMatrahi));
-      const top=items.slice(0,10); topRows.push(...top); monthSummaries.push(`${invoiceMonthLabel(key.replace(/^__BELIRSIZ__.*/,''))}: ${top.length} fatura`);
+    const topRows=[];const monthSummaries=[];
+    [...monthGroups.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([key,items])=>{items.sort((a,b)=>parseMoneyNumber(b.faturaMatrahi)-parseMoneyNumber(a.faturaMatrahi));const top=items.slice(0,10);topRows.push(...top);monthSummaries.push(`${invoiceMonthLabel(key.replace(/^__BELIRSIZ__.*/,''))}: ${top.length} fatura`);});
+    const archiveRows=archiveEditParsed.tedarikciler||[];
+    const comparisons=topRows.map(item=>({item,result:compareTedarikciKdvRow(item,archiveRows)}));
+    const matched=comparisons.filter(x=>x.result.status==='matched');
+    const amountDiff=comparisons.filter(x=>x.result.status==='amountdiff');
+    const datediff=comparisons.filter(x=>x.result.status==='datediff');
+    const nodiff=comparisons.filter(x=>x.result.status==='nodiff');
+    const missing=comparisons.filter(x=>x.result.status==='missing');
+
+    const table=el('table',{class:'editable-table'});
+    const hr=el('tr');['Dönem','Tedarikçi','VKN','Fatura Tarihi','Fatura No','KDV Hariç','KDV','KDV Dahil','8. Tedarikçi Firmalar','Kontrol'].forEach(h=>hr.appendChild(el('th',{},h)));table.appendChild(hr);
+    comparisons.forEach(({item,result})=>{
+      const archive=result.archive;
+      const statusText={matched:'✓ Eşleşti',amountdiff:'⚠️ Tutar farklı',datediff:'⚠️ Tarih farklı',nodiff:'⚠️ Fatura numarası farklı',missing:'＋ Arşivde yok'}[result.status]||result.status;
+      const statusClass=result.status==='matched'?'hint ok':result.status==='missing'?'hint info':'hint warn';
+      const vals=[invoiceMonthLabel(invoiceMonthKey(item.faturaTarihi)),item.adSoyad||'—',item.vkn||'—',item.faturaTarihi||'—',item.faturaNo||'—',item.faturaMatrahi||'—',item.faturaKdv||'—',item.kdvDahilTutar||'—',archive?(archive.adSoyad||'—')+' / '+(archive.faturaNo||'—'):'—'];
+      vals.forEach(v=>trAppend(v));
+      function trAppend(v){hr;tr;}
+      const tr=el('tr'); vals.forEach(v=>tr.appendChild(el('td',{},v))); tr.appendChild(el('td',{},[el('span',{class:statusClass},statusText)])); table.appendChild(tr);
     });
-    const existing=archiveEditParsed.tedarikciler||[];
-    const norm=v=>String(v??'').replace(/\D/g,'');
-    const keyOf=x=>`${norm(x.vkn)}|${String(x.faturaTarihi||'').trim()}|${String(x.faturaNo||'').trim()}`;
-    const seen=new Set(existing.map(keyOf)); let added=0,dupes=0;
-    topRows.forEach(x=>{const k=keyOf(x);if(seen.has(k)){dupes++;return;}seen.add(k);archiveEditParsed.tedarikciler.push(x);added++;});
-    refresh();
-    preview.appendChild(el('div',{class:'hint ok',style:'margin-top:8px;'},`✓ ${files.length} dosya işlendi. ${monthSummaries.join(' • ')}. Toplam ${topRows.length} dönemsel yüksek matrah faturası tespit edildi, ${added} yeni kayıt arşiv düzenleme alanına aktarıldı.`));
-    preview.appendChild(el('div',{class:'hint warn',style:'margin-top:8px;'},'⚠️ Yüklediğiniz dosyanın ve bilgilerin doğruluğunu teyit edin'));
-    preview.appendChild(el('div',{class:dupes?'hint warn':'hint ok',style:'margin-top:8px;'},dupes?`⚠️ Mükerrer kontrolü: ${dupes} kayıt mevcut arşivde bulunduğu için tekrar eklenmedi.`:'✓ Mükerrer kontrolü: mevcut arşivde aynı fatura bulunmadı.'));
+    const problemCount=missing.length+amountDiff.length+datediff.length+nodiff.length;
+    preview.appendChild(el('div',{class:problemCount?'hint warn':'hint ok',style:'margin-top:8px;'},`✓ ${files.length} dosya işlendi. ${monthSummaries.join(' • ')}. Toplam ${topRows.length} yüksek matrah faturası karşılaştırıldı: ${matched.length} tam eşleşme, ${missing.length} arşivde yok, ${amountDiff.length} tutar farklı, ${datediff.length} tarih farklı, ${nodiff.length} fatura numarası farklı.`));
+    preview.appendChild(table);
+
+    const actions=el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;'});
+    if(missing.length){
+      const addBtn=el('button',{class:'btn btn-primary'},`＋ Arşivde Olmayan ${missing.length} Faturayı 8. Tedarikçi Firmalara Ekle`);
+      addBtn.onclick=()=>{
+        let added=0;
+        missing.forEach(({item})=>{const key=tedarikciInvoiceKey(item);if(archiveEditParsed.tedarikciler.some(x=>tedarikciInvoiceKey(x)===key))return;archiveEditParsed.tedarikciler.push({...item});added++;});
+        commitArchiveEditState();refresh();addBtn.disabled=true;addBtn.textContent=`✓ ${added} fatura 8. Tedarikçi Firmalar'a eklendi`;
+        preview.appendChild(el('div',{class:'hint ok',style:'margin-top:8px;'},`✓ ${added} eksik fatura arşivdeki 8. Tedarikçi Firmalar bölümüne eklendi.`));
+      };
+      actions.appendChild(addBtn);
+    }
+    if(amountDiff.length) actions.appendChild(el('div',{class:'hint warn',style:'flex:1;min-width:280px;'},'⚠️ VKN, tarih ve fatura numarası eşleştiği halde tutarı farklı olan kayıtlar otomatik değiştirilmez; mevcut arşiv kaydı korunur.'));
+    if(!missing.length) actions.appendChild(el('div',{class:'hint ok'},'✓ Top 10 listesindeki tüm faturalar 8. Tedarikçi Firmalar içinde karşılık buldu.'));
+    preview.appendChild(actions);
   }});
-  wrap.appendChild(preview); container.appendChild(wrap);
+  wrap.appendChild(preview);container.appendChild(wrap);
 }
 
 
@@ -460,25 +481,72 @@ function invoiceMonthLabel(key){
 }
 
 
+function normalizeTedarikciVkn(value){
+  const digits=String(value??'').replace(/\D/g,'');
+  return digits ? digits.padStart(10,'0') : '';
+}
+function normalizeTedarikciInvoiceNo(value){
+  return String(value??'').trim().replace(/\s+/g,'').toLocaleUpperCase('tr-TR');
+}
+function normalizeTedarikciDate(value){
+  if(value instanceof Date && !Number.isNaN(value.getTime())) return `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,'0')}-${String(value.getDate()).padStart(2,'0')}`;
+  const raw=String(value??'').trim();
+  let m=raw.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);
+  if(m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+  m=raw.match(/^(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})/);
+  if(m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  return raw;
+}
+function tedarikciInvoiceKey(x){
+  return [normalizeTedarikciVkn(x.vkn),normalizeTedarikciDate(x.faturaTarihi),normalizeTedarikciInvoiceNo(x.faturaNo)].join('|');
+}
+function tedarikciArchiveTotal(x){
+  const direct=parseMoneyNumber(x.kdvDahilTutar);
+  if(Number.isFinite(direct)) return direct;
+  const mat=parseMoneyNumber(x.faturaMatrahi);
+  const kdv=parseMoneyNumber(x.faturaKdv);
+  return Number.isFinite(mat)&&Number.isFinite(kdv) ? mat+kdv : NaN;
+}
+function compareTedarikciKdvRow(item,archiveRows){
+  const exact=archiveRows.find(x=>tedarikciInvoiceKey(x)===tedarikciInvoiceKey(item));
+  const expected=parseMoneyNumber(item.faturaMatrahi)+parseMoneyNumber(item.faturaKdv);
+  if(exact){
+    const archived=tedarikciArchiveTotal(exact);
+    if(Number.isFinite(expected)&&Number.isFinite(archived)){
+      const diff=Math.abs(expected-archived);
+      return diff<0.01?{status:'matched',archive:exact,expected,archived,diff}:{status:'amountdiff',archive:exact,expected,archived,diff};
+    }
+    return {status:'matched',archive:exact,expected,archived:NaN,diff:NaN};
+  }
+  const sameNo=archiveRows.find(x=>normalizeTedarikciVkn(x.vkn)===normalizeTedarikciVkn(item.vkn)&&normalizeTedarikciInvoiceNo(x.faturaNo)===normalizeTedarikciInvoiceNo(item.faturaNo));
+  if(sameNo) return {status:'datediff',archive:sameNo,expected,archived:tedarikciArchiveTotal(sameNo),diff:NaN};
+  const sameDate=archiveRows.find(x=>normalizeTedarikciVkn(x.vkn)===normalizeTedarikciVkn(item.vkn)&&normalizeTedarikciDate(x.faturaTarihi)===normalizeTedarikciDate(item.faturaTarihi));
+  if(sameDate) return {status:'nodiff',archive:sameDate,expected,archived:tedarikciArchiveTotal(sameDate),diff:NaN};
+  return {status:'missing',archive:null,expected,archived:NaN,diff:NaN};
+}
 async function parseTedarikciExcel(file){
-  const name=file.name.toLowerCase();
+  const name=String(file.name||'').toLowerCase();
+  let rows=[];
   if(name.endsWith('.xls')){
-    throw new Error('Bu liste eski .xls formatında. Tarayıcıdaki mevcut Excel okuyucu .xls dosyasını doğrudan açamıyor. Aynı dosyayı Excel/LibreOffice ile .xlsx olarak kaydedip tekrar yükleyin.');
+    if(typeof XLSX==='undefined') throw new Error('Eski .xls dosyaları için Excel okuyucu yüklenemedi.');
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+    const sheet=wb.Sheets[wb.SheetNames[0]];
+    if(!sheet) throw new Error('Excel çalışma sayfası bulunamadı.');
+    rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true});
+  }else{
+    const buf=await file.arrayBuffer();
+    const wb=new ExcelJS.Workbook();
+    await wb.xlsx.load(buf);
+    let best=wb.worksheets[0];
+    wb.worksheets.forEach(ws=>{if(ws.rowCount>(best?.rowCount||0))best=ws;});
+    if(!best) throw new Error('Excel çalışma sayfası bulunamadı.');
+    for(let r=1;r<=best.rowCount;r++){
+      const arr=[];const row=best.getRow(r);
+      for(let c=1;c<=18;c++) arr.push(row.getCell(c).value instanceof Date?row.getCell(c).value:excelCellText(row.getCell(c).value));
+      rows.push(arr);
+    }
   }
-  const buf=await file.arrayBuffer();
-  const wb=new ExcelJS.Workbook();
-  await wb.xlsx.load(buf);
-  let best=wb.worksheets[0];
-  wb.worksheets.forEach(ws=>{if(ws.rowCount>(best?.rowCount||0))best=ws;});
-  if(!best) throw new Error('Excel çalışma sayfası bulunamadı.');
-  const rows=[];
-  for(let r=1;r<=best.rowCount;r++){
-    const arr=[];
-    const row=best.getRow(r);
-    for(let c=1;c<=18;c++) arr.push(excelCellText(row.getCell(c).value));
-    rows.push(arr);
-  }
-  const headerIdx=rows.findIndex(r=>r.some(x=>/Alış Faturasının Tarihi/i.test(x)) && r.some(x=>/KDV Hariç Tutar/i.test(x)));
+  const headerIdx=rows.findIndex(r=>r.some(x=>/Alış Faturasının Tarihi/i.test(String(x??'')))&&r.some(x=>/KDV Hariç Tutar/i.test(String(x??''))));
   if(headerIdx<0) throw new Error('İndirilecek KDV listesi başlık satırı bulunamadı.');
   const headers=rows[headerIdx].map(normalizeExcelHeader);
   const idx={
@@ -488,45 +556,23 @@ async function parseTedarikciExcel(file){
     ad:headers.findIndex(x=>x.includes('SATICININ ADI-SOYADI')||x.includes('SATICININ ADI SOYADI')),
     vkn:headers.findIndex(x=>x.includes('SATICININ VERGİ KİMLİK NUMARASI')||x.includes('SATICININ VERGİ KİMLİK NUMARASI / TC')),
     matrah:headers.findIndex(x=>x.includes('KDV HARİÇ TUTAR')),
-    kdv:headers.findIndex(x=>x === "KDV'Sİ" || x.includes("KDV'Sİ"))
+    kdv:headers.findIndex(x=>x==="KDV'Sİ"||x.includes("KDV'Sİ"))
   };
   if(idx.tarih<0||idx.no<0||idx.ad<0||idx.vkn<0||idx.matrah<0||idx.kdv<0) throw new Error('Gerekli fatura sütunlarından biri bulunamadı.');
   const data=[];
   for(let i=headerIdx+1;i<rows.length;i++){
-    const r=rows[i];
-    const mat=parseMoneyNumber(r[idx.matrah]);
-    const no=String(r[idx.no]||'').trim();
-    const ad=String(r[idx.ad]||'').trim();
-    if(!no && !ad) continue;
-    if(!Number.isFinite(mat)) continue;
-    const faturaTarihi=String(r[idx.tarih]||'').trim();
-    data.push({
-      _matrah:mat,
-      _donem:invoiceMonthKey(faturaTarihi),
-      adSoyad:ad, vkn:String(r[idx.vkn]||'').trim(), vergiDairesi:'',
-      faturaTarihi,
-      faturaSeri:idx.seri>=0?String(r[idx.seri]||'').trim():'',
-      faturaNo:no,
-      faturaMatrahi:formatMoneyTR(r[idx.matrah]),
-      faturaKdv:formatMoneyTR(r[idx.kdv]),
-      gumrukTarihi:'', gumrukTescilNo:''
-    });
+    const r=rows[i],mat=parseMoneyNumber(r[idx.matrah]),kdv=parseMoneyNumber(r[idx.kdv]),no=String(r[idx.no]??'').trim(),ad=String(r[idx.ad]??'').trim();
+    if(!no&&!ad) continue;
+    if(!Number.isFinite(mat)||!Number.isFinite(kdv)) continue;
+    const faturaTarihi=r[idx.tarih] instanceof Date?fmtDate(r[idx.tarih]):String(r[idx.tarih]??'').trim();
+    data.push({_matrah:mat,_kdv:kdv,_donem:invoiceMonthKey(faturaTarihi),adSoyad:ad,vkn:String(r[idx.vkn]??'').trim(),vergiDairesi:'',faturaTarihi,faturaSeri:idx.seri>=0?String(r[idx.seri]??'').trim():'',faturaNo:no,faturaMatrahi:formatMoneyTR(mat),faturaKdv:formatMoneyTR(kdv),kdvDahilTutar:formatMoneyTR(mat+kdv),gumrukTarihi:'',gumrukTescilNo:''});
   }
-  // Liste birden fazla dönemi içerebilir. Her ay için o ayın matrahı en yüksek 10 faturası alınır.
   const byMonth=new Map();
-  data.forEach(item=>{
-    const key=item._donem||`__BELIRSIZ__${item.faturaTarihi||''}`;
-    if(!byMonth.has(key)) byMonth.set(key,[]);
-    byMonth.get(key).push(item);
-  });
+  data.forEach(item=>{const key=item._donem||`__BELIRSIZ__${item.faturaTarihi||''}`;if(!byMonth.has(key))byMonth.set(key,[]);byMonth.get(key).push(item);});
   const selected=[];
-  [...byMonth.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([key,items])=>{
-    items.sort((a,b)=>b._matrah-a._matrah);
-    selected.push(...items.slice(0,10));
-  });
-  return selected.map(({_matrah,_donem,...x})=>x);
+  [...byMonth.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([key,items])=>{items.sort((a,b)=>b._matrah-a._matrah);selected.push(...items.slice(0,10));});
+  return selected.map(({_matrah,_kdv,_donem,...x})=>x);
 }
-
 
 function renderTedarikciExcelImport(container, rerender){
   const wrap=el('div',{class:'card',style:'background:#fbfdfd;'});
