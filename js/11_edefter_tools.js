@@ -178,12 +178,15 @@ function edefterRenderedFrame(html){
   const frame=document.createElement('iframe');
   frame.className='edefter-render-frame';
   frame.title='e-Defter XSLT ile oluşturulmuş görünüm';
-  frame.setAttribute('sandbox','allow-same-origin');
+  frame.setAttribute('sandbox','allow-same-origin allow-modals');
   frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;background:#fff;}body{min-height:100vh;}img{max-width:100%;}table{max-width:100%;}</style></head><body>'+html+'</body></html>';
   return frame;
 }
 
-function edefterDownloadRenderedPdf(){
+function edefterDownloadRenderedPdf(frame){
+  if(frame && frame.contentWindow){
+    try{frame.contentWindow.focus();frame.contentWindow.print();return;}catch(err){}
+  }
   document.body.classList.add('edefter-render-print-mode');
   setTimeout(()=>window.print(),40);
 }
@@ -247,7 +250,9 @@ function renderEdefterXmlViewerPage(){
           try{
             const xsltText=await resolved.file.text();
             const html=await edefterTransformXml(textValue,xsltText);
-            preview.appendChild(edefterRenderedFrame(html));
+            const renderedFrame=edefterRenderedFrame(html);
+            actions.firstChild.onclick=()=>edefterDownloadRenderedPdf(renderedFrame);
+            preview.appendChild(renderedFrame);
           }catch(transformErr){
             preview.appendChild(el('div',{class:'hint warn'},'⚠️ XSLT ile görselleştirme başarısız: '+transformErr.message));
             preview.appendChild(el('div',{class:'hint info',style:'margin-top:8px;'},'Aşağıdaki yapısal XML görünümü yine kullanılabilir.'));
