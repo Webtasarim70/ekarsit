@@ -296,7 +296,6 @@ function renderFeedbackPage(){
     action:'https://formsubmit.co/yunusemrex@gmail.com',
     method:'POST',
     enctype:'multipart/form-data',
-    target:'feedback-submit-frame',
     style:'display:flex;flex-direction:column;gap:14px;'
   });
 
@@ -304,7 +303,7 @@ function renderFeedbackPage(){
   [
     ['_subject','geri bildirim'],
     ['_url',pageUrl],
-    ['_captcha','true'],
+    ['_captcha','false'],
     ['_template','table']
   ].forEach(([name,value])=>{
     form.appendChild(el('input',{type:'hidden',name,value}));
@@ -344,13 +343,14 @@ function renderFeedbackPage(){
 
   const imageGroup=el('div',{});
   imageGroup.appendChild(el('label',{for:'feedback-attachment',style:'display:block;font-weight:700;margin-bottom:6px;'},'Görsel / Ekran Görüntüsü'));
-  imageGroup.appendChild(el('input',{
+  const attachment=el('input',{
     id:'feedback-attachment',
     type:'file',
     name:'attachment',
     accept:'image/png,image/jpeg,image/webp,image/gif',
     style:'width:100%;'
-  }));
+  });
+  imageGroup.appendChild(attachment);
   imageGroup.appendChild(el('div',{class:'hint info',style:'margin-top:7px;'},'PNG, JPG, WEBP veya GIF yükleyebilirsiniz. Dosya boyutunu mümkün olduğunca küçük tutun; FormSubmit toplam dosya yüklemelerini 10 MB ile sınırlar.'));
   form.appendChild(imageGroup);
 
@@ -361,22 +361,65 @@ function renderFeedbackPage(){
   form.appendChild(submit);
 
   const status=el('div',{class:'hint info',style:'margin-top:12px;display:none;'});
-  let submitTimer=null;
   function setFeedbackStatus(kind,message){
     status.className='hint '+kind;
     status.textContent=message;
     status.style.display='block';
   }
-  form.addEventListener('submit',()=>{
+
+  form.addEventListener('submit',async(event)=>{
+    event.preventDefault();
+    if(!form.reportValidity()) return;
+
     submit.disabled=true;
     submit.textContent='Gönderiliyor…';
     setFeedbackStatus('info','Gönderim başlatıldı. FormSubmit sunucusundan yanıt bekleniyor.');
-    if(submitTimer) clearTimeout(submitTimer);
-    submitTimer=setTimeout(()=>{
+
+    try{
+      const hasAttachment=attachment.files&&attachment.files.length>0;
+
+      if(hasAttachment){
+        // FormSubmit dosya eklerini klasik multipart/form-data POST ile destekler.
+        // AJAX endpoint yerine normal form gönderimi kullanılır.
+        form.target='feedback-submit-frame';
+        form.submit();
+        setFeedbackStatus('ok','Geri bildirim FormSubmit’e gönderildi. Yanıt sayfası gizli gönderim alanında açıldı.');
+        submit.disabled=false;
+        submit.textContent='✉ Geri Bildirimi Gönder';
+        return;
+      }
+
+      // Ek yoksa FormSubmit'in resmi AJAX endpointini kullanıyoruz.
+      // Böylece HTTP durumunu ve JSON hata mesajını doğrudan yakalayabiliyoruz.
+      const data=new FormData(form);
+      const response=await fetch('https://formsubmit.co/ajax/yunusemrex@gmail.com',{
+        method:'POST',
+        headers:{'Accept':'application/json'},
+        body:data
+      });
+
+      let result=null;
+      const text=await response.text();
+      try{ result=text?JSON.parse(text):null; }catch(_){}
+
+      if(!response.ok){
+        const detail=result?.message||result?.error||('HTTP '+response.status);
+        throw new Error(detail);
+      }
+
+      if(result && result.success===false){
+        throw new Error(result.message||'FormSubmit gönderimi kabul etmedi.');
+      }
+
+      setFeedbackStatus('ok','✓ Geri bildiriminiz başarıyla gönderildi.');
+      form.reset();
+    }catch(err){
+      console.error('FormSubmit gönderim hatası:',err);
+      setFeedbackStatus('warn','Gönderim başarısız oldu: '+(err?.message||'Bilinmeyen hata')+'. Lütfen tekrar deneyin.');
+    }finally{
       submit.disabled=false;
       submit.textContent='✉ Geri Bildirimi Gönder';
-      setFeedbackStatus('warn','Gönderim zaman aşımına uğradı. FormSubmit şu anda yanıt vermiyor olabilir. Lütfen birkaç dakika sonra tekrar deneyin.');
-    },8000);
+    }
   });
 
   const privacy=el('div',{class:'hint warn',style:'margin-top:14px;'},'Bu formdaki ad, iletişim bilgileri, mesaj ve eklenen görsel FormSubmit adlı harici form hizmeti üzerinden e-posta olarak iletilir.');
@@ -395,7 +438,6 @@ function renderFeedbackPage(){
   document.getElementById('footer-msg').textContent='Geri Bildirim';
   renderNav();
 }
-
 function renderStep(i) {
   currentPage='workflow';
   if(i>0&&firstScreenMissing().length)i=0;currentStep=i;archiveViewParsed=null;
