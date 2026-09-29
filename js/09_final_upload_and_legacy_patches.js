@@ -277,9 +277,10 @@ function renderArchiveEditTedarikciKdvList(container,refresh){
       const statusText={matched:'✓ Eşleşti',amountdiff:'⚠️ Tutar farklı',datediff:'⚠️ Tarih farklı',nodiff:'⚠️ Fatura numarası farklı',missing:'＋ Arşivde yok'}[result.status]||result.status;
       const statusClass=result.status==='matched'?'hint ok':result.status==='missing'?'hint info':'hint warn';
       const vals=[invoiceMonthLabel(invoiceMonthKey(item.faturaTarihi)),item.adSoyad||'—',item.vkn||'—',item.faturaTarihi||'—',item.faturaNo||'—',item.faturaMatrahi||'—',item.faturaKdv||'—',item.kdvDahilTutar||'—',archive?(archive.adSoyad||'—')+' / '+(archive.faturaNo||'—'):'—'];
-      vals.forEach(v=>trAppend(v));
-      function trAppend(v){hr;tr;}
-      const tr=el('tr'); vals.forEach(v=>tr.appendChild(el('td',{},v))); tr.appendChild(el('td',{},[el('span',{class:statusClass},statusText)])); table.appendChild(tr);
+      const tr=el('tr');
+      vals.forEach(v=>tr.appendChild(el('td',{},v)));
+      tr.appendChild(el('td',{},[el('span',{class:statusClass},statusText)]));
+      table.appendChild(tr);
     });
     const problemCount=missing.length+amountDiff.length+datediff.length+nodiff.length;
     preview.appendChild(el('div',{class:problemCount?'hint warn':'hint ok',style:'margin-top:8px;'},`✓ ${files.length} dosya işlendi. ${monthSummaries.join(' • ')}. Toplam ${topRows.length} yüksek matrah faturası karşılaştırıldı: ${matched.length} tam eşleşme, ${missing.length} arşivde yok, ${amountDiff.length} tutar farklı, ${datediff.length} tarih farklı, ${nodiff.length} fatura numarası farklı.`));
