@@ -1,5 +1,5 @@
 /* ============================================================
-   Araçlar — e-Defter XML / Berat ve PDF Görüntüleyici
+   Araçlar — e-Defter XML / Berat Görüntüleyici
    Tamamen tarayıcı tarafında çalışır; yüklenen dosyalar sunucuya gönderilmez.
    ============================================================ */
 
@@ -178,14 +178,78 @@ function edefterRenderedFrame(html){
   return frame;
 }
 
-function edefterDownloadRenderedPdf(frame){
+function edefterSetPrintScale(frame, scale){
+  const value=Math.max(0.5,Math.min(1.2,Number(scale)||1));
+  if(!frame) return value;
+  frame.dataset.printScale=String(value);
+  try{
+    const doc=frame.contentDocument;
+    if(doc?.documentElement){
+      doc.documentElement.style.zoom=String(value);
+      doc.documentElement.style.setProperty('--edefter-print-scale',String(value));
+    }
+  }catch(err){}
+  return value;
+}
+
+function edefterDownloadRenderedPdf(frame, scale){
+  const value=edefterSetPrintScale(frame,scale||frame?.dataset?.printScale||1);
   if(frame && frame.contentWindow){
     try{frame.contentWindow.focus();frame.contentWindow.print();return;}catch(err){}
   }
   document.body.classList.add('edefter-render-print-mode');
+  document.body.style.setProperty('--edefter-print-scale',String(value));
   setTimeout(()=>window.print(),40);
 }
 
+function edefterPrintEachRendered(frames, scales){
+  const valid=(frames||[]).filter(frame=>frame && frame.contentDocument?.documentElement);
+  if(!valid.length) return;
+  let blocked=0;
+  valid.forEach((frame,i)=>{
+    const win=window.open('','_blank','width=1100,height=900');
+    if(!win){ blocked++; return; }
+    const scale=Math.max(0.5,Math.min(1.2,Number(scales?.[i])||1));
+    const source=frame.contentDocument.documentElement;
+    const body=source.querySelector('body');
+    const headStyles=Array.from(source.querySelectorAll('style')).map(s=>s.textContent||'').join('\\n');
+    const title=String(frame.closest('.edefter-document')?.querySelector('.edefter-doc-head strong')?.textContent||('Belge '+(i+1)));
+    win.document.open();
+    win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+title.replace(/[<>]/g,'')+'</title><style>'+
+      'html,body{margin:0;padding:0;background:#fff;}'+
+      '.edefter-pdf-scaled{zoom:'+scale+';transform-origin:top left;width:calc(100% / '+scale+');}'+
+      '@media print{body{margin:0;padding:0;}}'+headStyles+
+      '</style></head><body><div class="edefter-pdf-scaled">'+(body?body.innerHTML:source.innerHTML)+'</div></body></html>');
+    win.document.close();
+    setTimeout(()=>{ try{win.focus();win.print();}catch(err){} },350);
+  });
+  if(blocked) alert('Bazı ayrı PDF pencereleri tarayıcı tarafından engellendi. Adres çubuğundaki açılır pencere iznini verip işlemi tekrar başlatın.');
+}
+
+function edefterPrintAllRendered(frames, scales){
+  const valid=(frames||[]).filter(frame=>frame && frame.contentDocument?.documentElement);
+  if(!valid.length) return;
+  const win=window.open('','_blank','width=1100,height=900');
+  if(!win){ alert('Toplu PDF için açılır pencereye izin verilmelidir.'); return; }
+  const pages=valid.map((frame,i)=>{
+    const scale=Math.max(0.5,Math.min(1.2,Number(scales?.[i])||1));
+    const source=frame.contentDocument.documentElement;
+    const body=source.querySelector('body');
+    const headStyles=Array.from(source.querySelectorAll('style')).map(s=>s.textContent||'').join('\\n');
+    return '<section class="edefter-pdf-page" style="--page-scale:'+scale+'"><div class="edefter-pdf-scaled">'+(body?body.innerHTML:source.innerHTML)+'</div></section>'+
+      '<style>'+headStyles+'</style>';
+  }).join('');
+  win.document.open();
+  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Toplu PDF</title><style>'+
+    'html,body{margin:0;padding:0;background:#fff;}'+
+    '.edefter-pdf-page{box-sizing:border-box;width:100%;min-height:100vh;padding:0;margin:0;page-break-after:always;overflow:hidden;}'+
+    '.edefter-pdf-page:last-child{page-break-after:auto;}'+
+    '.edefter-pdf-scaled{zoom:var(--page-scale);transform-origin:top left;width:calc(100% / var(--page-scale));}'+
+    '@media print{.edefter-pdf-page{break-after:page;} .edefter-pdf-page:last-child{break-after:auto;}}'+
+    '</style></head><body>'+pages+'</body></html>');
+  win.document.close();
+  setTimeout(()=>{ try{win.focus();win.print();}catch(err){} },250);
+}
 function renderEdefterXmlViewerPage(){
   currentToolPage='xml';
   currentPage='tools-xml';
@@ -197,10 +261,32 @@ function renderEdefterXmlViewerPage(){
   card.appendChild(el('h3',{},'📄 e-Defter / Berat XML Dosyalarını Yükle'));
   card.appendChild(el('div',{class:'hint info'},'Desteklenen dosyalar: .xml. Yevmiye, Kebir, Defter Raporu/Mizan ve YB/KB ile GİB onaylı berat dosyaları otomatik tür algılama ve yerleşik XSLT şablonuyla görüntülenir.'));
   const result=el('div');
+  const renderedFrames=[];
+  const renderedScales=[];
   const xmlFilesByName=new Map();
-  fileUploadBox(card,{accept:'.xml',multiple:true,hint:'e-Defter veya berat XML dosyalarını sürükleyin veya seçin',onFiles:async(files,box)=>{
+  const uploadBoxHost=el('div');
+  const clearBtn=el('button',{class:'btn btn-secondary edefter-no-print',style:'margin-top:10px;',onclick:()=>{
+    xmlFilesByName.clear();
+    renderedFrames.length=0;
+    renderedScales.length=0;
+    result.innerHTML='';
+    const input=uploadBoxHost.querySelector('input[type="file"]');
+    if(input) input.value='';
+    const chips=uploadBoxHost.querySelector('.file-chip-list');
+    if(chips) chips.remove();
+  }},'🧹 Temizle');
+  const allScaleSelect=el('select',{class:'form-control edefter-no-print',style:'width:auto; min-width:120px;',title:'Tüm dosyalar için başlangıç PDF ölçeği'},[
+    el('option',{value:'1'},'Tümü %100'),el('option',{value:'0.9'},'Tümü %90'),el('option',{value:'0.8'},'Tümü %80'),el('option',{value:'0.7'},'Tümü %70'),el('option',{value:'0.6'},'Tümü %60')
+  ]);
+  const allPrintBtn=el('button',{class:'btn btn-primary edefter-no-print',onclick:()=>edefterPrintAllRendered(renderedFrames,renderedScales)},'🖨 Tümünü Tek PDF Kaydet');
+  const eachPrintBtn=el('button',{class:'btn btn-secondary edefter-no-print',onclick:()=>edefterPrintEachRendered(renderedFrames,renderedScales)},'🖨 Tümünü Ayrı PDF Kaydet');
+  const actions=el('div',{class:'table-actions edefter-no-print',style:'margin-top:10px;'},[clearBtn,allScaleSelect,allPrintBtn,eachPrintBtn]);
+  card.appendChild(uploadBoxHost);
+  fileUploadBox(uploadBoxHost,{accept:'.xml',multiple:true,hint:'e-Defter veya berat XML dosyalarını sürükleyin veya seçin',onFiles:async(files,box)=>{
     result.innerHTML='';
     for(const file of files) if(/\.xml$/i.test(file.name)) xmlFilesByName.set(file.name,file);
+    const oldChips=box.querySelector('.file-chip-list');
+    if(oldChips) oldChips.remove();
     for(const file of xmlFilesByName.values()){
       markFileChip(box,file.name,true);
       const item=el('div',{class:'card edefter-document'});
@@ -222,14 +308,29 @@ function renderEdefterXmlViewerPage(){
         const actions=head.lastChild;
         item.appendChild(head);
         item.appendChild(edefterInfoTable(summary));
+        const scaleSelect=el('select',{class:'form-control edefter-no-print',style:'width:auto; min-width:110px;',title:'PDF yazdırma ölçeği'},[
+          el('option',{value:'1'},'PDF %100'),
+          el('option',{value:'0.9'},'PDF %90'),
+          el('option',{value:'0.8'},'PDF %80'),
+          el('option',{value:'0.7'},'PDF %70'),
+          el('option',{value:'0.6'},'PDF %60')
+        ]);
         const printBtn=el('button',{class:'btn btn-primary'},'🖨 Görünümü Yazdır / PDF Kaydet');
+        actions.appendChild(scaleSelect);
         actions.appendChild(printBtn);
         const preview=el('div',{class:'card edefter-render-card',style:'margin-top:14px;'});
         preview.appendChild(el('h3',{},'🖥️ e-Defter Görünümü'));
         try{
           const html=await edefterTransformXml(textValue,resolved.file.text);
           const renderedFrame=edefterRenderedFrame(html);
-          printBtn.onclick=()=>edefterDownloadRenderedPdf(renderedFrame);
+          renderedFrames.push(renderedFrame);
+          renderedScales.push(scaleSelect.value);
+          scaleSelect.onchange=()=>{ renderedScales[renderedFrames.indexOf(renderedFrame)]=scaleSelect.value; edefterSetPrintScale(renderedFrame,scaleSelect.value); };
+          allScaleSelect.onchange=()=>{
+            renderedFrames.forEach((frame,i)=>{ renderedScales[i]=allScaleSelect.value; edefterSetPrintScale(frame,allScaleSelect.value); });
+          };
+          renderedFrame.addEventListener('load',()=>edefterSetPrintScale(renderedFrame,scaleSelect.value),{once:true});
+          printBtn.onclick=()=>edefterDownloadRenderedPdf(renderedFrame,scaleSelect.value);
           preview.appendChild(renderedFrame);
         }catch(transformErr){
           preview.appendChild(el('div',{class:'hint warn'},'⚠️ XSLT ile görselleştirme başarısız: '+transformErr.message));
@@ -241,45 +342,11 @@ function renderEdefterXmlViewerPage(){
       result.appendChild(item);
     }
   }});
+  card.appendChild(actions);
   card.appendChild(result);
   content.appendChild(card);
   content.appendChild(el('div',{class:'hint warn edefter-no-print'},'Not: XSLT ile oluşturulan görünüm dosyanın biçimlendirilmiş sunumudur; elektronik imza/mali mühür geçerliliğini doğrulamaz ve GİB kayıtlarıyla karşılaştırma yapmaz.'));
   document.getElementById('btn-prev').disabled=true; document.getElementById('btn-next').disabled=true; document.getElementById('footer-msg').textContent='Araçlar → e-Defter XML / Berat Görüntüleyici'; renderNav();
-}
-let edefterPdfObjectUrl='';
-
-function renderEdefterPdfViewerPage(){
-  currentToolPage='pdf';
-  currentPage='tools-pdf';
-  currentStep=-1;
-  const content=document.getElementById('step-content'); content.innerHTML='';
-  content.appendChild(el('h2',{class:'step-title'},'e-Defter PDF Görüntüleyici'));
-  content.appendChild(el('p',{class:'step-desc'},'Elinizdeki e-Defter PDF çıktısını ekranda görüntüleyin ve aynı dosyayı bilgisayarınıza kaydedin.'));
-  const card=el('div',{class:'card edefter-no-print'});
-  card.appendChild(el('h3',{},'📑 PDF Yükle'));
-  const status=el('div');
-  const viewer=el('div',{class:'edefter-pdf-viewer'});
-  fileUploadBox(card,{accept:'.pdf',multiple:false,hint:'e-Defter PDF dosyasını sürükleyin veya seçin',onFiles:async(files,box)=>{
-    const file=files[0]; if(!file) return;
-    markFileChip(box,file.name,true);
-    if(edefterPdfObjectUrl) URL.revokeObjectURL(edefterPdfObjectUrl);
-    edefterPdfObjectUrl=URL.createObjectURL(file);
-    status.innerHTML='';
-    const actions=el('div',{class:'table-actions'});
-    actions.appendChild(el('button',{class:'btn btn-primary',onclick:()=>downloadBlob(file,file.name)},'⬇ PDF Kaydet'));
-    actions.appendChild(el('a',{class:'btn btn-secondary',href:edefterPdfObjectUrl,target:'_blank',rel:'noopener noreferrer',style:'text-decoration:none;'},'↗ Yeni Sekmede Aç'));
-    status.appendChild(el('div',{class:'hint ok'},`✓ ${file.name} — ${(file.size/1024/1024).toFixed(2)} MB`));
-    status.appendChild(actions);
-    viewer.innerHTML='';
-    const iframe=document.createElement('iframe');
-    iframe.src=edefterPdfObjectUrl;
-    iframe.title='e-Defter PDF görüntüleme';
-    iframe.className='edefter-pdf-frame';
-    viewer.appendChild(iframe);
-  }});
-  card.appendChild(status); card.appendChild(viewer); content.appendChild(card);
-  content.appendChild(el('div',{class:'hint info edefter-no-print'},'PDF dosyası tarayıcının yerleşik PDF görüntüleyicisiyle açılır. “PDF Kaydet” düğmesi yüklediğiniz orijinal PDF dosyasını aynen indirir.'));
-  document.getElementById('btn-prev').disabled=true; document.getElementById('btn-next').disabled=true; document.getElementById('footer-msg').textContent='Araçlar → e-Defter PDF Görüntüleyici'; renderNav();
 }
 
 window.addEventListener('afterprint',()=>document.body.classList.remove('edefter-print-mode','edefter-render-print-mode'));

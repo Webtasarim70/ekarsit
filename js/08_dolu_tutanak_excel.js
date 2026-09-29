@@ -274,7 +274,8 @@ function renderNav() {
   ]));
   if(toolsMenuOpen){
     toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-xml'?' active':''),style:'padding-left:50px;',onclick:()=>renderEdefterXmlViewerPage()},[el('div',{},'e-Defter XML / Berat Görüntüle')]));
-    toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-pdf'?' active':''),style:'padding-left:50px;',onclick:()=>renderEdefterPdfViewerPage()},[el('div',{},'e-Defter PDF Görüntüle')]));
+    toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-efatura'?' active':''),style:'padding-left:50px;',onclick:()=>renderEfaturaXmlViewerPage()},[el('div',{},'e-Fatura XML Görüntüle')]));
+    toolsGroup.appendChild(el('div',{class:'nav-item',style:'padding-left:50px;opacity:.45;cursor:not-allowed;pointer-events:none;',title:'Yakında yeniden etkinleştirilecek'},[el('div',{},'XML’den KDV Listesi Oluştur')]));
   }
   nav.appendChild(toolsGroup);
 

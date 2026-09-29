@@ -545,10 +545,10 @@ function renderMuhtasarImport(container, rerender) {
   wrap.appendChild(list); container.appendChild(wrap);
 }
 
-let archiveMenuOpen = true;
-let doluTutanakMenuOpen = true;
-let workflowMenuOpen = true;
-var toolsMenuOpen = true;
+let archiveMenuOpen = false;
+let doluTutanakMenuOpen = false;
+let workflowMenuOpen = false;
+var toolsMenuOpen = false;
 let archiveViewParsed = null;
 let archiveEditParsed = null;
 let currentPage = 'workflow';
