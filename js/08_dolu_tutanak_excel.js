@@ -360,11 +360,23 @@ function renderFeedbackPage(){
   const submit=el('button',{type:'submit',class:'btn btn-primary'},'✉ Geri Bildirimi Gönder');
   form.appendChild(submit);
 
-  const status=el('div',{class:'hint info',style:'margin-top:12px;display:none;'},'Gönderim başlatıldı. İlk kullanımda FormSubmit, formun e-posta adresini doğrulamanız için bir onay e-postası gönderebilir.');
+  const status=el('div',{class:'hint info',style:'margin-top:12px;display:none;'});
+  let submitTimer=null;
+  function setFeedbackStatus(kind,message){
+    status.className='hint '+kind;
+    status.textContent=message;
+    status.style.display='block';
+  }
   form.addEventListener('submit',()=>{
     submit.disabled=true;
     submit.textContent='Gönderiliyor…';
-    status.style.display='block';
+    setFeedbackStatus('info','Gönderim başlatıldı. FormSubmit sunucusundan yanıt bekleniyor.');
+    if(submitTimer) clearTimeout(submitTimer);
+    submitTimer=setTimeout(()=>{
+      submit.disabled=false;
+      submit.textContent='✉ Geri Bildirimi Gönder';
+      setFeedbackStatus('warn','Gönderim zaman aşımına uğradı. FormSubmit şu anda yanıt vermiyor olabilir. Lütfen birkaç dakika sonra tekrar deneyin.');
+    },8000);
   });
 
   const privacy=el('div',{class:'hint warn',style:'margin-top:14px;'},'Bu formdaki ad, iletişim bilgileri, mesaj ve eklenen görsel FormSubmit adlı harici form hizmeti üzerinden e-posta olarak iletilir.');
