@@ -212,6 +212,8 @@ function renderEdefterXmlViewerPage(){
   fileUploadBox(uploadBoxHost,{accept:'.xml',multiple:true,hint:'e-Defter veya berat XML dosyalarını sürükleyin veya seçin',onFiles:async(files,box)=>{
     result.innerHTML='';
     for(const file of files) if(/\.xml$/i.test(file.name)) xmlFilesByName.set(file.name,file);
+    const oldChips=box.querySelector('.file-chip-list');
+    if(oldChips) oldChips.remove();
     for(const file of xmlFilesByName.values()){
       markFileChip(box,file.name,true);
       const item=el('div',{class:'card edefter-document'});
