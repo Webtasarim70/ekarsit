@@ -303,7 +303,6 @@ function renderFeedbackPage(){
   [
     ['_subject','geri bildirim'],
     ['_url',pageUrl],
-    ['_captcha','false'],
     ['_template','table']
   ].forEach(([name,value])=>{
     form.appendChild(el('input',{type:'hidden',name,value}));
@@ -347,15 +346,12 @@ function renderFeedbackPage(){
     id:'feedback-attachment',
     type:'file',
     name:'attachment',
-    accept:'image/png,image/jpeg,image/webp,image/gif',
+    accept:'image/png,image/jpeg',
     style:'width:100%;'
   });
   imageGroup.appendChild(attachment);
-  imageGroup.appendChild(el('div',{class:'hint info',style:'margin-top:7px;'},'PNG, JPG, WEBP veya GIF yükleyebilirsiniz. Dosya boyutunu mümkün olduğunca küçük tutun; FormSubmit toplam dosya yüklemelerini 10 MB ile sınırlar.'));
+  imageGroup.appendChild(el('div',{class:'hint info',style:'margin-top:7px;'},'PNG veya JPG yükleyebilirsiniz. Dosya boyutunu mümkün olduğunca küçük tutun; FormSubmit toplam dosya yüklemelerini 10 MB ile sınırlar.'));
   form.appendChild(imageGroup);
-
-  // Spam botlarına karşı görünmez honeypot alanı.
-  form.appendChild(el('input',{type:'text',name:'_honey',tabindex:'-1',autocomplete:'off',style:'display:none;'}));
 
   const submit=el('button',{type:'submit',class:'btn btn-primary'},'✉ Geri Bildirimi Gönder');
   form.appendChild(submit);
@@ -367,13 +363,8 @@ function renderFeedbackPage(){
     status.style.display='block';
   }
 
-  // Görsel ekleri için FormSubmit'in native multipart/form-data POST akışını kullanıyoruz.
-  // AJAX endpoint'i JSON veri için tasarlanmıştır; dosya yükleme ise native form ile desteklenir.
-  const successUrl=new URL(window.location.href);
-  successUrl.searchParams.set('feedback','success');
-  successUrl.hash='';
-  form.appendChild(el('input',{type:'hidden',name:'_next',value:successUrl.toString()}));
-
+  // Görsel ekleri için FormSubmit'in dokümante ettiği native multipart/form-data akışını kullanıyoruz.
+  // İlk teşhis aşamasında yalnızca temel alanları gönderiyoruz; özel redirect/spam alanları eklemiyoruz.
   form.addEventListener('submit',()=>{
     if(!form.reportValidity()) return;
     submit.disabled=true;
