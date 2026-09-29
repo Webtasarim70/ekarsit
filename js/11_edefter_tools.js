@@ -156,7 +156,6 @@ function edefterResolveStylesheet(xmlFile,xmlText,stylesheets){
   if(hrefKey && stylesheets[hrefKey]) return {file:stylesheets[hrefKey],source:'Yüklenen XSLT'};
   const rootName=(xmlText.match(/<([A-Za-z_][\w:.-]*)(?:\s|>)/)||[])[1]||'';
   const local=rootName.split(':').pop().toLowerCase();
-  if(local==='berat' && stylesheets['berat.xslt']) return {file:stylesheets['berat.xslt'],source:'Yerleşik GİB berat.xslt'};
   return {file:null,source:'XSLT bulunamadı'};
 }
 
