@@ -286,13 +286,12 @@ function renderFeedbackPage(){
   const content=document.getElementById('step-content');
   content.innerHTML='';
   content.appendChild(el('h2',{class:'step-title'},'Geri Bildirim / Hata Bildir'));
-  content.appendChild(el('p',{class:'step-desc'},'Karşılaştığınız hataları, eksikleri veya geliştirme önerilerinizi GitHub Issue olarak iletebilirsiniz.'));
+  content.appendChild(el('p',{class:'step-desc'},'Geri bildiriminizi size uygun iki yöntemden biriyle gönderebilirsiniz: GitHub üzerinden Issue açabilir veya doğrudan e-posta gönderebilirsiniz.'));
 
-  const card=el('div',{class:'card',style:'max-width:900px;'});
-  card.appendChild(el('h3',{},'🐙 Geri Bildirim Gönder'));
-  card.appendChild(el('p',{style:'color:var(--muted);margin-top:6px;'},'Geri bildirim formu GitHub üzerinde açılır. Buradan metni yazabilir ve ekran görüntüsünü doğrudan GitHub’a yükleyebilirsiniz.'));
-  card.appendChild(el('div',{class:'hint info',style:'margin-top:12px;'},'Ekran görüntüsü eklemek için GitHub formundaki “Görsel / Ekran Görüntüsü” alanına PNG, JPG, GIF veya WEBP dosyanızı sürükleyip bırakın. GitHub Issue formları dosya yüklemeyi destekler.'));
-  
+  const githubCard=el('div',{class:'card',style:'max-width:900px;'});
+  githubCard.appendChild(el('h3',{},'🐙 GitHub üzerinden geri bildirim'));
+  githubCard.appendChild(el('p',{style:'color:var(--muted);margin-top:6px;'},'GitHub hesabınız varsa bu seçenekle doğrudan Issue açabilirsiniz. İsim, e-posta veya telefon bilgisi ayrıca istemiyoruz; bildirim GitHub hesabınızla ilişkilendirilir.'));
+  githubCard.appendChild(el('div',{class:'hint info',style:'margin-top:12px;'},'Ekran görüntüsü eklemek için GitHub formundaki “Görsel / Ekran Görüntüsü” alanına PNG, JPG, GIF veya WEBP dosyanızı sürükleyip bırakabilir veya dosya seçebilirsiniz.'));
   const openIssue=el('a',{
     href:'https://github.com/Webtasarim70/ekarsit/issues/new?template=geri-bildirim.yml',
     target:'_blank',
@@ -300,11 +299,22 @@ function renderFeedbackPage(){
     class:'btn btn-primary',
     style:'display:inline-flex;align-items:center;justify-content:center;text-decoration:none;margin-top:14px;'
   },'🐙 GitHub’da Geri Bildirim Gönder');
-  card.appendChild(openIssue);
+  githubCard.appendChild(openIssue);
+  githubCard.appendChild(el('div',{class:'hint warn',style:'margin-top:14px;'},'Not: GitHub Issue, herkese açık bir depoda yayınlandığı için yazdığınız bildirim ve eklediğiniz görseller başkaları tarafından görülebilir.'));
 
-  const privacy=el('div',{class:'hint warn',style:'margin-top:14px;'},'Bu yöntemle geri bildirim GitHub Issues bölümünde tutulur. GitHub hesabıyla oturum açmanız gerekebilir. Ekran görüntüsü doğrudan Issue formuna yüklenebilir.');
-  card.appendChild(privacy);
-  content.appendChild(card);
+  const mailCard=el('div',{class:'card',style:'max-width:900px;margin-top:14px;'});
+  mailCard.appendChild(el('h3',{},'✉️ Doğrudan e-posta gönder'));
+  mailCard.appendChild(el('p',{style:'color:var(--muted);margin-top:6px;'},'GitHub hesabınız yoksa veya bildiriminizi özel olarak göndermek istiyorsanız doğrudan e-posta gönderebilirsiniz. Kendi e-posta hesabınızdan mesajınızı yazıp ekran görüntüsü, fotoğraf veya diğer dosyaları ekleyebilirsiniz.'));
+  mailCard.appendChild(el('div',{class:'hint info',style:'margin-top:12px;'},'E-posta seçeneğinde mesaj ve ekler sizin e-posta hesabınız üzerinden gönderilir. Ekran görüntüsü veya fotoğraf eklemek için e-posta uygulamanızdaki dosya ekleme seçeneğini kullanabilirsiniz.'));
+  const openMail=el('a',{
+    href:'mailto:yunusemrex@gmail.com?subject=Ekarsit%20-%20Geri%20Bildirim',
+    class:'btn btn-primary',
+    style:'display:inline-flex;align-items:center;justify-content:center;text-decoration:none;margin-top:14px;'
+  },'✉️ E-posta ile Geri Bildirim Gönder');
+  mailCard.appendChild(openMail);
+
+  content.appendChild(githubCard);
+  content.appendChild(mailCard);
 
   document.getElementById('btn-prev').disabled=true;
   document.getElementById('btn-next').disabled=true;
