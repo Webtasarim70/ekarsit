@@ -1,5 +1,5 @@
 /* ============================================================
-   Araçlar — e-Defter XML / Berat ve PDF Görüntüleyici
+   Araçlar — e-Defter XML / Berat Görüntüleyici
    Tamamen tarayıcı tarafında çalışır; yüklenen dosyalar sunucuya gönderilmez.
    ============================================================ */
 
