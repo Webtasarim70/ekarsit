@@ -548,6 +548,7 @@ function renderMuhtasarImport(container, rerender) {
 let archiveMenuOpen = true;
 let doluTutanakMenuOpen = true;
 let workflowMenuOpen = true;
+var toolsMenuOpen = true;
 let archiveViewParsed = null;
 let archiveEditParsed = null;
 let currentPage = 'workflow';
