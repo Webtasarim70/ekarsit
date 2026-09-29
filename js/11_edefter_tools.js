@@ -178,11 +178,27 @@ function edefterRenderedFrame(html){
   return frame;
 }
 
-function edefterDownloadRenderedPdf(frame){
+function edefterSetPrintScale(frame, scale){
+  const value=Math.max(0.5,Math.min(1.2,Number(scale)||1));
+  if(!frame) return value;
+  frame.dataset.printScale=String(value);
+  try{
+    const doc=frame.contentDocument;
+    if(doc?.documentElement){
+      doc.documentElement.style.zoom=String(value);
+      doc.documentElement.style.setProperty('--edefter-print-scale',String(value));
+    }
+  }catch(err){}
+  return value;
+}
+
+function edefterDownloadRenderedPdf(frame, scale){
+  const value=edefterSetPrintScale(frame,scale||frame?.dataset?.printScale||1);
   if(frame && frame.contentWindow){
     try{frame.contentWindow.focus();frame.contentWindow.print();return;}catch(err){}
   }
   document.body.classList.add('edefter-render-print-mode');
+  document.body.style.setProperty('--edefter-print-scale',String(value));
   setTimeout(()=>window.print(),40);
 }
 
