@@ -373,15 +373,22 @@ function renderFeedbackPage(){
   const frame=el('iframe',{name:'feedback-submit-frame',title:'Geri bildirim gönderim alanı',style:'display:none;'});
   const feedbackSuccessUrl=window.location.href.split('#')[0].split('?')[0]+'?feedback=success';
   form.appendChild(el('input',{type:'hidden',name:'_next',value:feedbackSuccessUrl}));
+  let attachmentWaiting=false;
+  let attachmentTimeout=null;
 
   frame.addEventListener('load',()=>{
     try{
       const href=frame.contentWindow.location.href;
-      if(href===feedbackSuccessUrl || href.startsWith(feedbackSuccessUrl+'&')){
-        setFeedbackStatus('ok','✓ FormSubmit gönderimi başarıyla tamamlandı. Geri bildiriminiz kabul edildi.');
+      const success=new URL(feedbackSuccessUrl);
+      const current=new URL(href);
+      if(current.origin===success.origin && current.pathname===success.pathname && current.searchParams.get('feedback')==='success'){
+        if(attachmentTimeout) clearTimeout(attachmentTimeout);
+        attachmentWaiting=false;
+        setFeedbackStatus('ok','✓ Geri bildirim FormSubmit tarafından kabul edildi. E-posta gönderimi için FormSubmit tarafındaki teslim süreci devam ediyor.');
         form.reset();
         submit.disabled=false;
         submit.textContent='✉ Geri Bildirimi Gönder';
+        form.target='';
       }
     }catch(_){
       // İlk yükleme FormSubmit alanında cross-origin olabilir; erişim reddedilmesi beklenir.
@@ -401,17 +408,31 @@ function renderFeedbackPage(){
 
       if(hasAttachment){
         form.target='feedback-submit-frame';
+        attachmentWaiting=true;
+        attachmentTimeout=setTimeout(()=>{
+          if(!attachmentWaiting) return;
+          attachmentWaiting=false;
+          submit.disabled=false;
+          submit.textContent='✉ Geri Bildirimi Gönder';
+          form.target='';
+          setFeedbackStatus('warn','✕ FormSubmit resimli gönderime zamanında yanıt vermedi. Dosya boyutunu kontrol edip tekrar deneyin. E-posta adresiniz FormSubmit tarafından henüz doğrulanmamışsa ilk gönderimde aktivasyon gerekebilir.');
+        },20000);
         HTMLFormElement.prototype.submit.call(form);
-        // Burada başarı mesajı vermiyoruz. Başarı ancak _next sayfası
-        // iframe içinde gerçekten açılırsa gösterilecek.
         return;
       }
 
-      const data=new FormData(form);
+      const formData=new FormData(form);
+      const payload={};
+      formData.forEach((value,key)=>{
+        if(!(value instanceof File)) payload[key]=value;
+      });
       const response=await fetch('https://formsubmit.co/ajax/yunusemrex@gmail.com',{
         method:'POST',
-        headers:{'Accept':'application/json'},
-        body:data
+        headers:{
+          'Content-Type':'application/json',
+          'Accept':'application/json'
+        },
+        body:JSON.stringify(payload)
       });
 
       let result=null;
@@ -427,7 +448,7 @@ function renderFeedbackPage(){
         throw new Error(result.message||'FormSubmit gönderimi kabul etmedi.');
       }
 
-      setFeedbackStatus('ok','✓ Geri bildiriminiz FormSubmit tarafından kabul edildi.');
+      setFeedbackStatus('ok','✓ Geri bildiriminiz FormSubmit tarafından kabul edildi. E-posta teslimi FormSubmit tarafında gerçekleştirilecek.');
       form.reset();
     }catch(err){
       console.error('FormSubmit gönderim hatası:',err);
@@ -440,7 +461,7 @@ function renderFeedbackPage(){
     }
   });
 
-  const privacy=el('div',{class:'hint warn',style:'margin-top:14px;'},'Bu formdaki ad, iletişim bilgileri, mesaj ve eklenen görsel FormSubmit adlı harici form hizmeti üzerinden e-posta olarak iletilir.');
+  const privacy=el('div',{class:'hint warn',style:'margin-top:14px;'},'Bu formdaki bilgiler FormSubmit adlı harici hizmete gönderilir. “Kabul edildi” mesajı FormSubmit sunucusunun gönderimi aldığı anlamına gelir; e-postanın posta kutusuna teslim edildiğini tarayıcıdan kesin olarak doğrulayamıyoruz.');
   card.appendChild(form);
   card.appendChild(status);
   card.appendChild(privacy);
