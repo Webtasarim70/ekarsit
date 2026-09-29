@@ -268,6 +268,16 @@ function renderNav() {
   }
   nav.appendChild(doluGroup);
 
+  const toolsGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
+  toolsGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{toolsMenuOpen=!toolsMenuOpen;renderNav();}},[
+    el('div',{class:'num'},toolsMenuOpen?'▾':'▸'), el('div',{},'Araçlar')
+  ]));
+  if(toolsMenuOpen){
+    toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-xml'?' active':''),style:'padding-left:50px;',onclick:()=>renderEdefterXmlViewerPage()},[el('div',{},'e-Defter XML / Berat Görüntüle')]));
+    toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-pdf'?' active':''),style:'padding-left:50px;',onclick:()=>renderEdefterPdfViewerPage()},[el('div',{},'e-Defter PDF Görüntüle')]));
+  }
+  nav.appendChild(toolsGroup);
+
   const feedback=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'},[el('div',{class:'nav-item'+(currentPage==='feedback'?' active':''),onclick:()=>renderFeedbackPage()},[
     el('div',{class:'num'},'✉'), el('div',{},'Geri Bildirim / Hata Bildir')
   ])]);
