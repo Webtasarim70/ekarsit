@@ -367,52 +367,24 @@ function renderFeedbackPage(){
     status.style.display='block';
   }
 
-  // Metin ve görsel gönderimini aynı AJAX endpoint'i üzerinden yapıyoruz.
-  // FormData kullanıldığında tarayıcı multipart/form-data boundary bilgisini
-  // kendisi oluşturur; Content-Type elle ayarlanmaz.
-  form.addEventListener('submit',async(event)=>{
-    event.preventDefault();
-    if(!form.reportValidity()) return;
+  // Görsel ekleri için FormSubmit'in native multipart/form-data POST akışını kullanıyoruz.
+  // AJAX endpoint'i JSON veri için tasarlanmıştır; dosya yükleme ise native form ile desteklenir.
+  const successUrl=new URL(window.location.href);
+  successUrl.searchParams.set('feedback','success');
+  successUrl.hash='';
+  form.appendChild(el('input',{type:'hidden',name:'_next',value:successUrl.toString()}));
 
+  form.addEventListener('submit',()=>{
+    if(!form.reportValidity()) return;
     submit.disabled=true;
     submit.textContent='Gönderiliyor…';
-    setFeedbackStatus('info','Gönderiliyor… FormSubmit yanıtı bekleniyor.');
-
-    try{
-      const formData=new FormData(form);
-      const hasAttachment=attachment.files&&attachment.files.length>0;
-      const response=await fetch('https://formsubmit.co/ajax/yunusemrex@gmail.com',{
-        method:'POST',
-        headers:{'Accept':'application/json'},
-        body:formData
-      });
-
-      let result=null;
-      const responseText=await response.text();
-      try{ result=responseText?JSON.parse(responseText):null; }catch(_){}
-
-      if(!response.ok){
-        const detail=result?.message||result?.error||('HTTP '+response.status);
-        throw new Error(detail);
-      }
-      if(result && (result.success===false || result.success==='false')){
-        throw new Error(result.message||'FormSubmit gönderimi kabul etmedi.');
-      }
-
-      setFeedbackStatus('ok',hasAttachment
-        ?'✓ Geri bildiriminiz ve görseliniz FormSubmit tarafından kabul edildi. E-posta teslimi FormSubmit tarafında gerçekleştirilecek.'
-        :'✓ Geri bildiriminiz FormSubmit tarafından kabul edildi. E-posta teslimi FormSubmit tarafında gerçekleştirilecek.');
-      form.reset();
-    }catch(err){
-      console.error('FormSubmit gönderim hatası:',err);
-      setFeedbackStatus('warn','✕ Gönderim başarısız: '+(err?.message||'Bilinmeyen hata')+'. Lütfen tekrar deneyin.');
-    }finally{
-      submit.disabled=false;
-      submit.textContent='✉ Geri Bildirimi Gönder';
-    }
   });
 
   const privacy=el('div',{class:'hint warn',style:'margin-top:14px;'},'Bu formdaki bilgiler FormSubmit adlı harici hizmete gönderilir. “Kabul edildi” mesajı FormSubmit sunucusunun gönderimi aldığı anlamına gelir; e-postanın posta kutusuna teslim edildiğini tarayıcıdan kesin olarak doğrulayamıyoruz.');
+  if(new URLSearchParams(window.location.search).get('feedback')==='success'){
+    setFeedbackStatus('ok','✓ Geri bildiriminiz ve varsa görseliniz FormSubmit tarafından kabul edildi ve gönderim tamamlandı.');
+    history.replaceState({},document.title,window.location.pathname+window.location.hash);
+  }
   card.appendChild(form);
   card.appendChild(status);
   card.appendChild(privacy);
