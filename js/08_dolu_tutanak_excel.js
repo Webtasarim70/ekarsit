@@ -367,30 +367,46 @@ function renderFeedbackPage(){
     status.style.display='block';
   }
 
+  // Dosya ekli klasik POST için FormSubmit'in _next yönlendirmesini
+  // uygulamanın kendisine veriyoruz. Böylece iframe gerçekten başarı
+  // sayfasına ulaştığında kullanıcıya "başarılı" diyebiliyoruz.
+  const frame=el('iframe',{name:'feedback-submit-frame',title:'Geri bildirim gönderim alanı',style:'display:none;'});
+  const feedbackSuccessUrl=window.location.href.split('#')[0].split('?')[0]+'?feedback=success';
+  form.appendChild(el('input',{type:'hidden',name:'_next',value:feedbackSuccessUrl}));
+
+  frame.addEventListener('load',()=>{
+    try{
+      const href=frame.contentWindow.location.href;
+      if(href===feedbackSuccessUrl || href.startsWith(feedbackSuccessUrl+'&')){
+        setFeedbackStatus('ok','✓ FormSubmit gönderimi başarıyla tamamlandı. Geri bildiriminiz kabul edildi.');
+        form.reset();
+        submit.disabled=false;
+        submit.textContent='✉ Geri Bildirimi Gönder';
+      }
+    }catch(_){
+      // İlk yükleme FormSubmit alanında cross-origin olabilir; erişim reddedilmesi beklenir.
+    }
+  });
+
   form.addEventListener('submit',async(event)=>{
     event.preventDefault();
     if(!form.reportValidity()) return;
 
     submit.disabled=true;
     submit.textContent='Gönderiliyor…';
-    setFeedbackStatus('info','Gönderim başlatıldı. FormSubmit sunucusundan yanıt bekleniyor.');
+    setFeedbackStatus('info','Gönderiliyor… FormSubmit yanıtı bekleniyor.');
 
     try{
       const hasAttachment=attachment.files&&attachment.files.length>0;
 
       if(hasAttachment){
-        // FormSubmit dosya eklerini klasik multipart/form-data POST ile destekler.
-        // AJAX endpoint yerine normal form gönderimi kullanılır.
         form.target='feedback-submit-frame';
-        form.submit();
-        setFeedbackStatus('ok','Geri bildirim FormSubmit’e gönderildi. Yanıt sayfası gizli gönderim alanında açıldı.');
-        submit.disabled=false;
-        submit.textContent='✉ Geri Bildirimi Gönder';
+        HTMLFormElement.prototype.submit.call(form);
+        // Burada başarı mesajı vermiyoruz. Başarı ancak _next sayfası
+        // iframe içinde gerçekten açılırsa gösterilecek.
         return;
       }
 
-      // Ek yoksa FormSubmit'in resmi AJAX endpointini kullanıyoruz.
-      // Böylece HTTP durumunu ve JSON hata mesajını doğrudan yakalayabiliyoruz.
       const data=new FormData(form);
       const response=await fetch('https://formsubmit.co/ajax/yunusemrex@gmail.com',{
         method:'POST',
@@ -399,8 +415,8 @@ function renderFeedbackPage(){
       });
 
       let result=null;
-      const text=await response.text();
-      try{ result=text?JSON.parse(text):null; }catch(_){}
+      const responseText=await response.text();
+      try{ result=responseText?JSON.parse(responseText):null; }catch(_){}
 
       if(!response.ok){
         const detail=result?.message||result?.error||('HTTP '+response.status);
@@ -411,14 +427,16 @@ function renderFeedbackPage(){
         throw new Error(result.message||'FormSubmit gönderimi kabul etmedi.');
       }
 
-      setFeedbackStatus('ok','✓ Geri bildiriminiz başarıyla gönderildi.');
+      setFeedbackStatus('ok','✓ Geri bildiriminiz FormSubmit tarafından kabul edildi.');
       form.reset();
     }catch(err){
       console.error('FormSubmit gönderim hatası:',err);
-      setFeedbackStatus('warn','Gönderim başarısız oldu: '+(err?.message||'Bilinmeyen hata')+'. Lütfen tekrar deneyin.');
+      setFeedbackStatus('warn','✕ Gönderim başarısız: '+(err?.message||'Bilinmeyen hata')+'. Lütfen tekrar deneyin.');
     }finally{
-      submit.disabled=false;
-      submit.textContent='✉ Geri Bildirimi Gönder';
+      if(!(attachment.files&&attachment.files.length>0)){
+        submit.disabled=false;
+        submit.textContent='✉ Geri Bildirimi Gönder';
+      }
     }
   });
 
@@ -427,9 +445,12 @@ function renderFeedbackPage(){
   card.appendChild(status);
   card.appendChild(privacy);
 
-  const frame=el('iframe',{name:'feedback-submit-frame',title:'Geri bildirim gönderim alanı',style:'display:none;'});
   content.appendChild(card);
   content.appendChild(frame);
+
+  if(new URLSearchParams(window.location.search).get('feedback')==='success'){
+    history.replaceState({},document.title,window.location.pathname+window.location.hash);
+  }
 
   document.getElementById('btn-prev').disabled=true;
   document.getElementById('btn-next').disabled=true;
