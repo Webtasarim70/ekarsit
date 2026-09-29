@@ -74,12 +74,12 @@ function edefterSummary(doc,file){
 
 function edefterStylesheetHref(xmlText){
   const source=String(xmlText||'');
-  const match=source.match(/<\\?xml-stylesheet\\b[\\s\\S]*?\\bhref\\s*=\\s*(["'])(.*?)\\1[\\s\\S]*?\\?>/i);
+  const match=source.match(/<\?xml-stylesheet\b[\s\S]*?\bhref\s*=\s*(["'])(.*?)\1[\s\S]*?\?>/i);
   return match ? match[2] : '';
 }
 
 function edefterStylesheetKey(value){
-  const name=String(value||'').trim().split(/[\\\\/]/).pop().split(/[?#]/)[0].toLowerCase();
+  const name=String(value||'').trim().replaceAll('\\','/').split('/').pop().split(/[?#]/)[0].toLowerCase();
   const allowed=['yevmiye.xslt','kebir.xslt','berat.xslt','defterraporu.xslt'];
   return allowed.includes(name) ? name : '';
 }
