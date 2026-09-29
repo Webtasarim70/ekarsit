@@ -286,7 +286,7 @@ function renderArchiveEditTedarikciKdvList(container,refresh){
 function renderArchiveEditMuhtasarControl(container){
   const wrap=el('div',{class:'card',style:'background:#fbfdfd;'});
   wrap.appendChild(el('h3',{},'📋 Muhtasar Beyanname — Çoklu Dosya Kontrolü'));
-  wrap.appendChild(el('div',{class:'hint info'},'Birden fazla Muhtasar ve Prim Hizmet Beyannamesi PDF dosyasını aynı anda yükleyin. Sistem her belgeyi ayrı okur; VKN, dönem, vergi dairesi ve çalışan sayılarını gösterir. Aynı döneme ait mükerrer dosyaları ayrıca işaretler ve varsa arşivdeki çalışan sayısıyla karşılaştırır. Bu araç arşive otomatik kayıt eklemez.'));
+  wrap.appendChild(el('div',{class:'hint info'},'Birden fazla Muhtasar ve Prim Hizmet Beyannamesi PDF dosyasını aynı anda yükleyin. Sistem her belgeyi ayrı okur; VKN, dönem, vergi dairesi ve çalışan sayılarını gösterir. VKN arşiv mükellefiyle eşleşen ve gerekli alanları okunan belgelerde kontrolün altında “Arşive Ekle / Güncelle” düğmesi bulunur. Dönemin arşivde önceden bulunması şart değildir; yeni dönem eklenir, aynı dönem varsa işçi sayısı güncellenir.'));
   const preview=el('div');
   fileUploadBox(wrap,{accept:'.pdf',hint:'Muhtasar ve Prim Hizmet Beyannamesi PDF — çoklu seçim desteklenir',multiple:true,onFiles:async(files,box)=>{
     preview.innerHTML='';
@@ -316,6 +316,34 @@ function renderArchiveEditMuhtasarControl(container){
         if(archiveCount===null) checks.appendChild(el('div',{class:'hint info'},'ℹ️ Bu dönem için arşivde Muhtasar/Çalışan kaydı bulunamadı.'));
         else checks.appendChild(el('div',{class:employeeOk?'hint ok':'hint warn'},employeeOk?'✓ Arşiv çalışan sayısı ile beyanname çalışan sayısı eşleşiyor: '+archiveCount:'⚠️ Arşiv çalışan sayısı: '+archiveCount+' — Beyanname çalışan sayısı: '+parsed.totalCount));
         card.appendChild(checks);
+
+        const canArchiveAdd=chk.ok && !!String(parsed.donem||'').trim() && Number.isFinite(Number(parsed.totalCount)) && Number(parsed.totalCount)>0;
+        const addBox=el('div',{style:'margin-top:12px;padding-top:10px;border-top:1px solid var(--border);'});
+        const addButton=el('button',{class:'btn btn-primary',disabled:!canArchiveAdd},'➕ Arşive Ekle / Güncelle');
+        const addStatus=el('div',{style:'margin-top:8px;'});
+        addButton.onclick=()=>{
+          if(!chk.ok){addStatus.innerHTML='';addStatus.appendChild(el('div',{class:'hint warn'},'⚠️ Firma kimlik numarası arşiv mükellefi ile eşleşmediği için kayıt eklenemez.'));return;}
+          const donem=String(parsed.donem||'').trim();
+          const sayi=Number(parsed.totalCount);
+          if(!donem || !Number.isFinite(sayi) || sayi<=0){addStatus.innerHTML='';addStatus.appendChild(el('div',{class:'hint warn'},'⚠️ Arşive eklemek için beyanname dönemi ve çalışan sayısı okunmuş olmalıdır.'));return;}
+          if(!Array.isArray(archiveEditParsed.isciler)) archiveEditParsed.isciler=[];
+          const before=archiveEditParsed.isciler.find(x=>String(x.donem||'').trim()===donem);
+          archiveEditMergeRow(archiveEditParsed.isciler,{donem,sayi:String(sayi),vergiDairesi:String(parsed.vergiDairesi||'').trim()},x=>String(x.donem||'').trim());
+          commitArchiveEditState();
+          addButton.disabled=true;
+          addButton.textContent=before?'✓ Arşivdeki dönem güncellendi':'✓ Arşive eklendi';
+          addStatus.innerHTML='';
+          addStatus.appendChild(el('div',{class:'hint ok'},before
+            ? `✓ ${donem} dönemi arşivdeki işçi sayısı ${sayi} olarak güncellendi.`
+            : `✓ ${donem} dönemi için toplam ${sayi} işçi arşive eklendi.`));
+        };
+        addBox.appendChild(addButton);
+        addBox.appendChild(addStatus);
+        if(!chk.ok) addStatus.appendChild(el('div',{class:'hint warn'},'Firma kimlik numarası arşivle eşleşmeden arşive ekleme yapılamaz.'));
+        else if(!String(parsed.donem||'').trim() || !Number(parsed.totalCount)) addStatus.appendChild(el('div',{class:'hint warn'},'Arşive eklemek için dönem ve çalışan sayısının okunması gerekir.'));
+        else addStatus.appendChild(el('div',{class:'hint info'},'Bu işlemde dönem karşılaştırması yapılmaz. Beyannamedeki dönem, arşive doğrudan eklenir; aynı dönem varsa işçi sayısı güncellenir.'));
+        card.appendChild(addBox);
+
         if(parsed.rows.length){
           const detail=el('details',{style:'margin-top:10px;'}); detail.appendChild(el('summary',{},'Çalışan grupları'));
           const rows=parsed.rows.map(r=>el('tr',{},[el('td',{},r.calisanBilgisi||'—'),el('td',{style:'text-align:right;'},String(r.toplamCalisanSayisi)),el('td',{style:'text-align:right;'},String(r.gelirMuafIstisnaSayisi)),el('td',{style:'text-align:right;'},String(r.sgkMuafIstisnaSayisi))]));
