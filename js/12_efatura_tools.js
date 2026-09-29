@@ -165,7 +165,15 @@ function renderEfaturaXmlViewerPage(){
             el('div',{class:'table-actions edefter-no-print'})
           ]);
           const headActions=head.lastChild;
+          const scaleSelect=el('select',{class:'form-control edefter-no-print',style:'width:auto; min-width:110px;',title:'PDF yazdırma ölçeği'},[
+            el('option',{value:'1'},'PDF %100'),
+            el('option',{value:'0.9'},'PDF %90'),
+            el('option',{value:'0.8'},'PDF %80'),
+            el('option',{value:'0.7'},'PDF %70'),
+            el('option',{value:'0.6'},'PDF %60')
+          ]);
           const printBtn=el('button',{class:'btn btn-primary'},'🖨 Yazdır / PDF Kaydet');
+          headActions.appendChild(scaleSelect);
           headActions.appendChild(printBtn);
           item.appendChild(head);
           item.appendChild(efaturaInfoTable(summary));
@@ -175,7 +183,9 @@ function renderEfaturaXmlViewerPage(){
           try{
             const html=await edefterTransformXml(xmlText,xslt.text);
             const frame=edefterRenderedFrame(html);
-            printBtn.onclick=()=>edefterDownloadRenderedPdf(frame);
+            scaleSelect.onchange=()=>edefterSetPrintScale(frame,scaleSelect.value);
+            frame.addEventListener('load',()=>edefterSetPrintScale(frame,scaleSelect.value),{once:true});
+            printBtn.onclick=()=>edefterDownloadRenderedPdf(frame,scaleSelect.value);
             preview.appendChild(frame);
           }catch(transformErr){
             preview.appendChild(el('div',{class:'hint warn'},'⚠️ XSLT ile fatura görüntüsü oluşturulamadı: '+transformErr.message));
