@@ -419,6 +419,8 @@ document.getElementById('btn-next').addEventListener('click', () => {
   else window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
-renderWelcomePage();
+const feedbackSuccessOnLoad=new URLSearchParams(window.location.search).get('feedback')==='success';
+if(feedbackSuccessOnLoad) renderFeedbackPage();
+else renderWelcomePage();
 
 
