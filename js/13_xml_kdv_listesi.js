@@ -73,41 +73,87 @@ function kdvXmlInvoiceData(doc,file){
 }
 function kdvExcelDate(value){
   if(!value) return '';
-  const d=new Date(String(value).slice(0,10)+'T00:00:00');
-  return Number.isNaN(d.getTime())?String(value):d;
+  const parts=String(value).slice(0,10).split('-').map(Number);
+  if(parts.length!==3 || !parts.every(Number.isFinite)) return String(value);
+  return new Date(parts[0],parts[1]-1,parts[2]);
 }
-function kdvExcelSafeFileName(){
-  return 'XMLden_KDV_Listesi_'+new Date().toISOString().slice(0,10)+'.xlsx';
+function kdvInvoiceSeriesNo(invoiceNo){
+  const s=String(invoiceNo||'').trim();
+  const m=s.match(/^([A-Za-z]+)(.*)$/);
+  return {series:m?m[1]:s, number:m?m[2]:''};
 }
-async function kdvCreateWorkbook(rows,errors){
+function kdvXmlQuantity(doc){
+  return kdvXmlNodes(doc,'InvoicedQuantity').reduce((sum,n)=>sum+kdvXmlNumber(n.textContent),0);
+}
+function kdvXmlItemDescription(doc){
+  const names=kdvXmlNodes(doc,'InvoiceLine').map(line=>{
+    const nodes=Array.from(line.getElementsByTagName('*'));
+    const item=nodes.find(x=>kdvXmlLocalName(x)==='item');
+    if(!item) return '';
+    const ds=Array.from(item.getElementsByTagName('*')).filter(x=>['description','name'].includes(kdvXmlLocalName(x)));
+    return String(ds[0]?.textContent||'').trim();
+  }).filter(Boolean);
+  return [...new Set(names)].join(' / ');
+}
+function kdvCreateWorkbook(rows,errors){
   const wb=new ExcelJS.Workbook();
   wb.creator='KDV İade · Karşıt İnceleme Arşiv Sihirbazı';
   wb.created=new Date();
-  const ws=wb.addWorksheet('KDV Listesi');
-  const headers=['Sıra','Belge Türü','Satıcı VKN/TCKN','Satıcı Ünvanı','Alıcı Ünvanı','Fatura Tarihi','Fatura No','UUID','Matrah','KDV Oranı (%)','KDV Tutarı','KDV Dahil / Ödenecek','Para Birimi','Profil','Fatura Tipi','Kaynak XML'];
-  ws.addRow(headers);
-  rows.forEach((r,i)=>ws.addRow([i+1,r.belgeTuru,r.vkn,r.saticiUnvan,r.aliciUnvan,kdvExcelDate(r.tarih),r.faturaNo,r.uuid,r.matrah,r.kdvOrani,r.kdv,r.toplam,r.paraBirimi,r.profil,r.faturaTipi,r.dosya]));
-  const totalRow=ws.addRow(['','','','','','','','','=SUM(I2:I'+(rows.length+1)+')','', '=SUM(K2:K'+(rows.length+1)+')','=SUM(L2:L'+(rows.length+1)+')','','','','']);
-  totalRow.getCell(1).value='TOPLAM';
-  totalRow.font={bold:true};
-  totalRow.eachCell(c=>{c.border={top:{style:'thin'}};});
-  ws.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};
-  ws.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF34495E'}};
-  ws.getRow(1).alignment={vertical:'middle',wrapText:true};
-  ws.autoFilter={from:1,to:16};
-  ws.views=[{state:'frozen',ySplit:1}];
-  [8,18,18,32,32,14,24,38,16,14,16,20,12,18,16,36].forEach((w,i)=>ws.getColumn(i+1).width=w);
-  ws.getColumn(6).numFmt='dd.mm.yyyy';
-  [9,11,12].forEach(i=>ws.getColumn(i).numFmt='#,##0.00');
+  const ws=wb.addWorksheet('İndirilecek KDV Listesi');
+  ws.getColumn(1).width=6.28;
+  [4.41,12.56,8.56,10.99,17.14,14.70,16.99,11.85,12.70,9.14,12.85,14.99,15.70,14.28,9.14].forEach((w,i)=>ws.getColumn(i+2).width=w);
+  ws.getCell('H2').value='İNDİRİLECEK KDV LİSTESİ';
+  ws.getCell('H2').font={bold:true,size:12};
+  ws.getCell('H2').alignment={horizontal:'center',vertical:'center'};
+  const headers=[
+    'Sıra No','Alış Faturasının Tarihi','Alış Faturasının Serisi',"Alış Faturasının Sıra No'su",
+    'Satıcının Adı-Soyadı / Ünvanı','Satıcının Vergi Kimlik Numarası / TC Kimlik Numarası',
+    'Alınan Mal ve/veya Hizmetin Cinsi','Alınan Mal ve/veya Hizmetin Miktarı',
+    'Alınan Mal ve/veya Hizmetin KDV Hariç Tutarı',"KDV'si",
+    'Tevkifatlı Faturanın Tevkifata Tabi Olmayan Ve Bu Dönemde İndirilen Kdv Tutarı',
+    '2 Nolu Beyannamede Ödenen Kdv Tutarı','Toplam İndirilen KDV Tutarı',
+    "GGB Tescil No'su (Alış İthalat İse)",'Belgenin İndirim Hakkının Kullanıldığı KDV Dönemi'
+  ];
+  headers.forEach((h,i)=>{
+    const c=ws.getCell(4,i+2); c.value=h; c.font={bold:true};
+    c.alignment={horizontal:'center',vertical:'center',wrapText:true};
+    c.border={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
+  });
+  ws.getRow(4).height=72;
+  const startRow=5;
+  rows.forEach((r,i)=>{
+    const sn=kdvInvoiceSeriesNo(r.faturaNo);
+    const row=ws.getRow(startRow+i);
+    [
+      i+1,kdvExcelDate(r.tarih),sn.series,sn.number,r.saticiUnvan,r.vkn,r.cins,r.miktar,
+      r.matrah,r.kdv,r.tevkifatIndirilen||0,r.tevkifat2No||0,r.toplamIndirilenKdv,r.ggbTescilNo||'',r.indirimDonemi||''
+    ].forEach((v,j)=>row.getCell(j+2).value=v);
+    row.eachCell({includeEmpty:true},c=>{
+      if(c.column>=2&&c.column<=16){
+        c.border={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
+        c.alignment={vertical:'center',wrapText:true};
+      }
+    });
+    row.getCell(3).numFmt='dd.mm.yyyy';
+    [10,11,12,13,14].forEach(c=>row.getCell(c).numFmt='#,##0.00');
+  });
+  const totalRow=startRow+rows.length;
+  ws.getCell(totalRow,9).value='TOPLAM'; ws.getCell(totalRow,9).font={bold:true};
+  ws.getCell(totalRow,10).value={formula:'SUM(J5:J'+(totalRow-1)+')'};
+  ws.getCell(totalRow,11).value={formula:'SUM(K5:K'+(totalRow-1)+')'};
+  ws.getCell(totalRow,12).value={formula:'SUM(L5:L'+(totalRow-1)+')'};
+  ws.getCell(totalRow,13).value={formula:'SUM(M5:M'+(totalRow-1)+')'};
+  ws.getCell(totalRow,14).value={formula:'SUM(N5:N'+(totalRow-1)+')'};
+  for(let c=9;c<=16;c++){const cell=ws.getCell(totalRow,c);cell.border={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};cell.font={bold:true};}
+  [10,11,12,13,14].forEach(c=>ws.getCell(totalRow,c).numFmt='#,##0.00');
+  ws.views=[{state:'frozen',ySplit:4}];
+  ws.autoFilter={from:2,to:16};
   if(errors.length){
-    const es=wb.addWorksheet('Okunamayan XML');
-    es.addRow(['Dosya','Hata']);
-    errors.forEach(e=>es.addRow([e.file,e.error]));
-    es.getRow(1).font={bold:true};
+    const es=wb.addWorksheet('Okunamayan XML'); es.addRow(['Dosya','Hata']);
+    errors.forEach(e=>es.addRow([e.file,e.error])); es.getRow(1).font={bold:true};
     es.columns=[{width:45},{width:80}];
   }
-  const buffer=await wb.xlsx.writeBuffer();
-  return buffer;
+  return wb.xlsx.writeBuffer();
 }
 function kdvDownloadBuffer(buffer,name){
   const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
