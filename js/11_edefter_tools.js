@@ -72,6 +72,38 @@ function edefterSummary(doc,file){
   };
 }
 
+function edefterStylesheetHref(xmlText){
+  const source=String(xmlText||'');
+  const match=source.match(/<\\?xml-stylesheet\\b[\\s\\S]*?\\bhref\\s*=\\s*(["'])(.*?)\\1[\\s\\S]*?\\?>/i);
+  return match ? match[2] : '';
+}
+
+function edefterStylesheetKey(value){
+  const name=String(value||'').trim().split(/[\\\\/]/).pop().split(/[?#]/)[0].toLowerCase();
+  const allowed=['yevmiye.xslt','kebir.xslt','berat.xslt','defterraporu.xslt'];
+  return allowed.includes(name) ? name : '';
+}
+
+function edefterInfoTable(summary){
+  const table=el('table',{style:'width:100%; border-collapse:collapse; margin-top:12px; font-size:13px;'});
+  const rows=[
+    ['Dosya türü',summary.type||'—'],
+    ['Kök eleman',summary.root||'—'],
+    ['VKN / TCKN',summary.vkn||'—'],
+    ['Dönem',summary.period||'—'],
+    ['Yevmiye maddesi',summary.entries ? String(summary.entries) : '—'],
+    ['Detay satırı',summary.detail ? String(summary.detail) : '—'],
+    ['İmza / mühür alanı',summary.signatures ? String(summary.signatures) : '—']
+  ];
+  for(const [label,value] of rows){
+    const tr=el('tr');
+    tr.appendChild(el('th',{style:'text-align:left; padding:6px 8px; border-bottom:1px solid var(--border,#ddd); width:180px;'},label));
+    tr.appendChild(el('td',{style:'padding:6px 8px; border-bottom:1px solid var(--border,#ddd);'},value));
+    table.appendChild(tr);
+  }
+  return table;
+}
+
 async function edefterLoadBuiltinStylesheet(name){
   const key=edefterStylesheetKey(name);
   const candidateMap={
