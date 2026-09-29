@@ -268,10 +268,120 @@ function renderNav() {
   }
   nav.appendChild(doluGroup);
 
+  const feedback=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'},[el('div',{class:'nav-item'+(currentPage==='feedback'?' active':''),onclick:()=>renderFeedbackPage()},[
+    el('div',{class:'num'},'✉'), el('div',{},'Geri Bildirim / Hata Bildir')
+  ])]);
+  nav.appendChild(feedback);
+
   const welcome=el('div',{style:'margin-top:8px;'},[el('div',{class:'nav-item'+(currentPage==='welcome'?' active':''),onclick:()=>renderWelcomePage()},[
     el('div',{class:'num'},'⌂'), el('div',{},'Hoş Geldiniz')
   ])]);
   nav.appendChild(welcome);
+}
+
+function renderFeedbackPage(){
+  currentPage='feedback';
+  archiveViewParsed=null;
+  currentStep=-1;
+  const content=document.getElementById('step-content');
+  content.innerHTML='';
+  content.appendChild(el('h2',{class:'step-title'},'Geri Bildirim / Hata Bildir'));
+  content.appendChild(el('p',{class:'step-desc'},'Karşılaştığınız hataları, eksikleri veya geliştirme önerilerinizi buradan iletebilirsiniz.'));
+
+  const card=el('div',{class:'card',style:'max-width:900px;'});
+  card.appendChild(el('h3',{},'✉️ Geri Bildirim Gönder'));
+  card.appendChild(el('p',{style:'color:var(--muted);margin-top:6px;'},'Mesajınız uygulama geliştiricisine e-posta olarak iletilir. Sorunu daha kolay inceleyebilmemiz için mümkünse hata ekran görüntüsünü ekleyin.'));
+
+  const form=el('form',{
+    action:'https://formsubmit.co/yunusemrex@gmail.com',
+    method:'POST',
+    enctype:'multipart/form-data',
+    target:'feedback-submit-frame',
+    style:'display:flex;flex-direction:column;gap:14px;'
+  });
+
+  const pageUrl=window.location.href;
+  [
+    ['_subject','geri bildirim'],
+    ['_url',pageUrl],
+    ['_captcha','true'],
+    ['_template','table']
+  ].forEach(([name,value])=>{
+    form.appendChild(el('input',{type:'hidden',name,value}));
+  });
+
+  const fields=[
+    {label:'İsim',name:'name',type:'text',placeholder:'Adınız ve soyadınız',required:true},
+    {label:'İletişim Mail',name:'email',type:'email',placeholder:'ornek@mail.com',required:true},
+    {label:'İletişim No',name:'phone',type:'tel',placeholder:'05xx xxx xx xx',required:false}
+  ];
+  fields.forEach(f=>{
+    const group=el('div',{});
+    group.appendChild(el('label',{for:'feedback-'+f.name,style:'display:block;font-weight:700;margin-bottom:6px;'},f.label+(f.required?' *':'')));
+    group.appendChild(el('input',{
+      id:'feedback-'+f.name,
+      type:f.type,
+      name:f.name,
+      placeholder:f.placeholder,
+      required:f.required,
+      autocomplete:f.name==='email'?'email':(f.name==='name'?'name':'tel'),
+      style:'width:100%;box-sizing:border-box;'
+    }));
+    form.appendChild(group);
+  });
+
+  const messageGroup=el('div',{});
+  messageGroup.appendChild(el('label',{for:'feedback-message',style:'display:block;font-weight:700;margin-bottom:6px;'},'Geri Bildirim / Hata Metni *'));
+  messageGroup.appendChild(el('textarea',{
+    id:'feedback-message',
+    name:'message',
+    placeholder:'Karşılaştığınız hata, yaptığınız işlem ve mümkünse tekrar oluşturma adımlarını yazın.',
+    required:true,
+    rows:'9',
+    style:'width:100%;box-sizing:border-box;resize:vertical;'
+  }));
+  form.appendChild(messageGroup);
+
+  const imageGroup=el('div',{});
+  imageGroup.appendChild(el('label',{for:'feedback-attachment',style:'display:block;font-weight:700;margin-bottom:6px;'},'Görsel / Ekran Görüntüsü'));
+  imageGroup.appendChild(el('input',{
+    id:'feedback-attachment',
+    type:'file',
+    name:'attachment',
+    accept:'image/png,image/jpeg,image/webp,image/gif',
+    style:'width:100%;'
+  }));
+  imageGroup.appendChild(el('div',{class:'hint info',style:'margin-top:7px;'},'PNG, JPG, WEBP veya GIF yükleyebilirsiniz. Dosya boyutunu mümkün olduğunca küçük tutun; FormSubmit toplam dosya yüklemelerini 10 MB ile sınırlar.'));
+  form.appendChild(imageGroup);
+
+  // Spam botlarına karşı görünmez honeypot alanı.
+  form.appendChild(el('input',{type:'text',name:'_honey',tabindex:'-1',autocomplete:'off',style:'display:none;'}));
+
+  const submit=el('button',{type:'submit',class:'btn btn-primary'},'✉ Geri Bildirimi Gönder');
+  form.appendChild(submit);
+
+  const status=el('div',{class:'hint info',style:'margin-top:12px;display:none;'},'Gönderim başlatıldı. İlk kullanımda FormSubmit, formun e-posta adresini doğrulamanız için bir onay e-postası gönderebilir.');
+  form.addEventListener('submit',()=>{
+    submit.disabled=true;
+    submit.textContent='Gönderiliyor…';
+    status.style.display='block';
+  });
+
+  const privacy=el('div',{class:'hint warn',style:'margin-top:14px;'},'Bu formdaki ad, iletişim bilgileri, mesaj ve eklenen görsel FormSubmit adlı harici form hizmeti üzerinden e-posta olarak iletilir.');
+  card.appendChild(form);
+  card.appendChild(status);
+  card.appendChild(privacy);
+
+  const frame=el('iframe',{name:'feedback-submit-frame',title:'Geri bildirim gönderim alanı',style:'display:none;'});
+  content.appendChild(card);
+  content.appendChild(frame);
+
+  document.getElementById('btn-prev').disabled=true;
+  document.getElementById('btn-next').disabled=true;
+  document.getElementById('btn-next').textContent='Gelen Karşıt →';
+  document.getElementById('btn-next').title='Karşıt inceleme çalışma ekranına geçmek için soldaki “Gelen Karşıt” bağlantısını kullanın.';
+  document.getElementById('footer-msg').textContent='Geri Bildirim';
+  renderNav();
 }
 
 function renderStep(i) {
