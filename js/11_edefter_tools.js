@@ -132,20 +132,92 @@ function edefterDownloadText(fileName,textValue){
   downloadBlob(blob,fileName);
 }
 
+function edefterStylesheetHref(xmlText){
+  const m=String(xmlText||'').match(/<\?xml-stylesheet\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*\?>/i);
+  return m ? m[1].trim() : '';
+}
+
+function edefterStylesheetKey(name){
+  return String(name||'').split(/[\\/]/).pop().trim().toLocaleLowerCase('tr-TR');
+}
+
+function edefterBrowserCompatibleXslt(text){
+  let s=String(text||'').replace(/^\uFEFF/,'');
+  s=s.replace(/<xsl:character-map\b[^>]*>[\s\S]*?<\/xsl:character-map>/i,'');
+  s=s.replace(/\s+use-character-maps\s*=\s*["'][^"']*["']/i,'');
+  s=s.replace(/(<xsl:stylesheet\b[^>]*\bversion\s*=\s*["'])2\.0(["'])/i,'$11.0$2');
+  s=s.replace(/(<xsl:output\b[^>]*\bversion\s*=\s*["'])4\.0(["'])/i,'$11.0$2');
+  return s;
+}
+
+function edefterResolveStylesheet(xmlFile,xmlText,stylesheets){
+  const href=edefterStylesheetHref(xmlText);
+  const hrefKey=edefterStylesheetKey(href);
+  if(hrefKey && stylesheets[hrefKey]) return {file:stylesheets[hrefKey],source:'Yüklenen XSLT'};
+  const rootName=(xmlText.match(/<([A-Za-z_][\w:.-]*)(?:\s|>)/)||[])[1]||'';
+  const local=rootName.split(':').pop().toLowerCase();
+  if(local==='berat' && stylesheets['berat.xslt']) return {file:stylesheets['berat.xslt'],source:'Yerleşik GİB berat.xslt'};
+  return {file:null,source:'XSLT bulunamadı'};
+}
+
+async function edefterTransformXml(xmlText,xsltText){
+  if(typeof XSLTProcessor==='undefined') throw new Error('Bu tarayıcı XSLT görüntülemeyi desteklemiyor.');
+  const parser=new DOMParser();
+  const xmlDoc=parser.parseFromString(String(xmlText||''),'application/xml');
+  if(xmlDoc.getElementsByTagName('parsererror')[0]) throw new Error('XML sözdizimi okunamadı.');
+  const xsltDoc=parser.parseFromString(edefterBrowserCompatibleXslt(xsltText),'application/xml');
+  if(xsltDoc.getElementsByTagName('parsererror')[0]) throw new Error('XSLT sözdizimi okunamadı.');
+  const processor=new XSLTProcessor();
+  processor.importStylesheet(xsltDoc);
+  const fragment=processor.transformToFragment(xmlDoc,document);
+  const holder=document.createElement('div');
+  holder.appendChild(fragment);
+  return holder.innerHTML;
+}
+
+function edefterRenderedFrame(html){
+  const frame=document.createElement('iframe');
+  frame.className='edefter-render-frame';
+  frame.title='e-Defter XSLT ile oluşturulmuş görünüm';
+  frame.setAttribute('sandbox','allow-same-origin');
+  frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;background:#fff;}body{min-height:100vh;}img{max-width:100%;}table{max-width:100%;}</style></head><body>'+html+'</body></html>';
+  return frame;
+}
+
+function edefterDownloadRenderedPdf(){
+  document.body.classList.add('edefter-render-print-mode');
+  setTimeout(()=>window.print(),40);
+}
+
 function renderEdefterXmlViewerPage(){
   currentToolPage='xml';
   currentPage='tools-xml';
   currentStep=-1;
   const content=document.getElementById('step-content'); content.innerHTML='';
   content.appendChild(el('h2',{class:'step-title'},'e-Defter XML / Berat Görüntüleyici'));
-  content.appendChild(el('p',{class:'step-desc'},'Yevmiye, Kebir, Defter Raporu ve Berat XML dosyalarını tarayıcı içinde inceleyin. Dosya içeriği bu cihazda işlenir; yükleme sunucuya yapılmaz.'));
+  content.appendChild(el('p',{class:'step-desc'},'e-Defter ve berat XML dosyaları, dosyanın XML içinde tanımladığı XSLT ile mümkün olduğunca orijinal e-Defter görünümünde oluşturulur. XSLT dosyanız ayrıysa XML ile birlikte seçebilirsiniz.'));
   const card=el('div',{class:'card edefter-no-print'});
-  card.appendChild(el('h3',{},'📄 e-Defter / Berat XML Yükle'));
-  card.appendChild(el('div',{class:'hint info'},'Desteklenen dosya türleri: Y, K, DR, YB, KB ve GİB onaylı berat XML dosyaları. Büyük defterlerde ayrıntılı XML ağacı yalnızca açtığınız bölümlerde oluşturulur.'));
+  card.appendChild(el('h3',{},'📄 XML / XSLT Dosyalarını Yükle'));
+  card.appendChild(el('div',{class:'hint info'},'Desteklenen dosyalar: .xml, .xsl, .xslt. Örneğin YB/KB dosyaları için XML içindeki “berat.xslt” tanımı otomatik aranır. Yerleşik berat.xslt de ayrıca kullanılabilir.'));
   const result=el('div');
-  fileUploadBox(card,{accept:'.xml',multiple:true,hint:'XML dosyasını sürükleyin veya seçin',onFiles:async(files,box)=>{
+  fileUploadBox(card,{accept:'.xml,.xsl,.xslt',multiple:true,hint:'XML ve varsa XSLT dosyalarını birlikte sürükleyin veya seçin',onFiles:async(files,box)=>{
     result.innerHTML='';
+    const stylesheets={};
+    const xmlFiles=[];
     for(const file of files){
+      if(/\.(xsl|xslt)$/i.test(file.name)){
+        stylesheets[edefterStylesheetKey(file.name)]=file;
+        markFileChip(box,file.name,true);
+      }else if(/\.xml$/i.test(file.name)){
+        xmlFiles.push(file);
+      }
+    }
+    if(!xmlFiles.length){
+      if(Object.keys(stylesheets).length) result.appendChild(el('div',{class:'hint ok',style:'margin-top:10px;'},'✓ XSLT dosyaları hazır. Şimdi XML dosyasını da seçebilirsiniz.'));
+      return;
+    }
+
+    for(const file of xmlFiles){
       markFileChip(box,file.name,true);
       const item=el('div',{class:'card edefter-document'});
       try{
@@ -155,36 +227,57 @@ function renderEdefterXmlViewerPage(){
         if(parserError) throw new Error('XML sözdizimi okunamadı.');
         file.__text=textValue;
         const summary=edefterSummary(doc,file);
+        const resolved=edefterResolveStylesheet(file,textValue,stylesheets);
         const head=el('div',{class:'edefter-doc-head'},[
-          el('div',{},[el('strong',{},file.name),el('div',{class:'hint info'},summary.type+' · '+(summary.period||'Dönem okunamadı'))]),
+          el('div',{},[
+            el('strong',{},file.name),
+            el('div',{class:'hint info'},summary.type+' · '+(summary.period||'Dönem okunamadı')),
+            el('div',{class:'hint '+(resolved.file?'ok':'warn'),style:'margin-top:6px;'},resolved.file?'✓ XSLT: '+(resolved.file.name||resolved.source):'⚠️ '+(edefterStylesheetHref(textValue)||'XML içinde XSLT tanımı yok')+' — uygun XSLT seçin')
+          ]),
           el('div',{class:'table-actions edefter-no-print'})
         ]);
         const actions=head.lastChild;
-        actions.appendChild(el('button',{class:'btn btn-primary',onclick:()=>printEdefterXml()},'🖨 Yazdır / PDF Kaydet'));
+        actions.appendChild(el('button',{class:'btn btn-primary',onclick:()=>edefterDownloadRenderedPdf()},'🖨 Görünümü Yazdır / PDF Kaydet'));
         actions.appendChild(el('button',{class:'btn btn-secondary',onclick:()=>edefterDownloadText(file.name,textValue)},'⬇ XML Kaydet'));
         item.appendChild(head);
         item.appendChild(edefterInfoTable(summary));
-        const treeCard=el('div',{class:'card',style:'margin-top:14px;'});
-        treeCard.appendChild(el('h3',{},'🌳 Yapısal XML Görünümü'));
-        treeCard.appendChild(edefterXmlNodeView(doc.documentElement));
-        item.appendChild(treeCard);
-        const raw=el('details',{class:'raw-details edefter-no-print',style:'margin-top:12px;'});
-        raw.appendChild(el('summary',{},'Ham XML metnini göster'));
+
+        const preview=el('div',{class:'card edefter-render-card',style:'margin-top:14px;'});
+        preview.appendChild(el('h3',{},'🖥️ e-Defter Görünümü'));
+        if(resolved.file){
+          try{
+            const xsltText=await resolved.file.text();
+            const html=await edefterTransformXml(textValue,xsltText);
+            preview.appendChild(edefterRenderedFrame(html));
+          }catch(transformErr){
+            preview.appendChild(el('div',{class:'hint warn'},'⚠️ XSLT ile görselleştirme başarısız: '+transformErr.message));
+            preview.appendChild(el('div',{class:'hint info',style:'margin-top:8px;'},'Aşağıdaki yapısal XML görünümü yine kullanılabilir.'));
+          }
+        }else{
+          preview.appendChild(el('div',{class:'hint info'},'Bu XML için uygun XSLT dosyası bulunamadı. XML ile birlikte ilgili .xsl/.xslt dosyasını seçtiğinizde burada görsel e-Defter görünümü oluşturulur.'));
+        }
+        item.appendChild(preview);
+
+        const treeDetails=el('details',{class:'raw-details edefter-no-print',style:'margin-top:12px;'});
+        treeDetails.appendChild(el('summary',{},'🌳 Yapısal XML Görünümünü Göster'));
+        treeDetails.appendChild(edefterXmlNodeView(doc.documentElement));
+        item.appendChild(treeDetails);
+
+        const raw=el('details',{class:'raw-details edefter-no-print',style:'margin-top:8px;'});
+        raw.appendChild(el('summary',{},'Ham XML Metnini Göster'));
         raw.appendChild(el('pre',{class:'raw-text edefter-xml-raw'},edefterPrettyXml(textValue)));
         item.appendChild(raw);
       }catch(err){
-        item.appendChild(el('div',{class:'hint warn'},`⚠️ ${file.name}: ${err.message}`));
+        item.appendChild(el('div',{class:'hint warn'},'⚠️ '+file.name+': '+err.message));
       }
       result.appendChild(item);
     }
   }});
   card.appendChild(result);
   content.appendChild(card);
-  const note=el('div',{class:'hint warn edefter-no-print'},'Not: Bu görüntüleyici XML içeriğini okur ve yazdırılabilir hale getirir; elektronik imza/mali mühür geçerliliğini doğrulamaz ve GİB kayıtlarıyla karşılaştırma yapmaz.');
-  content.appendChild(note);
+  content.appendChild(el('div',{class:'hint warn edefter-no-print'},'Not: XSLT ile oluşturulan görünüm dosyanın biçimlendirilmiş sunumudur; elektronik imza/mali mühür geçerliliğini doğrulamaz ve GİB kayıtlarıyla karşılaştırma yapmaz.'));
   document.getElementById('btn-prev').disabled=true; document.getElementById('btn-next').disabled=true; document.getElementById('footer-msg').textContent='Araçlar → e-Defter XML / Berat Görüntüleyici'; renderNav();
 }
-
 let edefterPdfObjectUrl='';
 
 function renderEdefterPdfViewerPage(){
