@@ -286,100 +286,24 @@ function renderFeedbackPage(){
   const content=document.getElementById('step-content');
   content.innerHTML='';
   content.appendChild(el('h2',{class:'step-title'},'Geri Bildirim / Hata Bildir'));
-  content.appendChild(el('p',{class:'step-desc'},'Karşılaştığınız hataları, eksikleri veya geliştirme önerilerinizi buradan iletebilirsiniz.'));
+  content.appendChild(el('p',{class:'step-desc'},'Karşılaştığınız hataları, eksikleri veya geliştirme önerilerinizi GitHub Issue olarak iletebilirsiniz.'));
 
   const card=el('div',{class:'card',style:'max-width:900px;'});
-  card.appendChild(el('h3',{},'✉️ Geri Bildirim Gönder'));
-  card.appendChild(el('p',{style:'color:var(--muted);margin-top:6px;'},'Mesajınız uygulama geliştiricisine e-posta olarak iletilir. Sorunu daha kolay inceleyebilmemiz için mümkünse hata ekran görüntüsünü ekleyin.'));
+  card.appendChild(el('h3',{},'🐙 Geri Bildirim Gönder'));
+  card.appendChild(el('p',{style:'color:var(--muted);margin-top:6px;'},'Geri bildirim formu GitHub üzerinde açılır. Buradan metni yazabilir ve ekran görüntüsünü doğrudan GitHub’a yükleyebilirsiniz.'));
+  card.appendChild(el('div',{class:'hint info',style:'margin-top:12px;'},'Ekran görüntüsü eklemek için GitHub formundaki “Görsel / Ekran Görüntüsü” alanına PNG, JPG, GIF veya WEBP dosyanızı sürükleyip bırakın. GitHub Issue formları dosya yüklemeyi destekler.'));
+  
+  const openIssue=el('a',{
+    href:'https://github.com/Webtasarim70/ekarsit/issues/new?template=geri-bildirim.yml',
+    target:'_blank',
+    rel:'noopener noreferrer',
+    class:'btn btn-primary',
+    style:'display:inline-flex;align-items:center;justify-content:center;text-decoration:none;margin-top:14px;'
+  },'🐙 GitHub’da Geri Bildirim Gönder');
+  card.appendChild(openIssue);
 
-  const form=el('form',{
-    action:'https://formsubmit.co/yunusemrex@gmail.com',
-    method:'POST',
-    enctype:'multipart/form-data',
-    style:'display:flex;flex-direction:column;gap:14px;'
-  });
-
-  const pageUrl=window.location.href;
-  [
-    ['_subject','geri bildirim'],
-    ['_url',pageUrl],
-    ['_template','table']
-  ].forEach(([name,value])=>{
-    form.appendChild(el('input',{type:'hidden',name,value}));
-  });
-
-  const fields=[
-    {label:'İsim',name:'name',type:'text',placeholder:'Adınız ve soyadınız',required:true},
-    {label:'İletişim Mail',name:'email',type:'email',placeholder:'ornek@mail.com',required:true},
-    {label:'İletişim No',name:'phone',type:'tel',placeholder:'05xx xxx xx xx',required:false}
-  ];
-  fields.forEach(f=>{
-    const group=el('div',{});
-    group.appendChild(el('label',{for:'feedback-'+f.name,style:'display:block;font-weight:700;margin-bottom:6px;'},f.label+(f.required?' *':'')));
-    group.appendChild(el('input',{
-      id:'feedback-'+f.name,
-      type:f.type,
-      name:f.name,
-      placeholder:f.placeholder,
-      required:f.required,
-      autocomplete:f.name==='email'?'email':(f.name==='name'?'name':'tel'),
-      style:'width:100%;box-sizing:border-box;'
-    }));
-    form.appendChild(group);
-  });
-
-  const messageGroup=el('div',{});
-  messageGroup.appendChild(el('label',{for:'feedback-message',style:'display:block;font-weight:700;margin-bottom:6px;'},'Geri Bildirim / Hata Metni *'));
-  messageGroup.appendChild(el('textarea',{
-    id:'feedback-message',
-    name:'message',
-    placeholder:'Karşılaştığınız hata, yaptığınız işlem ve mümkünse tekrar oluşturma adımlarını yazın.',
-    required:true,
-    rows:'9',
-    style:'width:100%;box-sizing:border-box;resize:vertical;'
-  }));
-  form.appendChild(messageGroup);
-
-  const imageGroup=el('div',{});
-  imageGroup.appendChild(el('label',{for:'feedback-attachment',style:'display:block;font-weight:700;margin-bottom:6px;'},'Görsel / Ekran Görüntüsü'));
-  const attachment=el('input',{
-    id:'feedback-attachment',
-    type:'file',
-    name:'attachment',
-    accept:'image/png,image/jpeg',
-    style:'width:100%;'
-  });
-  imageGroup.appendChild(attachment);
-  imageGroup.appendChild(el('div',{class:'hint info',style:'margin-top:7px;'},'PNG veya JPG yükleyebilirsiniz. Dosya boyutunu mümkün olduğunca küçük tutun; FormSubmit toplam dosya yüklemelerini 10 MB ile sınırlar.'));
-  form.appendChild(imageGroup);
-
-  const submit=el('button',{type:'submit',class:'btn btn-primary'},'✉ Geri Bildirimi Gönder');
-  form.appendChild(submit);
-
-  const status=el('div',{class:'hint info',style:'margin-top:12px;display:none;'});
-  function setFeedbackStatus(kind,message){
-    status.className='hint '+kind;
-    status.textContent=message;
-    status.style.display='block';
-  }
-
-  // Görsel ekleri için FormSubmit'in dokümante ettiği native multipart/form-data akışını kullanıyoruz.
-  // İlk teşhis aşamasında yalnızca temel alanları gönderiyoruz; özel redirect/spam alanları eklemiyoruz.
-  form.addEventListener('submit',()=>{
-    if(!form.reportValidity()) return;
-    submit.disabled=true;
-    submit.textContent='Gönderiliyor…';
-  });
-
-  const privacy=el('div',{class:'hint warn',style:'margin-top:14px;'},'Bu formdaki bilgiler FormSubmit adlı harici hizmete gönderilir. “Kabul edildi” mesajı FormSubmit sunucusunun gönderimi aldığı anlamına gelir; e-postanın posta kutusuna teslim edildiğini tarayıcıdan kesin olarak doğrulayamıyoruz.');
-  if(new URLSearchParams(window.location.search).get('feedback')==='success'){
-    setFeedbackStatus('ok','✓ Geri bildiriminiz ve varsa görseliniz FormSubmit tarafından kabul edildi ve gönderim tamamlandı.');
-    history.replaceState({},document.title,window.location.pathname+window.location.hash);
-  }
-  card.appendChild(form);
-  card.appendChild(status);
+  const privacy=el('div',{class:'hint warn',style:'margin-top:14px;'},'Bu yöntemle geri bildirim GitHub Issues bölümünde tutulur. GitHub hesabıyla oturum açmanız gerekebilir. Ekran görüntüsü doğrudan Issue formuna yüklenebilir.');
   card.appendChild(privacy);
-
   content.appendChild(card);
 
   document.getElementById('btn-prev').disabled=true;
