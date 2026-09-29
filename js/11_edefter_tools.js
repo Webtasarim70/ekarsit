@@ -202,6 +202,30 @@ function edefterDownloadRenderedPdf(frame, scale){
   setTimeout(()=>window.print(),40);
 }
 
+function edefterPrintEachRendered(frames, scales){
+  const valid=(frames||[]).filter(frame=>frame && frame.contentDocument?.documentElement);
+  if(!valid.length) return;
+  let blocked=0;
+  valid.forEach((frame,i)=>{
+    const win=window.open('','_blank','width=1100,height=900');
+    if(!win){ blocked++; return; }
+    const scale=Math.max(0.5,Math.min(1.2,Number(scales?.[i])||1));
+    const source=frame.contentDocument.documentElement;
+    const body=source.querySelector('body');
+    const headStyles=Array.from(source.querySelectorAll('style')).map(s=>s.textContent||'').join('\\n');
+    const title=String(frame.closest('.edefter-document')?.querySelector('.edefter-doc-head strong')?.textContent||('Belge '+(i+1)));
+    win.document.open();
+    win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+title.replace(/[<>]/g,'')+'</title><style>'+
+      'html,body{margin:0;padding:0;background:#fff;}'+
+      '.edefter-pdf-scaled{zoom:'+scale+';transform-origin:top left;width:calc(100% / '+scale+');}'+
+      '@media print{body{margin:0;padding:0;}}'+headStyles+
+      '</style></head><body><div class="edefter-pdf-scaled">'+(body?body.innerHTML:source.innerHTML)+'</div></body></html>');
+    win.document.close();
+    setTimeout(()=>{ try{win.focus();win.print();}catch(err){} },350);
+  });
+  if(blocked) alert('Bazı ayrı PDF pencereleri tarayıcı tarafından engellendi. Adres çubuğundaki açılır pencere iznini verip işlemi tekrar başlatın.');
+}
+
 function edefterPrintAllRendered(frames, scales){
   const valid=(frames||[]).filter(frame=>frame && frame.contentDocument?.documentElement);
   if(!valid.length) return;
@@ -243,6 +267,8 @@ function renderEdefterXmlViewerPage(){
   const uploadBoxHost=el('div');
   const clearBtn=el('button',{class:'btn btn-secondary edefter-no-print',style:'margin-top:10px;',onclick:()=>{
     xmlFilesByName.clear();
+    renderedFrames.length=0;
+    renderedScales.length=0;
     result.innerHTML='';
     const input=uploadBoxHost.querySelector('input[type="file"]');
     if(input) input.value='';
@@ -253,7 +279,8 @@ function renderEdefterXmlViewerPage(){
     el('option',{value:'1'},'Tümü %100'),el('option',{value:'0.9'},'Tümü %90'),el('option',{value:'0.8'},'Tümü %80'),el('option',{value:'0.7'},'Tümü %70'),el('option',{value:'0.6'},'Tümü %60')
   ]);
   const allPrintBtn=el('button',{class:'btn btn-primary edefter-no-print',onclick:()=>edefterPrintAllRendered(renderedFrames,renderedScales)},'🖨 Tümünü Tek PDF Kaydet');
-  const actions=el('div',{class:'table-actions edefter-no-print',style:'margin-top:10px;'},[clearBtn,allScaleSelect,allPrintBtn]);
+  const eachPrintBtn=el('button',{class:'btn btn-secondary edefter-no-print',onclick:()=>edefterPrintEachRendered(renderedFrames,renderedScales)},'🖨 Tümünü Ayrı PDF Kaydet');
+  const actions=el('div',{class:'table-actions edefter-no-print',style:'margin-top:10px;'},[clearBtn,allScaleSelect,allPrintBtn,eachPrintBtn]);
   card.appendChild(uploadBoxHost);
   fileUploadBox(uploadBoxHost,{accept:'.xml',multiple:true,hint:'e-Defter veya berat XML dosyalarını sürükleyin veya seçin',onFiles:async(files,box)=>{
     result.innerHTML='';
@@ -301,7 +328,6 @@ function renderEdefterXmlViewerPage(){
           scaleSelect.onchange=()=>{ renderedScales[renderedFrames.indexOf(renderedFrame)]=scaleSelect.value; edefterSetPrintScale(renderedFrame,scaleSelect.value); };
           allScaleSelect.onchange=()=>{
             renderedFrames.forEach((frame,i)=>{ renderedScales[i]=allScaleSelect.value; edefterSetPrintScale(frame,allScaleSelect.value); });
-            document.querySelectorAll('.edefter-no-print select').forEach(()=>{});
           };
           renderedFrame.addEventListener('load',()=>edefterSetPrintScale(renderedFrame,scaleSelect.value),{once:true});
           printBtn.onclick=()=>edefterDownloadRenderedPdf(renderedFrame,scaleSelect.value);
