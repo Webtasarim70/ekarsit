@@ -110,6 +110,18 @@ async function edefterResolveBuiltinStylesheet(xmlFile,xmlText){
   return {file:null,source:'Uygun XSLT eşleştirilemedi'};
 }
 
+function edefterBrowserCompatibleXslt(xsltText){
+  let text=String(xsltText||'');
+  // GİB şablonları XSLT 2.0 bildirse de dönüşüm mantıkları tarayıcıların
+  // XSLT 1.0 işlemcisiyle uyumludur. XSLT 2.0'ye özgü karakter haritasını
+  // ve çıktı sürüm bilgisini kaldırıp stylesheet sürümünü 1.0'a indiriyoruz.
+  text=text.replace(/(<xsl:stylesheet\\b[^>]*?)\\bversion\\s*=\\s*["']2\\.0["']/i,'$1version="1.0"');
+  text=text.replace(/<xsl:character-map\\b[^>]*>[\\s\\S]*?<\\/xsl:character-map>/gi,'');
+  text=text.replace(/\\s+use-character-maps\\s*=\\s*["'][^"']*["']/gi,'');
+  text=text.replace(/\\s+version\\s*=\\s*["']4\\.0["']/gi,'');
+  return text;
+}
+
 async function edefterTransformXml(xmlText,xsltText){
   if(typeof XSLTProcessor==='undefined') throw new Error('Bu tarayıcı XSLT görüntülemeyi desteklemiyor.');
   const parser=new DOMParser();
