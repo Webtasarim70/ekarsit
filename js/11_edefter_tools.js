@@ -3,7 +3,6 @@
    Tamamen tarayıcı tarafında çalışır; yüklenen dosyalar sunucuya gönderilmez.
    ============================================================ */
 
-let toolsMenuOpen = true;
 let currentToolPage = '';
 
 function edefterSafeName(name, suffix){
