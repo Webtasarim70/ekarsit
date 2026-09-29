@@ -178,15 +178,6 @@ function renderEdefterXmlViewerPage(){
         const actions=head.lastChild;
         item.appendChild(head);
         item.appendChild(edefterInfoTable(summary));
-        const head=el('div',{class:'edefter-doc-head'},[
-          el('div',{},[
-            el('strong',{},file.name),
-            el('div',{class:'hint info'},summary.type+' · '+(summary.period||'Dönem okunamadı')),
-            el('div',{class:'hint '+(resolved.file?'ok':'warn'),style:'margin-top:6px;'},resolved.file?'✓ XSLT: '+(resolved.file.name||resolved.source):'⚠️ '+(edefterStylesheetHref(textValue)||'XML içinde XSLT tanımı yok')+' — uygun XSLT seçin')
-          ]),
-          el('div',{class:'table-actions edefter-no-print'})
-        ]);
-        const actions=head.lastChild;
         const printBtn=el('button',{class:'btn btn-primary'},'🖨 Görünümü Yazdır / PDF Kaydet');
         actions.appendChild(printBtn);
         const preview=el('div',{class:'card edefter-render-card',style:'margin-top:14px;'});
