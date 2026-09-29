@@ -156,7 +156,7 @@ function renderXmlKdvListesiPage(){
         markFileChip(box,file.name,false);
       }
     }
-    status.appendChild(el('div',{class:'hint '+(ok?'ok':'warn'},ok?'✓ '+ok+' XML fatura okundu.':'⚠️ Okunabilir XML fatura bulunamadı.'));
+    status.appendChild(el('div',{class:'hint '+(ok?'ok':'warn')},ok?'✓ '+ok+' XML fatura okundu.':'⚠️ Okunabilir XML fatura bulunamadı.'));
     if(window.__xmlKdvErrors.length) status.appendChild(el('div',{class:'hint warn',style:'margin-top:6px;'},'⚠️ '+window.__xmlKdvErrors.length+' dosya okunamadı; ayrıntılar Excel içindeki “Okunamayan XML” sayfasına eklenir.'));
     if(ok){
       const table=el('table',{class:'data-table'});
