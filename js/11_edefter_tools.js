@@ -220,23 +220,29 @@ function renderEdefterXmlViewerPage(){
   card.appendChild(el('div',{class:'hint info'},'Desteklenen dosyalar: .xml, .xsl, .xslt. Örneğin YB/KB dosyaları için XML içindeki “berat.xslt” tanımı otomatik aranır. XML içinde belirtilen XSLT dosyasını XML ile birlikte seçmeniz yeterlidir.'));
   const result=el('div');
   const stylesheets={};
+  const xmlFilesByName=new Map();
   fileUploadBox(card,{accept:'.xml,.xsl,.xslt',multiple:true,hint:'XML ve varsa XSLT dosyalarını birlikte sürükleyin veya seçin',onFiles:async(files,box)=>{
     result.innerHTML='';
     const xmlFiles=[];
+    const previousCount=xmlFilesByName.size;
     for(const file of files){
       if(/\.(xsl|xslt)$/i.test(file.name)){
         stylesheets[edefterStylesheetKey(file.name)]=file;
         markFileChip(box,file.name,true);
       }else if(/\.xml$/i.test(file.name)){
+        xmlFilesByName.set(file.name,file);
         xmlFiles.push(file);
       }
     }
-    if(!xmlFiles.length){
+    if(!xmlFiles.length && !xmlFilesByName.size){
       if(Object.keys(stylesheets).length) result.appendChild(el('div',{class:'hint ok',style:'margin-top:10px;'},'✓ XSLT dosyaları hazır. Şimdi XML dosyasını da seçebilirsiniz.'));
       return;
     }
+    if(!xmlFiles.length && previousCount>0){
+      xmlFiles.push(...xmlFilesByName.values());
+    }
 
-    for(const file of xmlFiles){
+    for(const file of xmlFilesByName.values()){
       markFileChip(box,file.name,true);
       const item=el('div',{class:'card edefter-document'});
       try{
