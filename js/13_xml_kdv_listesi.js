@@ -231,6 +231,11 @@ function kdvCreateWorkbook(rows,errors){
   }
   return wb.xlsx.writeBuffer();
 }
+function kdvExcelSafeFileName(){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  return 'Indirilecek_KDV_Listesi_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+'.xlsx';
+}
 function kdvDownloadBuffer(buffer,name){
   const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url=URL.createObjectURL(blob);
