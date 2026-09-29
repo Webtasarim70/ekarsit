@@ -390,11 +390,6 @@ function renderFeedbackPage(){
   card.appendChild(privacy);
 
   content.appendChild(card);
-  content.appendChild(frame);
-
-  if(new URLSearchParams(window.location.search).get('feedback')==='success'){
-    history.replaceState({},document.title,window.location.pathname+window.location.hash);
-  }
 
   document.getElementById('btn-prev').disabled=true;
   document.getElementById('btn-next').disabled=true;
