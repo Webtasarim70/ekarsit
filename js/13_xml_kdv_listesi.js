@@ -7,6 +7,7 @@ function kdvXmlLocalName(node){
   return String(node?.localName||node?.nodeName||'').split(':').pop().toLowerCase();
 }
 function kdvXmlNodes(doc,name){
+  if(!doc || typeof doc.getElementsByTagName!=='function') return [];
   return Array.from(doc.getElementsByTagName('*')).filter(n=>kdvXmlLocalName(n)===String(name).toLowerCase());
 }
 function kdvXmlFirst(doc,name){
@@ -39,7 +40,7 @@ function kdvXmlNumber(value){
 function kdvXmlDirectChildren(doc,name){
   const root=doc?.documentElement;
   if(!root) return [];
-  return Array.from(root.children||[]).filter(n=>kdvXmlLocalName(n)===String(name).toLowerCase());
+  return Array.from(root.childNodes||[]).filter(n=>n.nodeType===1 && kdvXmlLocalName(n)===String(name).toLowerCase());
 }
 function kdvXmlTlNotes(doc){
   const notes=kdvXmlNodes(doc,'Note').map(n=>String(n.textContent||'').replace(/\s+/g,' ').trim()).filter(Boolean);
@@ -74,12 +75,13 @@ function kdvXmlInvoiceData(doc,file){
   // Faturanın gerçek toplam KDV'si, tevkifatlı faturada TaxTotal/TaxAmount'tan
   // farklı olabilir; TaxSubtotal/TaxAmount tam KDV'yi verir.
   const topTaxSubtotals=topTax ? kdvXmlNodes(topTax,'TaxSubtotal') : [];
+  const topTaxAmount=topTax ? kdvXmlFirst(topTax,'TaxAmount') : null;
   const fullKdvXml=topTaxSubtotals.length
     ? topTaxSubtotals.reduce((sum,sub)=>sum+kdvXmlNumber(kdvXmlFirst(sub,'TaxAmount')?.textContent),0)
-    : kdvXmlNumber(kdvXmlFirst(topTax,'TaxAmount')?.textContent);
+    : kdvXmlNumber(topTaxAmount?.textContent);
 
-  const buyerVatXml=kdvXmlNumber(kdvXmlFirst(topTax,'TaxAmount')?.textContent);
-  const withholdingXml=kdvXmlNumber(kdvXmlFirst(topWithholding,'TaxAmount')?.textContent);
+  const withholdingAmount=topWithholding ? kdvXmlFirst(topWithholding,'TaxAmount') : null;
+  const withholdingXml=kdvXmlNumber(withholdingAmount?.textContent);
   const matrah=kdvXmlMoney(doc,'TaxExclusiveAmount');
   const dahil=kdvXmlMoney(doc,'TaxInclusiveAmount');
   const payable=kdvXmlMoney(doc,'PayableAmount');
@@ -249,8 +251,13 @@ function renderXmlKdvListesiPage(){
   const downloadBtn=el('button',{class:'btn btn-primary',style:'display:none;',onclick:async()=>{
     const rows=window.__xmlKdvRows||[], errors=window.__xmlKdvErrors||[];
     if(!rows.length){alert('İndirilecek KDV listesi için okunabilir XML bulunamadı.');return;}
-    const buffer=await kdvCreateWorkbook(rows,errors);
-    kdvDownloadBuffer(buffer,kdvExcelSafeFileName());
+    try{
+      const buffer=await kdvCreateWorkbook(rows,errors);
+      kdvDownloadBuffer(buffer,kdvExcelSafeFileName());
+    }catch(err){
+      console.error('KDV Excel oluşturma hatası:',err);
+      alert('Excel oluşturulamadı: '+String(err?.message||err));
+    }
   }},'⬇ Excel KDV Listesini İndir');
   const clearBtn=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:()=>{
     window.__xmlKdvRows=[]; window.__xmlKdvErrors=[]; status.innerHTML=''; result.innerHTML=''; downloadBtn.style.display='none';
@@ -272,7 +279,9 @@ function renderXmlKdvListesiPage(){
         window.__xmlKdvRows.push(row); ok++;
         markFileChip(box,file.name,true);
       }catch(err){
-        window.__xmlKdvErrors.push({file:file.name,error:err.message});
+        const msg=String(err?.message||err||'Bilinmeyen hata');
+        console.error('XML KDV okuma hatası:',file.name,err);
+        window.__xmlKdvErrors.push({file:file.name,error:msg});
         markFileChip(box,file.name,false);
       }
     }
