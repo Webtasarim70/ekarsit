@@ -100,6 +100,30 @@ function efaturaInfoTable(s){
   return table;
 }
 
+function edefterPrintAllRendered(frames, scales){
+  const valid=(frames||[]).filter(frame=>frame && frame.contentDocument?.documentElement);
+  if(!valid.length) return;
+  const win=window.open('','_blank','width=1100,height=900');
+  if(!win){ alert('Toplu PDF için açılır pencereye izin verilmelidir.'); return; }
+  const pages=valid.map((frame,i)=>{
+    const scale=Math.max(0.5,Math.min(1.2,Number(scales?.[i])||1));
+    const source=frame.contentDocument.documentElement;
+    const body=source.querySelector('body');
+    const headStyles=Array.from(source.querySelectorAll('style')).map(s=>s.textContent||'').join('\\n');
+    return '<section class="edefter-pdf-page" style="--page-scale:'+scale+'"><div class="edefter-pdf-scaled">'+(body?body.innerHTML:source.innerHTML)+'</div></section>'+
+      '<style>'+headStyles+'</style>';
+  }).join('');
+  win.document.open();
+  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Toplu PDF</title><style>'+
+    'html,body{margin:0;padding:0;background:#fff;}'+
+    '.edefter-pdf-page{box-sizing:border-box;width:100%;min-height:100vh;padding:0;margin:0;page-break-after:always;overflow:hidden;}'+
+    '.edefter-pdf-page:last-child{page-break-after:auto;}'+
+    '.edefter-pdf-scaled{zoom:var(--page-scale);transform-origin:top left;width:calc(100% / var(--page-scale));}'+
+    '@media print{.edefter-pdf-page{break-after:page;} .edefter-pdf-page:last-child{break-after:auto;}}'+
+    '</style></head><body>'+pages+'</body></html>');
+  win.document.close();
+  setTimeout(()=>{ try{win.focus();win.print();}catch(err){} },250);
+}
 function renderEfaturaXmlViewerPage(){
   currentToolPage='efatura';
   currentPage='tools-efatura';
@@ -114,6 +138,8 @@ function renderEfaturaXmlViewerPage(){
   card.appendChild(el('div',{class:'hint info'},'Birden fazla .xml dosyası aynı anda yüklenebilir. Ayrı bir XSLT yüklemeniz gerekmez; fatura XML içindeki görüntüleme XSLT’si kullanılır.'));
   
   const result=el('div');
+  const renderedFrames=[];
+  const renderedScales=[];
   const fileMap=new Map();
   const uploadHost=el('div');
   const clearBtn=el('button',{
@@ -128,7 +154,11 @@ function renderEfaturaXmlViewerPage(){
       if(chips) chips.remove();
     }
   },'🧹 Temizle');
-  const actions=el('div',{class:'table-actions edefter-no-print',style:'margin-top:10px;'},[clearBtn]);
+  const allScaleSelect=el('select',{class:'form-control edefter-no-print',style:'width:auto; min-width:120px;',title:'Tüm faturalar için başlangıç PDF ölçeği'},[
+    el('option',{value:'1'},'Tümü %100'),el('option',{value:'0.9'},'Tümü %90'),el('option',{value:'0.8'},'Tümü %80'),el('option',{value:'0.7'},'Tümü %70'),el('option',{value:'0.6'},'Tümü %60')
+  ]);
+  const allPrintBtn=el('button',{class:'btn btn-primary edefter-no-print',onclick:()=>edefterPrintAllRendered(renderedFrames,renderedScales)},'🖨 Tümünü Tek PDF Kaydet');
+  const actions=el('div',{class:'table-actions edefter-no-print',style:'margin-top:10px;'},[clearBtn,allScaleSelect,allPrintBtn]);
   
   card.appendChild(uploadHost);
   fileUploadBox(uploadHost,{
@@ -183,7 +213,12 @@ function renderEfaturaXmlViewerPage(){
           try{
             const html=await edefterTransformXml(xmlText,xslt.text);
             const frame=edefterRenderedFrame(html);
-            scaleSelect.onchange=()=>edefterSetPrintScale(frame,scaleSelect.value);
+            renderedFrames.push(frame);
+            renderedScales.push(scaleSelect.value);
+            scaleSelect.onchange=()=>{ renderedScales[renderedFrames.indexOf(frame)]=scaleSelect.value; edefterSetPrintScale(frame,scaleSelect.value); };
+            allScaleSelect.onchange=()=>{
+              renderedFrames.forEach((item,i)=>{ renderedScales[i]=allScaleSelect.value; edefterSetPrintScale(item,allScaleSelect.value); });
+            };
             frame.addEventListener('load',()=>edefterSetPrintScale(frame,scaleSelect.value),{once:true});
             printBtn.onclick=()=>edefterDownloadRenderedPdf(frame,scaleSelect.value);
             preview.appendChild(frame);
