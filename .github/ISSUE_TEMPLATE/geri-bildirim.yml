@@ -1,0 +1,61 @@
+name: Geri Bildirim / Hata Bildir
+description: Uygulamadaki bir hata, eksik veya geliştirme önerisini iletin.
+title: "[Geri Bildirim] "
+labels:
+  - geri-bildirim
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Geri bildiriminiz için teşekkürler. Lütfen mümkün olduğunca ayrıntılı bilgi verin.
+        Ekran görüntüsü eklemek için aşağıdaki yükleme alanını kullanabilirsiniz.
+
+  - type: input
+    id: name
+    attributes:
+      label: İsim
+      description: Adınız ve soyadınız.
+      placeholder: Adınız ve soyadınız
+    validations:
+      required: true
+
+  - type: input
+    id: email
+    attributes:
+      label: İletişim Mail
+      description: Gerekirse size dönüş yapabilmemiz için e-posta adresiniz.
+      placeholder: ornek@mail.com
+    validations:
+      required: false
+
+  - type: input
+    id: phone
+    attributes:
+      label: İletişim No
+      description: İsteğe bağlı telefon numarası.
+      placeholder: 05xx xxx xx xx
+    validations:
+      required: false
+
+  - type: textarea
+    id: message
+    attributes:
+      label: Geri Bildirim / Hata Metni
+      description: Hatanın ne olduğunu, ne yaptığınızı ve mümkünse nasıl tekrar oluşturulacağını yazın.
+      placeholder: Karşılaştığınız hata ve izlediğiniz adımlar...
+    validations:
+      required: true
+
+  - type: upload
+    id: screenshots
+    attributes:
+      label: Görsel / Ekran Görüntüsü
+      description: Hatanın ekran görüntüsünü buraya sürükleyip bırakabilir veya dosya seçebilirsiniz.
+    validations:
+      required: false
+      accept: ".png,.jpg,.jpeg,.gif,.webp"
+
+  - type: markdown
+    attributes:
+      value: |
+        Not: Bu geri bildirim GitHub üzerinde bir Issue olarak oluşturulur. İletişim bilgilerinizi yalnızca gerekli olduğunu düşünüyorsanız paylaşın.
