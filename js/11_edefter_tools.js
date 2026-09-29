@@ -251,14 +251,24 @@ function renderEdefterXmlViewerPage(){
         const actions=head.lastChild;
         item.appendChild(head);
         item.appendChild(edefterInfoTable(summary));
+        const scaleSelect=el('select',{class:'form-control edefter-no-print',style:'width:auto; min-width:110px;',title:'PDF yazdırma ölçeği'},[
+          el('option',{value:'1'},'PDF %100'),
+          el('option',{value:'0.9'},'PDF %90'),
+          el('option',{value:'0.8'},'PDF %80'),
+          el('option',{value:'0.7'},'PDF %70'),
+          el('option',{value:'0.6'},'PDF %60')
+        ]);
         const printBtn=el('button',{class:'btn btn-primary'},'🖨 Görünümü Yazdır / PDF Kaydet');
+        actions.appendChild(scaleSelect);
         actions.appendChild(printBtn);
         const preview=el('div',{class:'card edefter-render-card',style:'margin-top:14px;'});
         preview.appendChild(el('h3',{},'🖥️ e-Defter Görünümü'));
         try{
           const html=await edefterTransformXml(textValue,resolved.file.text);
           const renderedFrame=edefterRenderedFrame(html);
-          printBtn.onclick=()=>edefterDownloadRenderedPdf(renderedFrame);
+          scaleSelect.onchange=()=>edefterSetPrintScale(renderedFrame,scaleSelect.value);
+          renderedFrame.addEventListener('load',()=>edefterSetPrintScale(renderedFrame,scaleSelect.value),{once:true});
+          printBtn.onclick=()=>edefterDownloadRenderedPdf(renderedFrame,scaleSelect.value);
           preview.appendChild(renderedFrame);
         }catch(transformErr){
           preview.appendChild(el('div',{class:'hint warn'},'⚠️ XSLT ile görselleştirme başarısız: '+transformErr.message));
