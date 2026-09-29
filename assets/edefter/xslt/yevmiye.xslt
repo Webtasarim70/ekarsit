@@ -369,3 +369,191 @@
 			</tr>
 		</table>
 	</xsl:template>
+	<!-- gl-cor:entryDetail -->
+	<xsl:template match="gl-cor:entryDetail">
+		<xsl:variable name="debitCreditNote" select="normalize-space(gl-cor:debitCreditCode)"/>
+		<xsl:variable name="amount" select="format-number(number(gl-cor:amount), '###.##0,00', 'tryFormat')"/>
+		<xsl:variable name="documentType" select="normalize-space(gl-cor:documentType)"/>
+		<table class="entryDetail">
+			<!-- print main acoount information -->
+			<tr>
+				<xsl:choose>
+					<xsl:when test="$debitCreditNote = 'C' or $debitCreditNote = 'credit'">
+						<td style="width:30px;"/>
+					</xsl:when>
+				</xsl:choose>
+				<td style="width:150px; font-weight:bold; padding-left:10px;">
+					<xsl:value-of select="gl-cor:account/gl-cor:accountMainID"/>
+					<xsl:text>&#160;</xsl:text>
+				</td>
+				<td style="font-weight:bold;">
+					<xsl:value-of select="gl-cor:account/gl-cor:accountMainDescription"/>
+					<xsl:text>&#160;</xsl:text>
+				</td>
+				<td style="width:100px; text-align:right; padding-right:20px;">
+					<xsl:choose>
+						<xsl:when test="$debitCreditNote = 'D' or $debitCreditNote = 'debit'">
+							<xsl:value-of select="$amount"/>
+						</xsl:when>
+					</xsl:choose>
+				</td>
+				<td style="width:100px; text-align:right; padding-right:20px;">
+					<xsl:choose>
+						<xsl:when test="$debitCreditNote = 'C' or $debitCreditNote = 'credit'">
+							<xsl:value-of select="$amount"/>
+						</xsl:when>
+					</xsl:choose>
+				</td>
+			</tr>
+			<!-- print sub account information -->
+			<xsl:choose>
+				<xsl:when test="gl-cor:account/gl-cor:accountSub/gl-cor:accountSubID">
+					<tr>
+						<xsl:choose>
+							<xsl:when test="$debitCreditNote = 'C' or $debitCreditNote = 'credit'">
+								<td style="width:30px;"/>
+							</xsl:when>
+						</xsl:choose>
+						<td style="width:150px; padding-left:10px;">
+							<xsl:value-of select="gl-cor:account/gl-cor:accountSub/gl-cor:accountSubID"/>
+							<xsl:text>&#160;</xsl:text>
+						</td>
+						<td>
+							<xsl:value-of select="gl-cor:account/gl-cor:accountSub/gl-cor:accountSubDescription"/>
+							<xsl:text>&#160;</xsl:text>
+						</td>
+					</tr>
+				</xsl:when>
+			</xsl:choose>
+			<!-- print payment method -->
+			<xsl:choose>
+				<xsl:when test="string-length(normalize-space(gl-bus:paymentMethod)) != 0 ">
+					<tr style="font-size:8pt; font-style:italic;">
+						<xsl:choose>
+							<xsl:when test="$debitCreditNote = 'C' or $debitCreditNote = 'credit'">
+								<td style="width:30px;"/>
+							</xsl:when>
+						</xsl:choose>
+						<td style="width:150px;"/>
+						<td>
+							<span style="font-weight:bold;">Ödeme Şekli : </span>
+							<xsl:value-of select="gl-bus:paymentMethod"/>
+						</td>
+					</tr>
+				</xsl:when>
+			</xsl:choose>
+			<!-- print measurable -->
+			<xsl:choose>
+				<xsl:when test="gl-bus:measurable">
+					<tr style="font-size:8pt; font-style:italic;">
+						<xsl:choose>
+							<xsl:when test="$debitCreditNote = 'C' or $debitCreditNote = 'credit'">
+								<td style="width:30px;"/>
+							</xsl:when>
+						</xsl:choose>
+						<td style="width:150px;"/>
+						<td>
+							<span style="font-weight:bold;">
+								<xsl:value-of select="gl-bus:measurable/gl-bus:measurableQualifier"/>
+								<xsl:text disable-output-escaping="yes"> 								
+								</xsl:text>
+								<xsl:value-of select="gl-bus:measurable/gl-bus:measurableUnitOfMeasure"/>:</span>
+							<xsl:value-of select="gl-bus:measurable/gl-bus:measurableQuantity"/>
+							<span style="font-weight:bold;">Birim Fiyat: </span>
+							<xsl:value-of select="gl-bus:measurable/gl-bus:measurableCostPerUnit"/>
+						</td>
+					</tr>
+				</xsl:when>
+			</xsl:choose>
+			<!-- print document type, document number, document date -->
+			<xsl:choose>
+				<xsl:when test="string-length($documentType) != 0">
+					<xsl:variable name="documentNumber" select="normalize-space(gl-cor:documentNumber)"/>
+					<xsl:variable name="documentDate" select="normalize-space(gl-cor:documentDate)"/>
+					<tr style="font-size:8pt; font-style:italic;">
+						<xsl:choose>
+							<xsl:when test="$debitCreditNote = 'C' or $debitCreditNote = 'credit'">
+								<td style="width:30px;"/>
+							</xsl:when>
+						</xsl:choose>
+						<td style="width:150px;"/>
+						<td>
+							<xsl:variable name="documentName">
+								<xsl:call-template name="findDocumentType">
+									<xsl:with-param name="entryDetail" select="."/>
+								</xsl:call-template>
+							</xsl:variable>
+							<xsl:choose>
+								<xsl:when test="string-length($documentNumber) > 0 or string-length($documentDate) > 0">
+									<xsl:choose>
+										<xsl:when test="string-length($documentNumber) > 0 ">
+											<span style="font-weight:bold;">
+												<xsl:value-of select="$documentName"/> No : </span>
+											<xsl:value-of select="$documentNumber"/>
+											<xsl:text>&#160;</xsl:text>
+										</xsl:when>
+									</xsl:choose>
+									<xsl:choose>
+										<xsl:when test="string-length($documentDate) > 0 ">
+											<span style="font-weight:bold;">
+												<xsl:value-of select="$documentName"/> Tarihi : </span>
+											<xsl:call-template name="convertDate">
+												<xsl:with-param name="date" select="$documentDate"/>
+											</xsl:call-template>
+										</xsl:when>
+									</xsl:choose>
+								</xsl:when>
+								<xsl:otherwise>
+									<span style="font-weight:bold;">Belge Türü : </span>
+									<xsl:value-of select="$documentName"/>
+								</xsl:otherwise>
+							</xsl:choose>
+						</td>
+					</tr>
+				</xsl:when>
+			</xsl:choose>
+		</table>
+	</xsl:template>
+	<!-- printEntryHeaderFooter  -->
+	<xsl:template name="printEntryHeaderFooter">
+		<div class="entryHeaderFooter">
+			<xsl:value-of select="gl-cor:entryComment"/>
+			<br/>
+			<xsl:text>Muhasebe Fiş No : </xsl:text>
+			<xsl:value-of select="gl-cor:entryNumber"/>
+		</div>
+	</xsl:template>
+	<xsl:template name="convertDate">
+		<xsl:param name="date"/>
+		<xsl:value-of select="concat(substring($date,9,2),'/', substring($date, 6,2), '/', substring($date,1,4))"/>
+	</xsl:template>
+	<xsl:template name="findDocumentType">
+		<xsl:param name="entryDetail"/>
+		<xsl:choose>
+			<xsl:when test="$entryDetail/gl-cor:documentType = 'check'">
+				<xsl:text>Çek </xsl:text>
+			</xsl:when>
+			<xsl:when test="$entryDetail/gl-cor:documentType = 'invoice'">
+				<xsl:text>Fatura</xsl:text>
+			</xsl:when>
+			<xsl:when test="$entryDetail/gl-cor:documentType = 'order-customer'">
+				<xsl:text>Müşteri Siparişi</xsl:text>
+			</xsl:when>
+			<xsl:when test="$entryDetail/gl-cor:documentType = 'order-vendor'">
+				<xsl:text>Satıcı Siparişi</xsl:text>
+			</xsl:when>
+			<xsl:when test="$entryDetail/gl-cor:documentType = 'voucher'">
+				<xsl:text>Senet</xsl:text>
+			</xsl:when>
+			<xsl:when test="$entryDetail/gl-cor:documentType = 'shipment'">
+				<xsl:text>Navlun</xsl:text>
+			</xsl:when>
+			<xsl:when test="$entryDetail/gl-cor:documentType = 'receipt'">
+				<xsl:text>Makbuz</xsl:text>
+			</xsl:when>
+			<xsl:otherwise>
+				<xsl:value-of select="$entryDetail/gl-cor:documentTypeDescription"/>
+			</xsl:otherwise>
+		</xsl:choose>
+	</xsl:template>
+</xsl:stylesheet>
