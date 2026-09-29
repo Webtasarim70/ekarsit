@@ -32,7 +32,7 @@ function kdvXmlNumber(value){
   const raw=String(value??'').trim().replace(/\s/g,'');
   if(!raw) return 0;
   const normalized=raw.includes(',') && raw.includes('.')
-    ? (raw.lastIndexOf(',')>raw.lastIndexOf('.') ? raw.replace(/\\./g,'').replace(',','.') : raw.replace(/,/g,''))
+    ? (raw.lastIndexOf(',')>raw.lastIndexOf('.') ? raw.replace(/\./g,'').replace(',','.') : raw.replace(/,/g,''))
     : raw.replace(',','.');
   const n=Number(normalized);
   return Number.isFinite(n)?n:0;
