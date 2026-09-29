@@ -140,7 +140,8 @@ function el(tag, attrs = {}, children = []) {
     if (k === 'class') e.className = v;
     else if (k === 'html') e.innerHTML = v;
     else if (k.startsWith('on') && typeof v === 'function') e.addEventListener(k.slice(2), v);
-    else e.setAttribute(k, v);
+    else if (typeof v === 'boolean') e[k] = v;
+    else if (v !== null && v !== undefined) e.setAttribute(k, v);
   }
   (Array.isArray(children) ? children : [children]).forEach(c => {
     if (c === null || c === undefined) return;
