@@ -318,4 +318,4 @@ function renderEdefterPdfViewerPage(){
   document.getElementById('btn-prev').disabled=true; document.getElementById('btn-next').disabled=true; document.getElementById('footer-msg').textContent='Araçlar → e-Defter PDF Görüntüleyici'; renderNav();
 }
 
-window.addEventListener('afterprint',()=>document.body.classList.remove('edefter-print-mode'));
+window.addEventListener('afterprint',()=>document.body.classList.remove('edefter-print-mode','edefter-render-print-mode'));
