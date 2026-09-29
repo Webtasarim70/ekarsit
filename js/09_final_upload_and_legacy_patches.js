@@ -283,6 +283,59 @@ function renderArchiveEditTedarikciKdvList(container,refresh){
 }
 
 
+function renderArchiveEditMuhtasarControl(container){
+  const wrap=el('div',{class:'card',style:'background:#fbfdfd;'});
+  wrap.appendChild(el('h3',{},'📋 Muhtasar Beyanname — Çoklu Dosya Kontrolü'));
+  wrap.appendChild(el('div',{class:'hint info'},'Birden fazla Muhtasar ve Prim Hizmet Beyannamesi PDF dosyasını aynı anda yükleyin. Sistem her belgeyi ayrı okur; VKN, dönem, vergi dairesi ve çalışan sayılarını gösterir. Aynı döneme ait mükerrer dosyaları ayrıca işaretler ve varsa arşivdeki çalışan sayısıyla karşılaştırır. Bu araç arşive otomatik kayıt eklemez.'));
+  const preview=el('div');
+  fileUploadBox(wrap,{accept:'.pdf',hint:'Muhtasar ve Prim Hizmet Beyannamesi PDF — çoklu seçim desteklenir',multiple:true,onFiles:async(files,box)=>{
+    preview.innerHTML='';
+    const holder=el('div',{style:'display:flex;flex-direction:column;gap:10px;'}); preview.appendChild(holder);
+    const parsedFiles=[]; let ok=0,fail=0;
+    for(const file of files){
+      markFileChip(box,file.name,true);
+      const card=el('div',{class:'card',style:'margin-top:4px;'});
+      card.appendChild(el('h4',{},'Kontrol edilen Muhtasar Beyannamesi — '+file.name));
+      try{
+        const text=await extractPdfText(file); const raw=String(text||'');
+        if(!/MUHTASAR\s+VE\s+PRİM\s+HİZMET\s+BEYANNAMESİ/i.test(raw)){ fail++; card.appendChild(el('div',{class:'hint warn'},'⚠️ Bu PDF Muhtasar ve Prim Hizmet Beyannamesi olarak tanınmadı.')); holder.appendChild(card); continue; }
+        const parsed=parseMuhtasarPdfDetailed(raw); const chk=archiveEditVknCheck(parsed.vkn);
+        parsedFiles.push({fileName:file.name,parsed,chk});
+        const archiveRows=(archiveEditParsed.isciler||[]).filter(x=>String(x.donem||'').trim()===String(parsed.donem||'').trim());
+        const archiveCounts=archiveRows.map(x=>Number(String(x.sayi??'').replace(/[^0-9-]/g,''))).filter(Number.isFinite);
+        const archiveCount=archiveCounts.length?archiveCounts[archiveCounts.length-1]:null;
+        const employeeOk=archiveCount!==null && archiveCount===Number(parsed.totalCount);
+        const info=[['VKN',parsed.vkn],['ÜNVAN',parsed.unvan],['VERGİ DAİRESİ',parsed.vergiDairesi],['DÖNEM',parsed.donem],['ÇALIŞAN SAYISI',parsed.totalCount],['Gelir Vergisi Muaf/İstisna Sayısı',parsed.gelirMuafToplam],['SGK Muaf/İstisna Sayısı',parsed.sgkMuafToplam],['Okunan çalışan satırı',parsed.rows.length]];
+        const t=el('table',{class:'editable-table'});
+        info.forEach(([a,b])=>{const tr=el('tr');tr.appendChild(el('th',{},a));tr.appendChild(el('td',{},(b===0||b)?String(b):'—'));t.appendChild(tr);});
+        card.appendChild(t);
+        const checks=el('div',{style:'display:flex;flex-direction:column;gap:6px;margin-top:10px;'});
+        checks.appendChild(el('div',{class:chk.ok?'hint ok':'hint warn'},chk.message));
+        if(!parsed.donem) checks.appendChild(el('div',{class:'hint warn'},'⚠️ Beyanname dönemi okunamadı.'));
+        if(!parsed.totalCount) checks.appendChild(el('div',{class:'hint warn'},'⚠️ Çalışan sayısı okunamadı.'));
+        if(archiveCount===null) checks.appendChild(el('div',{class:'hint info'},'ℹ️ Bu dönem için arşivde Muhtasar/Çalışan kaydı bulunamadı.'));
+        else checks.appendChild(el('div',{class:employeeOk?'hint ok':'hint warn'},employeeOk?'✓ Arşiv çalışan sayısı ile beyanname çalışan sayısı eşleşiyor: '+archiveCount:'⚠️ Arşiv çalışan sayısı: '+archiveCount+' — Beyanname çalışan sayısı: '+parsed.totalCount));
+        card.appendChild(checks);
+        if(parsed.rows.length){
+          const detail=el('details',{style:'margin-top:10px;'}); detail.appendChild(el('summary',{},'Çalışan grupları'));
+          const rows=parsed.rows.map(r=>el('tr',{},[el('td',{},r.calisanBilgisi||'—'),el('td',{style:'text-align:right;'},String(r.toplamCalisanSayisi)),el('td',{style:'text-align:right;'},String(r.gelirMuafIstisnaSayisi)),el('td',{style:'text-align:right;'},String(r.sgkMuafIstisnaSayisi))]));
+          detail.appendChild(controlTableShell(['Çalışan Bilgisi','Toplam Çalışan','GV Muaf/İstisna','SGK Muaf/İstisna'],rows)); card.appendChild(detail);
+        }
+        holder.appendChild(card); ok++;
+      }catch(err){ fail++; card.appendChild(el('div',{class:'hint warn'},'⚠️ '+file.name+' okunamadı: '+err.message)); holder.appendChild(card); }
+    }
+    const byPeriod=new Map(); parsedFiles.forEach(x=>{const p=x.parsed.donem||'Dönem okunamadı';if(!byPeriod.has(p))byPeriod.set(p,[]);byPeriod.get(p).push(x);});
+    const duplicatePeriods=[...byPeriod.entries()].filter(([,items])=>items.length>1).map(([p,items])=>p+': '+items.length+' dosya');
+    holder.insertBefore(el('div',{class:duplicatePeriods.length?'hint warn':'hint ok',style:'margin-bottom:8px;'},'Muhtasar toplu kontrol: '+ok+' dosya okundu'+(fail?', '+fail+' dosya kontrol dışı bırakıldı':'')+'.'+(duplicatePeriods.length?' Aynı dönem için birden fazla dosya bulundu.':' Her dönem tek dosya olarak görünüyor.')),holder.firstChild);
+    if(duplicatePeriods.length) holder.insertBefore(el('div',{class:'hint warn',style:'margin-bottom:8px;'},'⚠️ Mükerrer dönemler: '+duplicatePeriods.join(' • ')),holder.children[1]||null);
+    if(parsedFiles.length){
+      const rows=parsedFiles.map(x=>{const p=x.parsed;const ar=(archiveEditParsed.isciler||[]).find(r=>String(r.donem||'').trim()===String(p.donem||'').trim());const arCount=ar?Number(String(ar.sayi??'').replace(/[^0-9-]/g,'')):null;const same=arCount!==null&&arCount===Number(p.totalCount);return el('tr',{},[el('td',{},p.donem||'—'),el('td',{},p.vkn||'—'),el('td',{},p.vergiDairesi||'—'),el('td',{style:'text-align:right;'},p.totalCount?String(p.totalCount):'—'),el('td',{style:'text-align:right;'},arCount===null?'—':String(arCount)),el('td',{style:'text-align:center;font-weight:800;color:'+(arCount===null?'#6b7280':same?'#15803d':'#b91c1c')},arCount===null?'—':same?'✓':'✕')]);});
+      const compare=controlCard('Toplu Kontrol Özeti','Beyanname çalışan sayısı ile arşivde aynı dönem için kayıtlı çalışan sayısı karşılaştırılır.');
+      compare.appendChild(controlTableShell(['Dönem','VKN','Vergi Dairesi','Beyanname Çalışan','Arşiv Çalışan','Eşleşme'],rows)); holder.appendChild(compare);
+    }
+  }});
+  wrap.appendChild(preview); container.appendChild(wrap);
+}
 function renderArchiveEditTools(content,refresh){
   const toolsCard=el('div',{class:'card',style:'margin-top:14px;'});
   toolsCard.appendChild(el('h3',{},'2. Arşive Veri Yükleme Araçları'));
@@ -292,6 +345,7 @@ function renderArchiveEditTools(content,refresh){
   renderArchiveEditKdv(content,refresh);
   renderArchiveEditTahakkuk(content,refresh);
   renderArchiveEditTedarikciKdvList(content,refresh);
+  renderArchiveEditMuhtasarControl(content);
 }
 
 
