@@ -153,9 +153,26 @@ function edefterBrowserCompatibleXslt(text){
 function edefterResolveStylesheet(xmlFile,xmlText,stylesheets){
   const href=edefterStylesheetHref(xmlText);
   const hrefKey=edefterStylesheetKey(href);
-  if(hrefKey && stylesheets[hrefKey]) return {file:stylesheets[hrefKey],source:'Yüklenen XSLT'};
+  if(hrefKey && stylesheets[hrefKey]) return {file:stylesheets[hrefKey],source:'XML içindeki XSLT tanımı'};
+
+  const name=String(xmlFile?.name||'').toUpperCase();
   const rootName=(xmlText.match(/<([A-Za-z_][\w:.-]*)(?:\s|>)/)||[])[1]||'';
   const local=rootName.split(':').pop().toLowerCase();
+  const candidates =
+    /(?:-YB(?:[-_.]|$)|-KB(?:[-_.]|$)|BERAT)/.test(name) || local==='berat'
+      ? ['berat.xslt']
+      : /(?:-DR(?:[-_.]|$)|RAPOR)/.test(name) || /rapor/.test(local)
+        ? ['defterraporu.xslt']
+        : /(?:-K(?:[-_.]|$)|KEBIR)/.test(name)
+          ? ['kebir.xslt']
+          : /(?:-Y(?:[-_.]|$)|YEVM[Iİ]YE)/.test(name) || local==='defter'
+            ? ['yevmiye.xslt']
+            : [];
+
+  for(const candidate of candidates){
+    const file=stylesheets[edefterStylesheetKey(candidate)];
+    if(file) return {file,source:'Dosya türüne göre eşleşen XSLT'};
+  }
   return {file:null,source:'XSLT bulunamadı'};
 }
 
@@ -202,9 +219,9 @@ function renderEdefterXmlViewerPage(){
   card.appendChild(el('h3',{},'📄 XML / XSLT Dosyalarını Yükle'));
   card.appendChild(el('div',{class:'hint info'},'Desteklenen dosyalar: .xml, .xsl, .xslt. Örneğin YB/KB dosyaları için XML içindeki “berat.xslt” tanımı otomatik aranır. XML içinde belirtilen XSLT dosyasını XML ile birlikte seçmeniz yeterlidir.'));
   const result=el('div');
+  const stylesheets={};
   fileUploadBox(card,{accept:'.xml,.xsl,.xslt',multiple:true,hint:'XML ve varsa XSLT dosyalarını birlikte sürükleyin veya seçin',onFiles:async(files,box)=>{
     result.innerHTML='';
-    const stylesheets={};
     const xmlFiles=[];
     for(const file of files){
       if(/\.(xsl|xslt)$/i.test(file.name)){
