@@ -197,8 +197,8 @@ function kdvCreateWorkbook(rows,errors){
     [
       i+1,kdvExcelDate(r.tarih),sn.series,sn.number,r.saticiUnvan,r.vkn,r.cins,r.miktar,
       r.matrah,r.kdv,
-      r.tevkifatIndirilen||0,
-      r.tevkifat2No||0,
+      r.tevkifatIndirilen,
+      r.tevkifat2No,
       r.toplamIndirilenKdv,
       r.ggbTescilNo||'',r.indirimDonemi||''
     ].forEach((v,j)=>row.getCell(j+2).value=v);
@@ -221,7 +221,7 @@ function kdvCreateWorkbook(rows,errors){
   for(let c=9;c<=16;c++){const cell=ws.getCell(totalRow,c);cell.border={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};cell.font={bold:true};}
   [10,11,12,13,14].forEach(c=>ws.getCell(totalRow,c).numFmt='#,##0.00');
   ws.views=[{state:'frozen',ySplit:4}];
-  ws.autoFilter={from:2,to:16};
+  ws.autoFilter={from:'B4',to:'P4'};
   if(errors.length){
     const es=wb.addWorksheet('Okunamayan XML'); es.addRow(['Dosya','Hata']);
     errors.forEach(e=>es.addRow([e.file,e.error])); es.getRow(1).font={bold:true};
