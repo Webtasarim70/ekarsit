@@ -9,33 +9,7 @@ body:
       value: |
         Geri bildiriminiz için teşekkürler. Lütfen mümkün olduğunca ayrıntılı bilgi verin.
         Ekran görüntüsü eklemek için aşağıdaki yükleme alanını kullanabilirsiniz.
-
-  - type: input
-    id: name
-    attributes:
-      label: İsim
-      description: Adınız ve soyadınız.
-      placeholder: Adınız ve soyadınız
-    validations:
-      required: true
-
-  - type: input
-    id: email
-    attributes:
-      label: İletişim Mail
-      description: Gerekirse size dönüş yapabilmemiz için e-posta adresiniz.
-      placeholder: ornek@mail.com
-    validations:
-      required: false
-
-  - type: input
-    id: phone
-    attributes:
-      label: İletişim No
-      description: İsteğe bağlı telefon numarası.
-      placeholder: 05xx xxx xx xx
-    validations:
-      required: false
+        Bu bildirim GitHub Issue olarak yayınlanır; yazdığınız içerik ve eklediğiniz görseller herkese açık olabilir.
 
   - type: textarea
     id: message
@@ -58,4 +32,4 @@ body:
   - type: markdown
     attributes:
       value: |
-        Not: Bu geri bildirim GitHub üzerinde bir Issue olarak oluşturulur. İletişim bilgilerinizi yalnızca gerekli olduğunu düşünüyorsanız paylaşın.
+        GitHub hesabınız bu bildirimin sahibi olarak görünür. İletişim bilgisi vermeniz gerekmez.
