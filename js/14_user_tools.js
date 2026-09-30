@@ -133,8 +133,13 @@ async function userWriteWorkbook(dir,name,workbook){
   await w.write(buf);
   await w.close();
 }
+function userSafeFolderName(vkn){
+  const digits=userVkn(vkn);
+  if(digits) return digits;
+  return 'VKN_BELIRSIZ';
+}
 async function userEnsureVknFolder(vkn,unvan=''){
-  const folderName=(vkn||'VKN_BELIRSIZ')+(unvan?' - '+userFileSafeName(unvan):'');
+  const folderName=userSafeFolderName(vkn);
   return await userStore.directoryHandle.getDirectoryHandle(folderName,{create:true});
 }
 async function userCreateFirmFolders(){
