@@ -137,6 +137,17 @@ async function userEnsureVknFolder(vkn,unvan=''){
   const folderName=(vkn||'VKN_BELIRSIZ')+(unvan?' - '+userFileSafeName(unvan):'');
   return await userStore.directoryHandle.getDirectoryHandle(folderName,{create:true});
 }
+async function userCreateFirmFolders(){
+  if(!userStore.directoryHandle) throw new Error('Önce kullanıcı klasörünü tanımlayın.');
+  let created=0;
+  for(const firm of userStore.firms){
+    if(!firm.vkn) continue;
+    await userEnsureVknFolder(firm.vkn,firm.unvan);
+    created++;
+  }
+  await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());
+  return created;
+}
 async function userSaveCurrentArchiveToFolder(){
   if(!userStore.directoryHandle) throw new Error('Önce kullanıcı klasörünü tanımlayın.');
   const merged=mergeArchive(state.existingArchiveParsed,state);
@@ -187,6 +198,7 @@ async function renderUserFolderPage(){
       status.innerHTML=''; userFolderStatus(status);
       status.appendChild(el('div',{class:'hint ok',style:'margin-top:8px;'},`✓ ${userStore.files.length} dosya tarandı, ${userStore.firms.length} firma bulundu.`));
       document.getElementById('user-create-info').disabled=false;
+      document.getElementById('user-create-firm-folders').disabled=userStore.firms.length===0;
       renderNav();
     }catch(e){alert('Kullanıcı klasörü açılamadı: '+e.message);}
   }},'📁 Kullanıcı Klasörü Seç');
@@ -196,7 +208,12 @@ async function renderUserFolderPage(){
     try{await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());alert('KULLANICI_BILGILERI.json oluşturuldu/güncellendi.');await userScanCurrentFolder();renderUserFolderPage();}
     catch(e){alert('Kullanıcı dosyası oluşturulamadı: '+e.message);}
   }},'Kullanıcı Dosyasını Oluştur / Güncelle');
-  card.appendChild(create); content.appendChild(card);
+  card.appendChild(create);
+  const folders=el('button',{class:'btn btn-secondary',style:'margin:10px 0 0 8px;',disabled:true,onclick:async()=>{
+    try{const n=await userCreateFirmFolders();alert(n+' firma için VKN klasörü oluşturuldu/güncellendi.');await userScanCurrentFolder();renderUserFolderPage();}
+    catch(e){alert('Firma klasörleri oluşturulamadı: '+e.message);}
+  }},'Firma VKN Klasörlerini Oluştur');
+  folders.id='user-create-firm-folders'; card.appendChild(folders); content.appendChild(card);
   content.appendChild(userFirmTable());
   if(userStore.directoryHandle){
     const saveArchive=el('button',{class:'btn btn-secondary',style:'margin-top:14px;',onclick:async()=>{
