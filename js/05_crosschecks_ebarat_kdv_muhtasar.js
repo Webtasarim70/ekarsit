@@ -171,7 +171,7 @@ function renderGerekliBilgilerPage(container){
     const rows=[];
     if(archive){
       const yev=archiveDefterRowsForPeriod(period,/yevmiye/i);
-      const keb=archiveDefterRowsForPeriod(period,/kebir|büyük\\s+defter/i);
+      const keb=archiveDefterRowsForPeriod(period,/kebir|büyük\s+defter/i);
       const env=(archive.defterler||[]).filter(r=>String(r.nevi||'').toLocaleUpperCase('tr-TR').includes('ENVANTER') && archiveYearFromValue(r.baslangic)===String(year));
       const kdv=(archive.kdvBeyanlari||[]).filter(r=>String(r.donem||'')===period);
       const kdvTah=kdv.filter(r=>String(r.tahakkukNo||'').trim());
