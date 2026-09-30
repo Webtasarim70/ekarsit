@@ -199,8 +199,23 @@ async function userSelectFolder({createUser=false}={}){
   if(createUser){
     userStore.info=null; userStore.firms=[]; userStore.files=[]; userStore.scanned=false;
     await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());
+  }else{
+    try{
+      await handle.getFileHandle('KULLANICI_BILGILERI.json');
+    }catch(e){
+      userStore.directoryHandle=null;
+      userStore.info=null; userStore.firms=[]; userStore.files=[]; userStore.scanned=false;
+      if(e?.name==='NotFoundError'){
+        throw new Error('Bu klasörde KULLANICI_BILGILERI.json bulunamadı. Lütfen daha önce kullanıcı olarak tanımlanmış klasörü seçin. Firma arşiv klasörleri bu kontrol yapılmadan kullanıma açılamaz.');
+      }
+      throw e;
+    }
   }
   await userScanCurrentFolder();
+  if(!createUser && !userStore.info?.kullanici){
+    userStore.directoryHandle=null; userStore.info=null; userStore.firms=[]; userStore.files=[]; userStore.scanned=false;
+    throw new Error('KULLANICI_BILGILERI.json bulundu ancak geçerli kullanıcı bilgisi içermiyor. Firma arşivleri bu klasörden yüklenemez.');
+  }
   return handle;
 }
 
