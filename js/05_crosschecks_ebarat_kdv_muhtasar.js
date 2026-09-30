@@ -207,7 +207,7 @@ function renderGerekliBilgilerPage(container){
   });
   container.appendChild(el('div',{class:'hint info',style:'margin-top:14px;'},'Not: Tedarikçi satırları dönem bazında ve tutanaktan okunan karşıt faturaların tarih/numara bilgileri üzerinden kontrol edilir. Bu ekran yalnızca durum tespiti yapar.'));
 }
-\nfunction renderDetectedPeriodWarning(container, type){
+function renderDetectedPeriodWarning(container, type){
   if(type==='imalatci') return;
   const periods=[...(state.donemler||[])].filter(Boolean).sort(donemCompare);
   const pText=periods.length?periods.join(', '):'Henüz dönem tespit edilmedi';
