@@ -198,7 +198,7 @@ async function userSelectFolder({createUser=false}={}){
 function renderUserFirmArchivesPage(){
   currentPage='user-firm-archives'; currentStep=-1;
   const content=document.getElementById('step-content'); content.innerHTML='';
-  content.appendChild(el('h2',{class:'step-title'},'Firma / Arşiv Dosyalarım'));
+  content.appendChild(el('h2',{class:'step-title'},'Firmalar / Firma Arşiv Dosyalarım'));
   content.appendChild(el('p',{class:'step-desc'},'Seçili kullanıcı klasöründe bulunan firmalar ve arşiv Excel dosyaları. Firma klasörleri VKN ile gösterilir.'));
   if(!userStore.directoryHandle){
     const card=el('div',{class:'card'});
@@ -220,7 +220,7 @@ function renderUserFirmArchivesPage(){
         card.appendChild(el('h3',{},title));
         card.appendChild(el('div',{class:'hint info'},'Vergi Dairesi: '+(firm.vergiDairesi||'—')+' · '+(firm.recordCount||0)+' kayıt'));
         const files=firm.files||[];
-        if(!files.length) card.appendChild(el('div',{class:'hint info',style:'margin-top:8px;'},'Arşiv dosyası yolu bulunamadı.'));
+        if(!files.length) card.appendChild(el('div',{class:'hint info',style:'margin-top:8px;'},'Firma arşiv dosyası yolu bulunamadı.'));
         else{
           const ul=el('ul',{style:'margin:10px 0 0 20px;'});
           files.forEach(path=>ul.appendChild(el('li',{},path)));
@@ -232,7 +232,7 @@ function renderUserFirmArchivesPage(){
   }
   document.getElementById('btn-prev').disabled=true;
   document.getElementById('btn-next').disabled=true;
-  document.getElementById('footer-msg').textContent='Firma / Arşiv Dosyalarım';
+  document.getElementById('footer-msg').textContent='Firmalar / Firma Arşiv Dosyalarım';
   renderNav();
 }
 function userFolderStatus(container){
@@ -338,7 +338,7 @@ async function renderUserPage(){
       catch(e){alert('Firmalar güncellenemedi: '+e.message);}
     }},'↻ Firmaları Güncelle');
     firmsCard.appendChild(firmUpdate);
-    const newArchive=el('button',{class:'btn btn-primary',style:'margin-top:10px;margin-left:8px;',onclick:()=>renderArchiveUploadPage()},'➕ Yeni Arşiv Oluştur');
+    const newArchive=el('button',{class:'btn btn-primary',style:'margin-top:10px;margin-left:8px;',onclick:()=>renderArchiveUploadPage()},'➕ Yeni Firma Arşiv Oluştur');
     firmsCard.appendChild(newArchive);
     content.appendChild(firmsCard);
   }
