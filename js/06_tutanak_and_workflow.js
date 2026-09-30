@@ -769,6 +769,69 @@ function renderWelcomePage(){
   renderNav();
 }
 
+
+function finalArchivePeriod(period){ return String(period||'').trim(); }
+function runFinalArchiveCheck(){
+  const archive=state.existingArchiveParsed||{};
+  const periods=[...(state.donemler||[])].filter(Boolean);
+  const kdvPeriods=[...(state.kdvDonemleri||computeKdvDonemleri(periods))].filter(Boolean);
+  const result={items:[],ok:0,missing:0,partial:0};
+  const add=(label,have,detail)=>{
+    const status=have?'ok':'missing';
+    result.items.push({label,status,detail});
+    have?result.ok++:result.missing++;
+  };
+  if(!state.existingArchiveParsed){
+    result.items.push({label:'Arşiv',status:'missing',detail:'Arşiv yüklenmedi; arşiv karşılaştırması yapılamadı.'});
+    result.missing++;
+    return result;
+  }
+  periods.forEach(p=>{
+    const y=String(extractYearFromDonem(p));
+    const yev=(archive.defterler||[]).filter(r=>defterPeriodMatchesDetected(r,[p])&&/yevmiye/i.test(String(r.nevi||'')));
+    const keb=(archive.defterler||[]).filter(r=>defterPeriodMatchesDetected(r,[p])&&/kebir|büyüks+defter/i.test(String(r.nevi||'')));
+    const env=(archive.defterler||[]).filter(r=>/envanter/i.test(String(r.nevi||''))&&archiveYearFromValue(r.baslangic)===y);
+    const kdv=(archive.kdvBeyanlari||[]).filter(r=>String(r.donem||'')===p);
+    const isc=(archive.isciler||[]).filter(r=>String(r.donem||'')===p);
+    const ted=(archive.tedarikciler||[]).filter(r=>archivePeriodFromValue(r.faturaTarihi)===p);
+    add(p+' Yevmiye Berat',yev.length,yev.length?yev.length+' kayıt.':'Eksik.');
+    add(p+' Kebir Berat',keb.length,keb.length?keb.length+' kayıt.':'Eksik.');
+    add(y+' Envanter',env.length,env.length?env.length+' kayıt.':'Eksik.');
+    add(p+' KDV Beyannamesi',kdv.length,kdv.length?kdv.length+' kayıt.':'Eksik.');
+    add(p+' İşçi Sayısı',isc.length,isc.length?isc.length+' kayıt.':'Eksik.');
+    add(p+' Tedarikçi Faturaları',ted.length,ted.length?ted.length+' kayıt.':'Eksik.');
+  });
+  kdvPeriods.forEach(p=>{
+    const rows=(archive.kdvBeyanlari||[]).filter(r=>String(r.donem||'')===p);
+    const tah=rows.filter(r=>String(r.tahakkukNo||'').trim());
+    add(p+' KDV Tahakkuk',tah.length,tah.length?'Tahakkuk no: '+tah.map(r=>r.tahakkukNo).join(', '):'Tahakkuk kaydı eksik.');
+  });
+  return result;
+}
+function renderFinalArchiveCheck(result){
+  const card=el('div',{class:'card'});
+  card.appendChild(el('h3',{},'Son Arşiv Kontrolü'));
+  card.appendChild(el('div',{class:'hint info'},'Kontrol bu tıklamada arşiv ve mevcut dönem bilgileri yeniden taranarak oluşturuldu. Önceki kontrol sonucu temizlendi.'));
+  const table=el('table',{class:'editable-table'});
+  const head=el('tr');['Kontrol','Durum','Açıklama'].forEach(x=>head.appendChild(el('th',{},x)));table.appendChild(el('thead',{},head));
+  const body=el('tbody');
+  result.items.forEach(x=>{
+    const ok=x.status==='ok';
+    body.appendChild(el('tr',{},[
+      el('td',{style:'font-weight:600;'},x.label),
+      el('td',{style:'text-align:center;font-size:18px;width:55px;'},ok?'✓':'✕'),
+      el('td',{},[el('div',{class:'hint '+(ok?'ok':'warn'),style:'margin:0;'},x.detail)])
+    ]));
+  });
+  table.appendChild(body);
+  card.appendChild(el('div',{class:'table-scroll'},table));
+  card.appendChild(el('div',{class:'summary-block',style:'margin-top:12px;'},[
+    el('strong',{},'Özet'),
+    el('div',{},'Mevcut: '+result.ok+' · Eksik: '+result.missing)
+  ]));
+  return card;
+}
+
 const STEPS = [
   { id:'baslangic', title:'1. Gelen Karşıt', desc:'İlk ekran tamamlanmadan sonraki adım açılmaz. Tutanak ve varsa arşiv yüklenir; bilgiler aynı ekranda ilgili alanlara aktarılır.', render(c){ renderFirstScreen(c); } },
   { id:'gerekli', title:'2. Gerekli Bilgiler', desc:'Tutanaktan tespit edilen dönemlere göre gerekli belge ve bilgileri listeleyin; yüklenmiş arşivdeki mevcut/eksik durumlarını kontrol edin.', render(c){ renderGerekliBilgilerPage(c); } },
@@ -818,6 +881,24 @@ const STEPS = [
     const sum=el('div',{class:'two-col'}),left=el('div'),right=el('div'),block=(t,v)=>el('div',{class:'summary-block'},[el('h4',{},t),el('div',{},String(v))]);
     left.appendChild(block('Ç Mükellefi',state.meta.cUnvan||'—'));left.appendChild(block('VKN',state.meta.cVkn||'—'));left.appendChild(block('Fatura Dönemleri',state.donemler.join(', ')||'—'));left.appendChild(block('KDV Dönemleri',state.kdvDonemleri.join(', ')||'—'));
     right.appendChild(block('Ortak',state.ortaklar.length));right.appendChild(block('Defter',state.defterler.length));right.appendChild(block('Fatura',state.faturalar.length));right.appendChild(block('Çalışan dönemi',state.isciler.length));right.appendChild(block('KDV dönemi',state.kdvBeyanlari.length));right.appendChild(block('İmalatçı',state.imalatcilar.length));right.appendChild(block('Tedarikçi',state.tedarikciler.length));sum.appendChild(left);sum.appendChild(right);c.appendChild(sum);
+    const kontrolSonuc=el('div',{id:'son-kontrol-sonucu',style:'margin-top:16px;'});
+    const kontrolEt=el('button',{class:'btn btn-secondary'},'🔎 Arşivi Son Kez Kontrol Et');
+    kontrolEt.onclick=()=>{
+      kontrolSonuc.innerHTML='';
+      kontrolEt.disabled=true;
+      kontrolEt.textContent='⏳ Arşiv kontrol ediliyor...';
+      try{
+        const sonuc=runFinalArchiveCheck();
+        kontrolSonuc.appendChild(renderFinalArchiveCheck(sonuc));
+      }catch(e){
+        kontrolSonuc.appendChild(el('div',{class:'hint warn'},'Kontrol sırasında hata oluştu: '+e.message));
+      }finally{
+        kontrolEt.disabled=false;
+        kontrolEt.textContent='🔎 Arşivi Son Kez Kontrol Et';
+      }
+    };
+    c.appendChild(el('div',{class:'table-actions',style:'margin-top:18px;'},[kontrolEt]));
+    c.appendChild(kontrolSonuc);
     const b=el('button',{class:'btn btn-primary'},'⬇ Karşıt İnceleme Tablolarını İndir');b.onclick=async()=>{try{b.disabled=true;b.textContent='⏳ Karşıt İnceleme Tabloları hazırlanıyor...';const files=await buildOutputFiles(state);for(const f of files){await downloadBlob(f.blob,f.name);await new Promise(r=>setTimeout(r,250));}b.textContent='✓ Karşıt İnceleme Tabloları İndirildi';setTimeout(()=>{b.disabled=false;b.textContent='⬇ Karşıt İnceleme Tablolarını İndir';},1500);}catch(e){b.disabled=false;b.textContent='⬇ Karşıt İnceleme Tablolarını İndir';alert('Çıktı oluşturulamadı: '+e.message);}};c.appendChild(el('div',{class:'table-actions',style:'margin-top:18px;'},[b]));
     const a=el('button',{class:'btn btn-secondary',style:'margin-top:10px;'},'Güncel Arşiv Dosyası İndir');a.onclick=async()=>{try{const merged=mergeArchive(state.existingArchiveParsed,state);const wb=buildArchiveWorkbook(merged);const safe=(merged.mukellef.unvan||'mukellef').replace(/[^\wğüşöçıİĞÜŞÖÇ ]/g,'').slice(0,40).trim();await downloadWorkbook(wb,`ARSIV_${safe}.xlsx`);}catch(e){alert('Arşiv oluşturulamadı: '+e.message);}};c.appendChild(a);
   }}
