@@ -140,6 +140,73 @@ function archiveToState(parsed) {
   // state.donemler yalnızca tutanaktaki faturalardan gelir.
 }
 
+
+function gerekliBilgilerDurum(status,label,detail){
+  const tone=status==='var'?'ok':'warn';
+  const icon=status==='var'?'✓':(status==='kismi'?'◐':'✕');
+  return el('tr',{},[
+    el('td',{style:'font-weight:600;'},label),
+    el('td',{style:'text-align:center;font-size:18px;width:55px;'},icon),
+    el('td',{},[el('div',{class:'hint '+tone,style:'margin:0;'},detail)])
+  ]);
+}
+function archiveDefterRowsForPeriod(period, neviPattern){
+  const p=state.existingArchiveParsed||{};
+  return (p.defterler||[]).filter(r=>defterPeriodMatchesDetected(r,[period]) && neviPattern.test(String(r.nevi||'')));
+}
+function renderGerekliBilgilerPage(container){
+  const periods=[...(state.donemler||[])].filter(Boolean).sort(donemCompare);
+  const archive=state.existingArchiveParsed;
+  const card=el('div',{class:'card'});
+  card.appendChild(el('h3',{},'Gerekli Bilgiler ve Arşiv Durumu'));
+  if(!periods.length){
+    card.appendChild(el('div',{class:'hint warn'},'Tutanaktan dönem henüz tespit edilemedi. Önce Gelen Karşıt bölümündeki tutanağın okunması gerekir.'));
+    container.appendChild(card); return;
+  }
+  card.appendChild(el('div',{class:'hint info'},'Tutanaktan tespit edilen dönem: '+periods.join(', ')+'. Aşağıdaki liste, karşıt inceleme için gerekli belgeleri dönem bazında gösterir. Arşiv yüklüyse her kalem arşiv kayıtlarına göre kontrol edilir.'));
+  if(!archive) card.appendChild(el('div',{class:'hint warn',style:'margin-top:10px;'},'⚠️ Arşiv dosyası yüklenmedi. Belgelerin arşivdeki durumu kontrol edilemiyor; arşiv yüklendiğinde bu ekran güncellenir.'));
+  periods.forEach(period=>{
+    const year=extractYearFromDonem(period);
+    const kdvPrev=prevDonem(period);
+    const rows=[];
+    if(archive){
+      const yev=archiveDefterRowsForPeriod(period,/yevmiye/i);
+      const keb=archiveDefterRowsForPeriod(period,/kebir|büyük\s+defter/i);
+      const env=(archive.defterler||[]).filter(r=>String(r.nevi||'').toLocaleUpperCase('tr-TR').includes('ENVANTER') && archiveYearFromValue(r.baslangic)===String(year));
+      const kdv=(archive.kdvBeyanlari||[]).filter(r=>String(r.donem||'')===period);
+      const kdvTah=kdv.filter(r=>String(r.tahakkukNo||'').trim());
+      const isci=(archive.isciler||[]).filter(r=>String(r.donem||'')===period);
+      const ted=(archive.tedarikciler||[]).filter(r=>archivePeriodFromValue(r.faturaTarihi)===period);
+      const faturaRows=(state.faturalar||[]).filter(f=>donemFromFaturaTarihi(f.tarih)===period);
+      const exactSupplier=faturaRows.filter(f=>{
+        const targetNo=String(f.no||'').replace(/\\s+/g,'').toUpperCase();
+        const targetDate=String(f.tarih||'');
+        return ted.some(t=>String(t.faturaNo||'').replace(/\\s+/g,'').toUpperCase()===targetNo && String(t.faturaTarihi||'')===targetDate);
+      });
+      rows.push(gerekliBilgilerDurum(yev.length?'var':'yok',period+' Yevmiye Berat',yev.length?yev.length+' kayıt arşivde bulundu.':'Arşivde ilgili Yevmiye kaydı bulunamadı.'));
+      rows.push(gerekliBilgilerDurum(keb.length?'var':'yok',period+' Kebir Berat',keb.length?keb.length+' kayıt arşivde bulundu.':'Arşivde ilgili Kebir kaydı bulunamadı.'));
+      rows.push(gerekliBilgilerDurum(env.length?'var':'yok',year+' Envanter',env.length?env.length+' kayıt arşivde bulundu.':year+' yılı Envanter kaydı bulunamadı.'));
+      rows.push(gerekliBilgilerDurum(kdv.length?'var':'yok',period+' KDV Beyannamesi',kdv.length?kdv.length+' kayıt arşivde bulundu.':'Arşivde ilgili KDV beyannamesi bulunamadı.'));
+      rows.push(gerekliBilgilerDurum(kdvTah.length?'var':'yok',period+' KDV Tahakkuk',kdvTah.length?'Tahakkuk no: '+kdvTah.map(x=>x.tahakkukNo).filter(Boolean).join(', '):'Arşivde tahakkuk numarası bulunan KDV kaydı yok.'));
+      const prevKdv=(archive.kdvBeyanlari||[]).filter(r=>String(r.donem||'')===kdvPrev);
+      const prevTah=prevKdv.filter(r=>String(r.tahakkukNo||'').trim());
+      rows.push(gerekliBilgilerDurum(prevKdv.length?'var':'yok',kdvPrev+' KDV Beyannamesi',prevKdv.length?prevKdv.length+' kayıt arşivde bulundu.':'Arşivde '+kdvPrev+' KDV beyannamesi bulunamadı.'));
+      rows.push(gerekliBilgilerDurum(prevTah.length?'var':'yok',kdvPrev+' KDV Tahakkuk',prevTah.length?'Tahakkuk no: '+prevTah.map(x=>x.tahakkukNo).filter(Boolean).join(', '):'Arşivde '+kdvPrev+' tahakkuk numarası bulunan kayıt yok.'));
+      rows.push(gerekliBilgilerDurum(isci.length?'var':'yok',period+' İşçi Sayısı',isci.length?isci.map(x=>x.sayi||'—').join(', ')+' çalışan kaydı bulundu.':period+' çalışan/Muhtasar kaydı bulunamadı.'));
+      rows.push(gerekliBilgilerDurum(ted.length?'var':'yok',period+' Tedarikçi Faturaları',ted.length?ted.length+' tedarikçi faturası arşivde bulundu.':'Arşivde bu döneme ait tedarikçi faturası bulunamadı.'));
+      if(faturaRows.length) rows.push(gerekliBilgilerDurum(exactSupplier.length===faturaRows.length?'var':(exactSupplier.length?'kismi':'yok'),period+' Karşıt Faturalarına Ait Tedarikçiler',faturaRows.length+' karşıt faturadan '+exactSupplier.length+' tanesinin tedarikçi faturası arşivde eşleşti.'));
+    }else{
+      [period+' Yevmiye Berat',period+' Kebir Berat',year+' Envanter',period+' KDV Beyannamesi',period+' KDV Tahakkuk',kdvPrev+' KDV Beyannamesi',kdvPrev+' KDV Tahakkuk',period+' İşçi Sayısı',period+' Tedarikçi Faturaları'].forEach(label=>rows.push(gerekliBilgilerDurum('yok',label,'Arşiv yüklenmedi — kontrol edilemedi.')));
+    }
+    const sec=el('div',{class:'card',style:'margin-top:14px;'});
+    sec.appendChild(el('h3',{},'📅 '+period+' Gerekli Belgeler'));
+    const table=el('table',{class:'editable-table'});
+    const head=el('tr');['Gerekli bilgi / belge','Durum','Açıklama'].forEach(x=>head.appendChild(el('th',{},x))); table.appendChild(el('thead',{},head));
+    const tb=el('tbody'); rows.forEach(r=>tb.appendChild(r)); table.appendChild(tb);
+    sec.appendChild(el('div',{class:'table-scroll'},table)); container.appendChild(sec);
+  });
+  container.appendChild(el('div',{class:'hint info',style:'margin-top:14px;'},'Not: Tedarikçi satırları dönem bazında ve tutanaktan okunan karşıt faturaların tarih/numara bilgileri üzerinden kontrol edilir. Bu ekran yalnızca durum tespiti yapar.'));
+}
 function renderDetectedPeriodWarning(container, type){
   if(type==='imalatci') return;
   const periods=[...(state.donemler||[])].filter(Boolean).sort(donemCompare);

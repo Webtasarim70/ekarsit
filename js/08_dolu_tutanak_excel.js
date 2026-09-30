@@ -3,6 +3,8 @@
    ============================================================ */
 
 let currentStep = 0;
+let ymmTeyitMenuOpen = false;
+let userMenuOpen = false;
 
 /* ============================================================
    v1.3.30 — Tutanak ve Tablo Ekle: doldurulmuş Excel tablolarını
@@ -223,18 +225,38 @@ function renderDoluTutanakMissingPage(){
 }
 
 
+async function downloadCurrentArchive(){
+  try{
+    const merged=mergeArchive(state.existingArchiveParsed,state);
+    const wb=buildArchiveWorkbook(merged);
+    const safe=(merged.mukellef.unvan||'mukellef').replace(/[^\wğüşöçıİĞÜŞÖÇ ]/g,'').slice(0,40).trim();
+    await downloadWorkbook(wb,`ARSIV_${safe}.xlsx`);
+  }catch(e){alert('Arşiv oluşturulamadı: '+e.message);}
+}
+
 function renderNav() {
   const nav=document.getElementById('step-nav'); nav.innerHTML='';
 
+  const userGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
+  userGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{userMenuOpen=!userMenuOpen;renderNav();}},[
+    el('div',{class:'num'},userMenuOpen?'▾':'▸'), el('div',{},'Kullanıcı')
+  ]));
+  if(userMenuOpen){
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserPage()},[el('div',{},'Kullanıcı')]));
+  }  nav.appendChild(userGroup);
+
   const archiveGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
   archiveGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{archiveMenuOpen=!archiveMenuOpen;renderNav();}},[
-    el('div',{class:'num'},archiveMenuOpen?'▾':'▸'), el('div',{},'Arşiv İşlemleri')
+    el('div',{class:'num'},archiveMenuOpen?'▾':'▸'), el('div',{},'Firma Arşiv İşlemleri')
   ]));
   if(archiveMenuOpen){
-    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-upload'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveUploadPage()},[el('div',{},'Arşiv Dosyası Yükle / Oluştur')]));
-    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-view'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveViewPage()},[el('div',{},'Arşiv Görüntüle')]));
-    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-edit'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveEditPage()},[el('div',{},'Arşiv Düzenle')]));
-    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-data-import'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveDataImportPage()},[el('div',{},'Dosyadan Veri Al')]));
+    const archiveLoaded=!!state.existingArchiveParsed;
+    const archiveLockedStyle='padding-left:50px;opacity:.45;cursor:not-allowed;pointer-events:none;';
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-upload'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveUploadPage()},[el('div',{},'Firma Arşiv Dosyası Yükle / Oluştur')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-view'?' active':'')+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveViewPage();}},[el('div',{},'Firma Arşiv Görüntüle')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-edit'?' active':'')+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveEditPage();}},[el('div',{},'Firma Arşiv Düzenle')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveDataImportPage();}},[el('div',{},'Dosyadan Veri Al')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)downloadCurrentArchive();}},[el('div',{},'Güncel Firma Arşivini İndir')]));
   }
   nav.appendChild(archiveGroup);
 
@@ -243,8 +265,11 @@ function renderNav() {
     el('div',{class:'num'},workflowMenuOpen?'▾':'▸'), el('div',{},'Karşıt İnceleme Doldur')
   ]));
   if(workflowMenuOpen){
+    const workflowUnlocked=firstScreenMissing().length===0;
     STEPS.forEach((st,i)=>{
-      const item=el('div',{class:'nav-item'+(currentPage==='workflow'&&i===currentStep?' active':'')+(currentPage==='workflow'&&i<currentStep?' done':''),style:'padding-left:38px;',onclick:()=>{
+      const locked=i>0&&!workflowUnlocked;
+      const item=el('div',{class:'nav-item'+(currentPage==='workflow'&&i===currentStep?' active':'')+(currentPage==='workflow'&&i<currentStep?' done':'')+(locked?' disabled':''),style:'padding-left:38px;'+(locked?'opacity:.45;cursor:not-allowed;pointer-events:none;':''),title:locked?'Önce Gelen Karşıt tutanağını yükleyip temel bilgilerin okunmasını bekleyin.':'',onclick:()=>{
+        if(locked)return;
         currentPage='workflow'; archiveViewParsed=null; currentStep=i; renderStep(i);
       }},[
         el('div',{class:'num'},currentPage==='workflow'&&i<currentStep?'✓':String(i+1)),
@@ -334,6 +359,7 @@ function renderFeedbackPage(){
   document.getElementById('footer-msg').textContent='Geri Bildirim';
   renderNav();
 }
+
 function renderStep(i) {
   currentPage='workflow';
   if(i>0&&firstScreenMissing().length)i=0;currentStep=i;archiveViewParsed=null;
