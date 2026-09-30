@@ -59,6 +59,21 @@ async function userScanDirectory(dir, prefix=''){
         files.push(...r.files);
       });
     }else{
+      if(prefix==='' && name==='KULLANICI_BILGILERI.json'){
+        try{
+          userStore.info=JSON.parse(await (await handle.getFile()).text());
+          const u=userStore.info?.kullanici||{};
+          if(!state.meta.ymmAdSoyad && u.adSoyad) state.meta.ymmAdSoyad=u.adSoyad;
+          if(!state.meta.ymmVkn && u.vkn) state.meta.ymmVkn=u.vkn;
+          if(!state.meta.ymmVergiDairesi && u.vergiDairesi) state.meta.ymmVergiDairesi=u.vergiDairesi;
+          if(!state.meta.ymmOda && u.oda) state.meta.ymmOda=u.oda;
+          if(!state.meta.ymmSicil && u.sicil) state.meta.ymmSicil=u.sicil;
+          if(!state.meta.ymmTelefon && u.telefon) state.meta.ymmTelefon=u.telefon;
+          if(!state.meta.ymmAdres && u.adres) state.meta.ymmAdres=u.adres;
+          if(!state.meta.ymmSirketUnvan && u.sirketUnvani) state.meta.ymmSirketUnvan=u.sirketUnvani;
+          if(!state.meta.ymmSirketVkn && u.sirketVkn) state.meta.ymmSirketVkn=u.sirketVkn;
+        }catch(e){}
+      }
       files.push({name,relativePath:rel,type:handle.name?.toLowerCase().endsWith('.json')?'json':'file'});
       if(userIsArchiveWorkbook(name)){
         try{
@@ -183,6 +198,13 @@ async function renderUserFolderPage(){
   }},'Kullanıcı Dosyasını Oluştur / Güncelle');
   card.appendChild(create); content.appendChild(card);
   content.appendChild(userFirmTable());
+  if(userStore.directoryHandle){
+    const saveArchive=el('button',{class:'btn btn-secondary',style:'margin-top:14px;',onclick:async()=>{
+      try{await userSaveCurrentArchiveToFolder();alert('Güncel arşiv kullanıcı klasöründeki ilgili VKN klasörüne kaydedildi.');renderUserFolderPage();}
+      catch(e){alert('Arşiv kullanıcı klasörüne kaydedilemedi: '+e.message);}
+    }},'Güncel Arşivi Kullanıcı Dosyasına Kaydet');
+    content.appendChild(saveArchive);
+  }
   document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('footer-msg').textContent='Kullanıcı Dosyası';renderNav();
 }
 function renderUserDefinePage(){
