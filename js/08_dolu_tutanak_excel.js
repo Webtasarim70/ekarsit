@@ -239,15 +239,12 @@ function renderNav() {
 
   const userGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
   userGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{userMenuOpen=!userMenuOpen;renderNav();}},[
-    el('div',{class:'num'},userMenuOpen?'▾':'▸'), el('div',{},'Kullanıcı İşlemleri')
+    el('div',{class:'num'},userMenuOpen?'▾':'▸'), el('div',{},'Kullanıcı')
   ]));
   if(userMenuOpen){
-    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-folder'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserFolderPage()},[el('div',{},'Kullanıcı / Kullanıcı Dosyası Oluştur')]));
-    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-define'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserDefinePage()},[el('div',{},'Kullanıcı Tanımla')]));
-    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-info'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserInfoPage()},[el('div',{},'Kullanıcı Bilgilerini Görüntüle')]));
-    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-firm-archives'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserFirmArchivesPage()},[el('div',{},'Firma / Arşiv Dosyalarım')]));
-  }
-  nav.appendChild(userGroup);
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserPage()},[el('div',{},'Kullanıcı')]));
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-firm-archives'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserFirmArchivesPage()},[el('div',{},'Firmalar')]));
+  }  nav.appendChild(userGroup);
 
   const archiveGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
   archiveGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{archiveMenuOpen=!archiveMenuOpen;renderNav();}},[
