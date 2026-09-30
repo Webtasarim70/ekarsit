@@ -250,6 +250,15 @@ function renderNav() {
   }
   nav.appendChild(archiveGroup);
 
+  const ymmTeyitGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
+  ymmTeyitGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{ymmTeyitMenuOpen=!ymmTeyitMenuOpen;renderNav();}},[
+    el('div',{class:'num'},ymmTeyitMenuOpen?'▾':'▸'), el('div',{},'YMM Teyit Yazısı')
+  ]));
+  if(ymmTeyitMenuOpen){
+    ymmTeyitGroup.appendChild(el('div',{class:'nav-item disabled',style:'padding-left:50px;opacity:.45;cursor:not-allowed;pointer-events:none;',title:'Şimdilik pasif'},[el('div',{},'YMM Teyit Yazısı') ]));
+  }
+  nav.appendChild(ymmTeyitGroup);
+
   const workflowGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
   workflowGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{workflowMenuOpen=!workflowMenuOpen;renderNav();}},[
     el('div',{class:'num'},workflowMenuOpen?'▾':'▸'), el('div',{},'Karşıt İnceleme Doldur')
