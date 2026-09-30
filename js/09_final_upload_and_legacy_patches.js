@@ -70,7 +70,6 @@ function renderArchiveUploadPage(){
           syncSharedArchiveRefs(parsed);
           archiveToState(parsed);
           status.innerHTML='';
-          markFileChip(box,file.name,true);
           const m=parsed.mukellef||{};
           status.appendChild(el('div',{class:'hint ok'},`✓ Kullanıcı klasöründen arşiv yüklendi: ${item.relativePath}`));
           status.appendChild(el('div',{class:'hint info',style:'margin-top:6px;'},`Mükellef: ${m.unvan||'—'} | Firma kimlik numarası: ${m.vkn||'—'}`));
