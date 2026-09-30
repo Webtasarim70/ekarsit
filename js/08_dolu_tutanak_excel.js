@@ -3,7 +3,8 @@
    ============================================================ */
 
 let currentStep = 0;
-let ymmTeyitMenuOpen = false;\nlet userMenuOpen = false;
+let ymmTeyitMenuOpen = false;
+let userMenuOpen = false;
 
 /* ============================================================
    v1.3.30 — Tutanak ve Tablo Ekle: doldurulmuş Excel tablolarını
