@@ -234,17 +234,6 @@ async function downloadCurrentArchive(){
   }catch(e){alert('Arşiv oluşturulamadı: '+e.message);}
 }
 
-  const userGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
-  userGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{userMenuOpen=!userMenuOpen;renderNav();}},[
-    el('div',{class:'num'},userMenuOpen?'▾':'▸'), el('div',{},'Kullanıcı İşlemleri')
-  ]));
-  if(userMenuOpen){
-    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-folder'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserFolderPage()},[el('div',{},'Kullanıcı / Kullanıcı Dosyası Oluştur')]));
-    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-define'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserDefinePage()},[el('div',{},'Kullanıcı Tanımla')]));
-    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-info'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserInfoPage()},[el('div',{},'Kullanıcı Bilgilerini Görüntüle')]));
-  }
-  nav.appendChild(userGroup);
-
 function renderNav() {
   const nav=document.getElementById('step-nav'); nav.innerHTML='';
 
@@ -262,6 +251,18 @@ function renderNav() {
     archiveGroup.appendChild(el('div',{class:'nav-item'+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)downloadCurrentArchive();}},[el('div',{},'Güncel Arşivi İndir')]));
   }
   nav.appendChild(archiveGroup);
+
+  const userGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
+  userGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{userMenuOpen=!userMenuOpen;renderNav();}},[
+    el('div',{class:'num'},userMenuOpen?'▾':'▸'), el('div',{},'Kullanıcı İşlemleri')
+  ]));
+  if(userMenuOpen){
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-folder'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserFolderPage()},[el('div',{},'Kullanıcı / Kullanıcı Dosyası Oluştur')]));
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-define'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserDefinePage()},[el('div',{},'Kullanıcı Tanımla')]));
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-info'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserInfoPage()},[el('div',{},'Kullanıcı Bilgilerini Görüntüle')]));
+  }
+  nav.appendChild(userGroup);
+
 
   const ymmTeyitGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
   ymmTeyitGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{ymmTeyitMenuOpen=!ymmTeyitMenuOpen;renderNav();}},[
