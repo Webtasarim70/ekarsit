@@ -93,6 +93,24 @@ async function userScanDirectory(dir, prefix=''){
   }
   return {firms,files};
 }
+async function userGetFileByRelativePath(relativePath){
+  if(!userStore.directoryHandle) throw new Error('Önce kullanıcı klasörünü seçin.');
+  const parts=String(relativePath||'').split('/').filter(Boolean);
+  if(!parts.length) throw new Error('Dosya yolu bulunamadı.');
+  let dir=userStore.directoryHandle;
+  for(let i=0;i<parts.length-1;i++){
+    dir=await dir.getDirectoryHandle(parts[i]);
+  }
+  const fileHandle=await dir.getFileHandle(parts[parts.length-1]);
+  return await fileHandle.getFile();
+}
+
+async function userLoadArchiveFromPath(relativePath){
+  const file=await userGetFileByRelativePath(relativePath);
+  if(!userIsArchiveWorkbook(file.name)) throw new Error('Seçilen dosya desteklenen arşiv Excel dosyası değil.');
+  return file;
+}
+
 async function userScanCurrentFolder(){
   if(!userStore.directoryHandle) throw new Error('Önce bir kullanıcı klasörü seçin.');
   const r=await userScanDirectory(userStore.directoryHandle);
