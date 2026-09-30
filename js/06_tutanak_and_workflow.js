@@ -771,40 +771,41 @@ function renderWelcomePage(){
 
 const STEPS = [
   { id:'baslangic', title:'1. Gelen Karşıt', desc:'İlk ekran tamamlanmadan sonraki adım açılmaz. Tutanak ve varsa arşiv yüklenir; bilgiler aynı ekranda ilgili alanlara aktarılır.', render(c){ renderFirstScreen(c); } },
-  { id:'ortak', title:'2. Ortaklık Bilgileri', desc:'Dosyalardan gelen ortaklık kayıtlarını kontrol edin; eksik veya yeni kayıtları tabloya ekleyin.', render(c){
+  { id:'gerekli', title:'2. Gerekli Bilgiler', desc:'Tutanaktan tespit edilen dönemlere göre gerekli belge ve bilgileri listeleyin; yüklenmiş arşivdeki mevcut/eksik durumlarını kontrol edin.', render(c){ renderGerekliBilgilerPage(c); } },
+  { id:'ortak', title:'3. Ortaklık Bilgileri', desc:'Dosyalardan gelen ortaklık kayıtlarını kontrol edin; eksik veya yeni kayıtları tabloya ekleyin.', render(c){
     const card=el('div',{class:'card'}); const w=el('div'); renderEditableTable(w,COLS.ortak,state.ortaklar); card.appendChild(w); c.appendChild(card); addGenericImportButton(c,COLS.ortak,state.ortaklar,{rerender:()=>renderEditableTable(w,COLS.ortak,state.ortaklar)});
   }},
-  { id:'defter', title:'3. Yasal Defter / e-Defter / e-Berat', desc:'Arşivden yalnızca tespit edilen dönemlerin ait olduğu yıllardaki defter kayıtları alınır. Tablodaki tüm kayıtlar temizlenebilir ve arşiv yeniden taranabilir.', render(c){
+  { id:'defter', title:'4. Yasal Defter / e-Defter / e-Berat', desc:'Arşivden yalnızca tespit edilen dönemlerin ait olduğu yıllardaki defter kayıtları alınır. Tablodaki tüm kayıtlar temizlenebilir ve arşiv yeniden taranabilir.', render(c){
     renderDetectedPeriodWarning(c,'defter');
     const card=el('div',{class:'card'}),w=el('div'); const rr=()=>{w.innerHTML='';renderEditableTable(w,COLS.defter,state.defterler,{onChange:rr});}; rr(); card.appendChild(w); c.appendChild(card);
     renderScopedTableActions(c,{templateFn:()=>addDefterTemplates(rr),clearFn:()=>clearScopedTable('defter',rr),rescanFn:()=>rescanArchiveTable('defter',rr)});
     renderEberatImport(c,rr); addGenericImportButton(c,COLS.defter,state.defterler,{rerender:rr});
   }},
-  { id:'fatura', title:'4. Karşıt İncelemeye Konu Faturalar', desc:'Bu tablo yalnızca mevcut karşıt inceleme çalışmasına aittir. Eski arşiv faturaları buraya otomatik taşınmaz.', render(c){
+  { id:'fatura', title:'5. Karşıt İncelemeye Konu Faturalar', desc:'Bu tablo yalnızca mevcut karşıt inceleme çalışmasına aittir. Eski arşiv faturaları buraya otomatik taşınmaz.', render(c){
     renderDetectedPeriodWarning(c,'fatura');
     const card=el('div',{class:'card'}),w=el('div'); const rr=()=>{w.innerHTML='';renderEditableTable(w,COLS.fatura,state.faturalar);}; rr(); card.appendChild(w); c.appendChild(card);
     renderScopedTableActions(c,{templateFn:()=>restoreFaturalarFromTutanak(rr),templateLabel:'↻ Faturaları tekrar al',clearFn:()=>clearScopedTable('fatura',rr),rescanFn:()=>alert('Karşıt inceleme faturaları arşivden alınmaz. Bu tablo yalnızca Gelen Karşıt tutanağından oluşturulur.')});
     addGenericImportButton(c,COLS.fatura,state.faturalar,{rerender:rr}); renderMuavinKontrol(c,rr);
   }},
-  { id:'isci', title:'5. Çalışan / Muhtasar', desc:'Muhtasar kayıtlarında arşivden yalnızca tutanaktan tespit edilen dönemler alınır.', render(c){
+  { id:'isci', title:'6. Çalışan / Muhtasar', desc:'Muhtasar kayıtlarında arşivden yalnızca tutanaktan tespit edilen dönemler alınır.', render(c){
     renderDetectedPeriodWarning(c,'isci');
     syncIsciVergiDairesi(); const card=el('div',{class:'card'}),w=el('div'); const rr=()=>{syncIsciVergiDairesi();w.innerHTML='';renderEditableTable(w,COLS.isci,state.isciler,{onChange:rr});}; rr(); card.appendChild(w); c.appendChild(card);
     renderScopedTableActions(c,{templateFn:()=>{syncDonemRows(state.isciler,state.donemler,COLS.isci);rr();},clearFn:()=>clearScopedTable('isci',rr),rescanFn:()=>rescanArchiveTable('isci',rr)});
     renderMuhtasarImport(c,rr);
   }},
-  { id:'kdv', title:'6. KDV Beyannamesi', desc:'KDV kayıtlarında tespit edilen dönemlere ek olarak her dönemin bir önceki KDV dönemi de mükerrer olmadan kontrol edilir ve arşivden alınır.', render(c){
+  { id:'kdv', title:'7. KDV Beyannamesi', desc:'KDV kayıtlarında tespit edilen dönemlere ek olarak her dönemin bir önceki KDV dönemi de mükerrer olmadan kontrol edilir ve arşivden alınır.', render(c){
     renderDetectedPeriodWarning(c,'kdv');
     state.kdvDonemleri=computeKdvDonemleri(state.donemler); const card=el('div',{class:'card'}),w=el('div'); const rr=()=>{w.innerHTML='';renderEditableTable(w,COLS.kdv,state.kdvBeyanlari,{onChange:rr});}; rr(); card.appendChild(w); c.appendChild(card);
     renderScopedTableActions(c,{templateFn:()=>{syncDonemRows(state.kdvBeyanlari,state.kdvDonemleri,COLS.kdv);rr();},clearFn:()=>clearScopedTable('kdv',rr),rescanFn:()=>rescanArchiveTable('kdv',rr)});
     if(state.kdvDonemleri.length){ renderKdvImport(c,rr); renderKdvTahakkukImport(c,rr); }
   }},
-  { id:'imalatci', title:'7. Üretici / İmalatçı', desc:'Arşivde bulunan ilgili üretici/imalatçı kayıtları dönem sınırlaması olmadan tabloya alınır; eksik alanlar elle tamamlanabilir.', render(c){
+  { id:'imalatci', title:'8. Üretici / İmalatçı', desc:'Arşivde bulunan ilgili üretici/imalatçı kayıtları dönem sınırlaması olmadan tabloya alınır; eksik alanlar elle tamamlanabilir.', render(c){
     renderDetectedPeriodWarning(c,'imalatci');
     const card=el('div',{class:'card'}),w=el('div'); const rr=()=>{w.innerHTML='';renderEditableTable(w,COLS.imalatci,state.imalatcilar);}; rr(); card.appendChild(w); c.appendChild(card);
     renderScopedTableActions(c,{templateFn:()=>{if(!state.imalatcilar.length) state.imalatcilar.push(emptyRow(COLS.imalatci));rr();},clearFn:()=>clearScopedTable('imalatci',rr),rescanFn:()=>rescanArchiveTable('imalatci',rr)});
     addGenericImportButton(c,COLS.imalatci,state.imalatcilar,{rerender:rr});
   }},
-  { id:'tedarikci', title:'8. Tedarikçi Firmalar', desc:'Tespit edilen her dönem ayrı ayrı arşivde taranır ve o döneme ait bulunan tüm tedarikçi faturaları tabloya getirilir. Bir dönemde 10’dan az veya fazla kayıt olabilir; sabit 10 sınırı yalnızca İndirilecek KDV Listesi yüklemesinde geçerlidir.', render(c){
+  { id:'tedarikci', title:'9. Tedarikçi Firmalar', desc:'Tespit edilen her dönem ayrı ayrı arşivde taranır ve o döneme ait bulunan tüm tedarikçi faturaları tabloya getirilir. Bir dönemde 10’dan az veya fazla kayıt olabilir; sabit 10 sınırı yalnızca İndirilecek KDV Listesi yüklemesinde geçerlidir.', render(c){
     renderDetectedPeriodWarning(c,'tedarikciler');
     const card=el('div',{class:'card'}),w=el('div'); const rr=()=>{w.innerHTML='';renderEditableTable(w,COLS.tedarikci,state.tedarikciler,{onChange:rr});}; rr(); card.appendChild(w); c.appendChild(card);
     c.appendChild(el('div',{class:'hint info'},`Şablon dönemleri: ${state.donemler.join(', ')||'—'}`));
@@ -813,7 +814,7 @@ const STEPS = [
     const arsivVergiBtn=el('button',{class:'btn btn-secondary',style:'margin:0 0 14px 0;',onclick:()=>{const arsiv=(state.existingArchiveParsed&&state.existingArchiveParsed.tedarikciler)||[];if(!arsiv.length){alert('Yüklenen arşivde tedarikçi firma kaydı bulunamadı.');return;}const normVkn=v=>String(v??'').replace(/\D/g,'');const lookup=new Map();arsiv.forEach(a=>{const v=normVkn(a.vkn);const vd=String(a.vergiDairesi??'').trim();if(v&&vd&&!lookup.has(v))lookup.set(v,vd);});let updated=0;let matched=0;state.tedarikciler.forEach(row=>{const v=normVkn(row.vkn);if(!v)return;const vd=lookup.get(v);if(!vd)return;matched++;if(!String(row.vergiDairesi??'').trim()){row.vergiDairesi=vd;updated++;}});rr();alert(updated?`Arşiv taraması tamamlandı. ${updated} tedarikçinin Bağlı Olduğu Vergi Dairesi bilgisi tabloya aktarıldı.`:`Arşiv taraması tamamlandı. Eşleşen ${matched} kayıt bulundu ancak boş vergi dairesi alanı bulunmadı veya aktarılacak bilgi yok.`);}},'🔎 Arşivden Vergi Dairelerini Doldur'); c.appendChild(arsivVergiBtn);
     renderTedarikciExcelImport(c,rr); addGenericImportButton(c,COLS.tedarikci,state.tedarikciler,{rerender:rr});
   }},
-  { id:'sonuc', title:'9. Kontrol ve Çıktılar', desc:'Sonuçta 7 ayrı Excel çalışma kitabı ve faturalardan arındırılmış yıllık arşiv oluşturulur. Çıktılar yüklediğiniz gerçek Excel şablonlarının kolon yapısını esas alır.', render(c){
+  { id:'sonuc', title:'10. Kontrol ve Çıktılar', desc:'Sonuçta 7 ayrı Excel çalışma kitabı ve faturalardan arındırılmış yıllık arşiv oluşturulur. Çıktılar yüklediğiniz gerçek Excel şablonlarının kolon yapısını esas alır.', render(c){
     const sum=el('div',{class:'two-col'}),left=el('div'),right=el('div'),block=(t,v)=>el('div',{class:'summary-block'},[el('h4',{},t),el('div',{},String(v))]);
     left.appendChild(block('Ç Mükellefi',state.meta.cUnvan||'—'));left.appendChild(block('VKN',state.meta.cVkn||'—'));left.appendChild(block('Fatura Dönemleri',state.donemler.join(', ')||'—'));left.appendChild(block('KDV Dönemleri',state.kdvDonemleri.join(', ')||'—'));
     right.appendChild(block('Ortak',state.ortaklar.length));right.appendChild(block('Defter',state.defterler.length));right.appendChild(block('Fatura',state.faturalar.length));right.appendChild(block('Çalışan dönemi',state.isciler.length));right.appendChild(block('KDV dönemi',state.kdvBeyanlari.length));right.appendChild(block('İmalatçı',state.imalatcilar.length));right.appendChild(block('Tedarikçi',state.tedarikciler.length));sum.appendChild(left);sum.appendChild(right);c.appendChild(sum);
