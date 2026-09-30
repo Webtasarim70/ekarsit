@@ -104,9 +104,12 @@ function renderArchiveUploadPage(){
       syncSharedArchiveRefs(parsed);
       archiveToState(parsed);
       const m=parsed.mukellef||{};
-      status.appendChild(el('div',{class:'hint ok'},`✓ Arşiv yüklendi: ${file.name}`));
+      if(userStore?.directoryHandle){
+        await userSaveArchiveParsedToFolder(parsed,'ARSIV_'+userFileSafeName(m.unvan||m.vkn||'arsiv')+'.xlsx');
+      }
+      status.appendChild(el('div',{class:'hint ok'},`✓ Firma arşiv yüklendi: ${file.name}`));
       status.appendChild(el('div',{class:'hint info',style:'margin-top:6px;'},`Mükellef: ${m.unvan||'—'} | Firma kimlik numarası: ${m.vkn||'—'}`));
-      status.appendChild(el('div',{class:'hint ok',style:'margin-top:6px;'},'✓ Aynı arşiv artık Firma Arşiv Görüntüle, Firma Arşiv Düzenle ve Dosyadan Veri Al bağlantılarında otomatik kullanılacaktır.'));
+      status.appendChild(el('div',{class:'hint ok',style:'margin-top:6px;'},userStore?.directoryHandle?'✓ Firma arşivi kullanıcı klasöründeki VKN klasörüne otomatik kaydedildi.':'✓ Aynı firma arşivi artık Firma Arşiv Görüntüle, Firma Arşiv Düzenle ve Dosyadan Veri Al bağlantılarında otomatik kullanılacaktır.'));
       renderNav();
     }catch(err){
       status.appendChild(el('div',{class:'hint warn'},`⚠️ Arşiv okunamadı: ${err.message}`));
@@ -141,7 +144,10 @@ function renderArchiveUploadPage(){
       const filename=`Yeni_Arşiv_${safe}.xlsx`;
       await downloadWorkbook(wb,filename);
       state.existingArchiveParsed=parsed; state.existingArchiveFile={name:filename}; syncSharedArchiveRefs(parsed); archiveToState(parsed);
-      createStatus.appendChild(el('div',{class:'hint ok'},`✓ Yeni arşiv oluşturuldu: ${filename}`));
+      if(userStore?.directoryHandle){
+        await userSaveArchiveParsedToFolder(parsed,filename);
+      }
+      createStatus.appendChild(el('div',{class:'hint ok'},userStore?.directoryHandle?`✓ Yeni firma arşivi oluşturuldu ve kullanıcı klasöründeki ${vkn} klasörüne kaydedildi: ${filename}`:`✓ Yeni firma arşivi oluşturuldu: ${filename}`));
       renderNav();
       setTimeout(()=>renderArchiveViewPage(),80);
     }catch(err){createStatus.appendChild(el('div',{class:'hint warn'},`⚠️ Yeni arşiv oluşturulamadı: ${err.message}`));}
