@@ -252,27 +252,6 @@ function renderNav() {
   }
   nav.appendChild(archiveGroup);
 
-  const userGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
-  userGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{userMenuOpen=!userMenuOpen;renderNav();}},[
-    el('div',{class:'num'},userMenuOpen?'▾':'▸'), el('div',{},'Kullanıcı İşlemleri')
-  ]));
-  if(userMenuOpen){
-    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-folder'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserFolderPage()},[el('div',{},'Kullanıcı / Kullanıcı Dosyası Oluştur')]));
-    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-define'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserDefinePage()},[el('div',{},'Kullanıcı Tanımla')]));
-    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-info'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserInfoPage()},[el('div',{},'Kullanıcı Bilgilerini Görüntüle')]));
-  }
-  nav.appendChild(userGroup);
-
-
-  const ymmTeyitGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
-  ymmTeyitGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{ymmTeyitMenuOpen=!ymmTeyitMenuOpen;renderNav();}},[
-    el('div',{class:'num'},ymmTeyitMenuOpen?'▾':'▸'), el('div',{},'YMM Teyit Yazısı')
-  ]));
-  if(ymmTeyitMenuOpen){
-    ymmTeyitGroup.appendChild(el('div',{class:'nav-item disabled',style:'padding-left:50px;opacity:.45;cursor:not-allowed;pointer-events:none;',title:'Şimdilik pasif'},[el('div',{},'YMM Teyit Yazısı') ]));
-  }
-  nav.appendChild(ymmTeyitGroup);
-
   const workflowGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
   workflowGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{workflowMenuOpen=!workflowMenuOpen;renderNav();}},[
     el('div',{class:'num'},workflowMenuOpen?'▾':'▸'), el('div',{},'Karşıt İnceleme Doldur')
@@ -372,6 +351,30 @@ function renderFeedbackPage(){
   document.getElementById('footer-msg').textContent='Geri Bildirim';
   renderNav();
 }
+  const ymmTeyitGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
+  ymmTeyitGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{ymmTeyitMenuOpen=!ymmTeyitMenuOpen;renderNav();}},[
+    el('div',{class:'num'},ymmTeyitMenuOpen?'▾':'▸'), el('div',{},'YMM Teyit Yazısı')
+  ]));
+  if(ymmTeyitMenuOpen){
+    ymmTeyitGroup.appendChild(el('div',{class:'nav-item disabled',style:'padding-left:50px;opacity:.45;cursor:not-allowed;pointer-events:none;',title:'Şimdilik pasif'},[el('div',{},'YMM Teyit Yazısı') ]));
+  }
+  nav.appendChild(ymmTeyitGroup);
+
+  const archiveGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
+  archiveGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{archiveMenuOpen=!archiveMenuOpen;renderNav();}},[
+    el('div',{class:'num'},archiveMenuOpen?'▾':'▸'), el('div',{},'Arşiv İşlemleri')
+  ]));
+  if(archiveMenuOpen){
+    const archiveLoaded=!!state.existingArchiveParsed;
+    const archiveLockedStyle='padding-left:50px;opacity:.45;cursor:not-allowed;pointer-events:none;';
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-upload'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveUploadPage()},[el('div',{},'Arşiv Dosyası Yükle / Oluştur')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-view'?' active':'')+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveViewPage();}},[el('div',{},'Arşiv Görüntüle')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-edit'?' active':'')+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveEditPage();}},[el('div',{},'Arşiv Düzenle')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveDataImportPage();}},[el('div',{},'Dosyadan Veri Al')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)downloadCurrentArchive();}},[el('div',{},'Güncel Arşivi İndir')]));
+  }
+  nav.appendChild(archiveGroup);
+
 function renderStep(i) {
   currentPage='workflow';
   if(i>0&&firstScreenMissing().length)i=0;currentStep=i;archiveViewParsed=null;
