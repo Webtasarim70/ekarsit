@@ -240,11 +240,13 @@ function renderNav() {
     el('div',{class:'num'},archiveMenuOpen?'▾':'▸'), el('div',{},'Arşiv İşlemleri')
   ]));
   if(archiveMenuOpen){
+    const archiveLoaded=!!state.existingArchiveParsed;
+    const archiveLockedStyle='padding-left:50px;opacity:.45;cursor:not-allowed;pointer-events:none;';
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-upload'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveUploadPage()},[el('div',{},'Arşiv Dosyası Yükle / Oluştur')]));
-    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-view'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveViewPage()},[el('div',{},'Arşiv Görüntüle')]));
-    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-edit'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveEditPage()},[el('div',{},'Arşiv Düzenle')]));
-    archiveGroup.appendChild(el('div',{class:'nav-item',style:'padding-left:50px;',onclick:()=>downloadCurrentArchive()},[el('div',{},'Güncel Arşivi İndir')]));
-    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-data-import'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveDataImportPage()},[el('div',{},'Dosyadan Veri Al')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-view'?' active':'')+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveViewPage();}},[el('div',{},'Arşiv Görüntüle')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-edit'?' active':'')+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveEditPage();}},[el('div',{},'Arşiv Düzenle')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveDataImportPage();}},[el('div',{},'Dosyadan Veri Al')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)downloadCurrentArchive();}},[el('div',{},'Güncel Arşivi İndir')]));
   }
   nav.appendChild(archiveGroup);
 
