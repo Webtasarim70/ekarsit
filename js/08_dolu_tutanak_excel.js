@@ -243,7 +243,6 @@ function renderNav() {
   ]));
   if(userMenuOpen){
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserPage()},[el('div',{},'Kullanıcı')]));
-    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user-firm-archives'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserFirmArchivesPage()},[el('div',{},'Firmalar')]));
   }  nav.appendChild(userGroup);
 
   const archiveGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
