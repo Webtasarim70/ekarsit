@@ -223,6 +223,15 @@ function renderDoluTutanakMissingPage(){
 }
 
 
+async function downloadCurrentArchive(){
+  try{
+    const merged=mergeArchive(state.existingArchiveParsed,state);
+    const wb=buildArchiveWorkbook(merged);
+    const safe=(merged.mukellef.unvan||'mukellef').replace(/[^\wğüşöçıİĞÜŞÖÇ ]/g,'').slice(0,40).trim();
+    await downloadWorkbook(wb,`ARSIV_${safe}.xlsx`);
+  }catch(e){alert('Arşiv oluşturulamadı: '+e.message);}
+}
+
 function renderNav() {
   const nav=document.getElementById('step-nav'); nav.innerHTML='';
 
@@ -234,6 +243,7 @@ function renderNav() {
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-upload'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveUploadPage()},[el('div',{},'Arşiv Dosyası Yükle / Oluştur')]));
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-view'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveViewPage()},[el('div',{},'Arşiv Görüntüle')]));
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-edit'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveEditPage()},[el('div',{},'Arşiv Düzenle')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item',style:'padding-left:50px;',onclick:()=>downloadCurrentArchive()},[el('div',{},'Güncel Arşivi İndir')]));
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-data-import'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveDataImportPage()},[el('div',{},'Dosyadan Veri Al')]));
   }
   nav.appendChild(archiveGroup);
