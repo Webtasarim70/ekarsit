@@ -172,16 +172,25 @@ async function userCreateFirmFolders(){
   await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());
   return created;
 }
+async function userSaveArchiveParsedToFolder(parsed,filename=''){
+  if(!userStore.directoryHandle) return false;
+  const m=parsed?.mukellef||{};
+  const vkn=userVkn(m.vkn);
+  if(!vkn) throw new Error('Firma arşivindeki VKN/T.C. Kimlik Numarası bulunamadı.');
+  const folder=await userEnsureVknFolder(vkn,m.unvan);
+  const safe=userFileSafeName(m.unvan||vkn||'arsiv');
+  const target=filename||('ARSIV_'+safe+'.xlsx');
+  await userWriteWorkbook(folder,target,buildArchiveWorkbook(parsed));
+  await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());
+  await userScanCurrentFolder();
+  return true;
+}
+
 async function userSaveCurrentArchiveToFolder(){
   if(!userStore.directoryHandle) throw new Error('Önce kullanıcı klasörünü tanımlayın.');
   const merged=mergeArchive(state.existingArchiveParsed,state);
   if(!merged) throw new Error('Kaydedilecek arşiv bulunamadı.');
-  const m=merged.mukellef||{};
-  const folder=await userEnsureVknFolder(userVkn(m.vkn),m.unvan);
-  const safe=userFileSafeName(m.unvan||m.vkn||'arsiv');
-  await userWriteWorkbook(folder,'ARSIV_'+safe+'.xlsx',buildArchiveWorkbook(merged));
-  await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());
-  await userScanCurrentFolder();
+  return await userSaveArchiveParsedToFolder(merged);
 }
 async function userSelectFolder({createUser=false}={}){
   if(!window.showDirectoryPicker) throw new Error('Bu tarayıcı yerel klasör seçimini desteklemiyor. Güncel Chrome/Edge kullanın.');
