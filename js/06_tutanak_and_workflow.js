@@ -758,7 +758,6 @@ function renderWelcomePage(){
   const notes=el('div',{class:'card'});
   notes.appendChild(el('h3',{},'ℹ️ Kullanım notları'));
   const n=el('ul',{style:'margin:8px 0 0 20px;line-height:1.8;'});
-  ['Belgeleri mümkün olduğunca kendi gerçek formatlarında yükleyin.','Bir belge için kontrol/uyarı çıktığında onay vermeden önce bilgileri inceleyin.','Eksik bilgiler ilgili tablolarda elle tamamlanabilir.','İndirilecek KDV listesi birden fazla dönemi içerebilir; sistem her ay için ayrı en yüksek 10 faturayı belirler.','Arşivde yapılan düzenlemeler, “Güncel Arşiv Dosyası İndir” ile yeni dosya olarak dışarı alınır.'].forEach(x=>n.appendChild(el('li',{},x)));
   notes.appendChild(n); content.appendChild(notes);
 
   document.getElementById('btn-prev').disabled=true;
