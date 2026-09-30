@@ -247,47 +247,110 @@ function userFirmTable(){
   table.appendChild(tb); const sc=el('div',{class:'table-scroll'}); sc.appendChild(table); box.appendChild(sc); return box;
 }
 
-async function renderUserFolderPage(){
-  currentPage='user-folder'; currentStep=-1; const content=document.getElementById('step-content'); content.innerHTML='';
-  content.appendChild(el('h2',{class:'step-title'},'Kullanıcı / Kullanıcı Dosyası Oluştur'));
-  content.appendChild(el('p',{class:'step-desc'},'Bilgisayarınızda bu uygulamaya ait bir klasör seçin. Sistem klasörü tarar; içindeki arşiv Excel dosyalarından kullanıcıya ait firma ve VKN bilgilerini bulur.'));
-  const card=el('div',{class:'card',style:'max-width:1000px;'}); card.appendChild(el('h3',{},'Yerel Kullanıcı Klasörü'));
-  card.appendChild(el('div',{class:'hint info'},'Klasör yalnızca sizin bilgisayarınızda okunur. Dosyalar sunucuya gönderilmez. Yazma izni verdiğiniz klasöre daha sonra KULLANICI_BILGILERI.json ve ilgili VKN klasörleri oluşturulabilir.'));
-  const choose=el('button',{class:'btn btn-primary',onclick:async()=>{
+async function renderUserPage(){
+  currentPage='user'; currentStep=-1;
+  const content=document.getElementById('step-content');
+  content.innerHTML='';
+  content.appendChild(el('h2',{class:'step-title'},'Kullanıcı'));
+  content.appendChild(el('p',{class:'step-desc'},'Mevcut kullanıcı klasörünüzü seçin veya yeni bir kullanıcı klasörü oluşturun.'));
+
+  const actions=el('div',{class:'card',style:'max-width:1000px;'});
+  actions.appendChild(el('h3',{},'Kullanıcı İşlemleri'));
+
+  const existing=el('button',{class:'btn btn-primary',onclick:async()=>{
     try{
       if(!window.showDirectoryPicker) throw new Error('Bu tarayıcı yerel klasör seçimini desteklemiyor. Güncel Chrome/Edge kullanın.');
       userStore.directoryHandle=await window.showDirectoryPicker({mode:'readwrite'});
-      const status=document.getElementById('user-folder-status'); status.innerHTML='<div class="hint info">⏳ Klasör taranıyor...</div>';
+      const status=document.getElementById('user-page-status');
+      status.innerHTML='<div class="hint info">⏳ Kullanıcı klasörü taranıyor...</div>';
       await userScanCurrentFolder();
-      status.innerHTML=''; userFolderStatus(status);
-      status.appendChild(el('div',{class:'hint ok',style:'margin-top:8px;'},`✓ ${userStore.files.length} dosya tarandı, ${userStore.firms.length} firma bulundu.`));
-      document.getElementById('user-create-info').disabled=false;
-      document.getElementById('user-create-firm-folders').disabled=userStore.firms.length===0;
-      renderNav();
+      status.innerHTML='';
+      userFolderStatus(status);
+      renderUserPage();
     }catch(e){alert('Kullanıcı klasörü açılamadı: '+e.message);}
-  }},'📁 Kullanıcı Klasörü Seç');
-  card.appendChild(choose);
-  const status=el('div',{id:'user-folder-status',style:'margin-top:14px;'}); userFolderStatus(status); card.appendChild(status);
-  const create=el('button',{id:'user-create-info',class:'btn btn-secondary',disabled:!userStore.directoryHandle,style:'margin-top:12px;',onclick:async()=>{
-    try{await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());alert('KULLANICI_BILGILERI.json oluşturuldu/güncellendi.');await userScanCurrentFolder();renderUserFolderPage();}
-    catch(e){alert('Kullanıcı dosyası oluşturulamadı: '+e.message);}
-  }},'Kullanıcı Dosyasını Oluştur / Güncelle');
-  card.appendChild(create);
-  const folders=el('button',{class:'btn btn-secondary',style:'margin:10px 0 0 8px;',disabled:true,onclick:async()=>{
-    try{const n=await userCreateFirmFolders();alert(n+' firma için VKN klasörü oluşturuldu/güncellendi.');await userScanCurrentFolder();renderUserFolderPage();}
-    catch(e){alert('Firma klasörleri oluşturulamadı: '+e.message);}
-  }},'Firma VKN Klasörlerini Oluştur');
-  folders.id='user-create-firm-folders'; card.appendChild(folders); content.appendChild(card);
-  content.appendChild(userFirmTable());
-  if(userStore.directoryHandle){
-    const saveArchive=el('button',{class:'btn btn-secondary',style:'margin-top:14px;',onclick:async()=>{
-      try{await userSaveCurrentArchiveToFolder();alert('Güncel arşiv kullanıcı klasöründeki ilgili VKN klasörüne kaydedildi.');renderUserFolderPage();}
-      catch(e){alert('Arşiv kullanıcı klasörüne kaydedilemedi: '+e.message);}
-    }},'Güncel Arşivi Kullanıcı Dosyasına Kaydet');
-    content.appendChild(saveArchive);
+  }},'👤 Mevcut Kullanıcı Seç');
+  actions.appendChild(existing);
+
+  const create=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:async()=>{
+    try{
+      if(!window.showDirectoryPicker) throw new Error('Bu tarayıcı yerel klasör seçimini desteklemiyor. Güncel Chrome/Edge kullanın.');
+      userStore.directoryHandle=await window.showDirectoryPicker({mode:'readwrite'});
+      userStore.info=null; userStore.firms=[]; userStore.files=[]; userStore.scanned=false;
+      await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());
+      await userScanCurrentFolder();
+      renderUserPage();
+    }catch(e){alert('Yeni kullanıcı klasörü oluşturulamadı: '+e.message);}
+  }},'➕ Yeni Kullanıcı Oluştur');
+  actions.appendChild(create);
+
+  const status=el('div',{id:'user-page-status',style:'margin-top:14px;'});
+  userFolderStatus(status);
+  actions.appendChild(status);
+  content.appendChild(actions);
+
+  if(userStore.directoryHandle && userStore.scanned){
+    const info=userStore.info?.kullanici||{};
+    const values={
+      adSoyad:String(info.adSoyad||state.meta?.ymmAdSoyad||''),
+      vkn:String(info.vkn||state.meta?.ymmVkn||''),
+      vergiDairesi:String(info.vergiDairesi||state.meta?.ymmVergiDairesi||''),
+      oda:String(info.oda||state.meta?.ymmOda||''),
+      sicil:String(info.sicil||state.meta?.ymmSicil||''),
+      telefon:String(info.telefon||state.meta?.ymmTelefon||''),
+      adres:String(info.adres||state.meta?.ymmAdres||''),
+      sirketUnvani:String(info.sirketUnvani||state.meta?.ymmSirketUnvan||''),
+      sirketVkn:String(info.sirketVkn||state.meta?.ymmSirketVkn||'')
+    };
+    const card=el('div',{class:'card',style:'max-width:1000px;margin-top:14px;'});
+    card.appendChild(el('h3',{},'Klasörde Bulunan Kullanıcı'));
+    const fields=[
+      ['adSoyad','Adı Soyadı'],['vkn','Vergi / T.C. Kimlik No'],['vergiDairesi','Vergi Dairesi'],
+      ['oda','Bağlı Olduğu Oda'],['sicil','Sicil Numarası'],['telefon','Telefon'],['adres','Adres'],
+      ['sirketUnvani','YMM Şirketi Ünvanı'],['sirketVkn','YMM Şirketi VKN']
+    ];
+    const inputs={};
+    fields.forEach(([key,label])=>{
+      const row=el('div',{style:'display:grid;grid-template-columns:220px 1fr;gap:10px;align-items:center;margin:8px 0;'});
+      row.appendChild(el('label',{},label));
+      const input=el('input',{type:'text',value:values[key]});
+      inputs[key]=input; row.appendChild(input); card.appendChild(row);
+    });
+    const update=el('button',{class:'btn btn-primary',style:'margin-top:10px;',onclick:async()=>{
+      try{
+        state.meta.ymmAdSoyad=inputs.adSoyad.value.trim();
+        state.meta.ymmVkn=inputs.vkn.value.trim();
+        state.meta.ymmVergiDairesi=inputs.vergiDairesi.value.trim();
+        state.meta.ymmOda=inputs.oda.value.trim();
+        state.meta.ymmSicil=inputs.sicil.value.trim();
+        state.meta.ymmTelefon=inputs.telefon.value.trim();
+        state.meta.ymmAdres=inputs.adres.value.trim();
+        state.meta.ymmSirketUnvan=inputs.sirketUnvani.value.trim();
+        state.meta.ymmSirketVkn=inputs.sirketVkn.value.trim();
+        await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());
+        await userScanCurrentFolder();
+        renderUserPage();
+      }catch(e){alert('Kullanıcı bilgileri güncellenemedi: '+e.message);}
+    }},'✓ Güncelle');
+    card.appendChild(update);
+    content.appendChild(card);
+
+    const firmsCard=userFirmTable();
+    const firmUpdate=el('button',{class:'btn btn-secondary',style:'margin-top:10px;',onclick:async()=>{
+      try{await userScanCurrentFolder();renderUserPage();}
+      catch(e){alert('Firmalar güncellenemedi: '+e.message);}
+    }},'↻ Firmaları Güncelle');
+    firmsCard.appendChild(firmUpdate);
+    const newArchive=el('button',{class:'btn btn-primary',style:'margin-top:10px;margin-left:8px;',onclick:()=>renderArchiveUploadPage()},'➕ Yeni Arşiv Oluştur');
+    firmsCard.appendChild(newArchive);
+    content.appendChild(firmsCard);
   }
-  document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('footer-msg').textContent='Kullanıcı Dosyası';renderNav();
+
+  document.getElementById('btn-prev').disabled=true;
+  document.getElementById('btn-next').disabled=true;
+  document.getElementById('footer-msg').textContent='Kullanıcı';
+  renderNav();
 }
+
 function renderUserDefinePage(){
   currentPage='user-define'; currentStep=-1; const content=document.getElementById('step-content'); content.innerHTML='';
   content.appendChild(el('h2',{class:'step-title'},'Kullanıcı Tanımla'));
