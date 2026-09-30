@@ -243,8 +243,11 @@ function renderNav() {
     el('div',{class:'num'},workflowMenuOpen?'▾':'▸'), el('div',{},'Karşıt İnceleme Doldur')
   ]));
   if(workflowMenuOpen){
+    const workflowUnlocked=firstScreenMissing().length===0;
     STEPS.forEach((st,i)=>{
-      const item=el('div',{class:'nav-item'+(currentPage==='workflow'&&i===currentStep?' active':'')+(currentPage==='workflow'&&i<currentStep?' done':''),style:'padding-left:38px;',onclick:()=>{
+      const locked=i>0&&!workflowUnlocked;
+      const item=el('div',{class:'nav-item'+(currentPage==='workflow'&&i===currentStep?' active':'')+(currentPage==='workflow'&&i<currentStep?' done':'')+(locked?' disabled':''),style:'padding-left:38px;'+(locked?'opacity:.45;cursor:not-allowed;pointer-events:none;':''),title:locked?'Önce Gelen Karşıt tutanağını yükleyip temel bilgilerin okunmasını bekleyin.':'',onclick:()=>{
+        if(locked)return;
         currentPage='workflow'; archiveViewParsed=null; currentStep=i; renderStep(i);
       }},[
         el('div',{class:'num'},currentPage==='workflow'&&i<currentStep?'✓':String(i+1)),
