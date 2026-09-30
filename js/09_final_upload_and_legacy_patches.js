@@ -39,6 +39,57 @@ function renderArchiveUploadPage(){
   const content=document.getElementById('step-content');content.innerHTML='';
   content.appendChild(el('h2',{class:'step-title'},'Arşiv Dosyası Yükle / Oluştur'));
   content.appendChild(el('p',{class:'step-desc'},'Mevcut arşiv dosyanızı yükleyebilir veya yeni, boş ve doldurulabilir bir arşiv dosyası oluşturabilirsiniz. Arşiv bir kez yüklendikten/oluşturulduktan sonra Arşiv Görüntüle, Arşiv Düzenle ve Dosyadan Veri Al bağlantıları aynı arşiv verisini otomatik kullanır.'));
+  const userCard=el('div',{class:'card'});
+  userCard.appendChild(el('h3',{},'👤 Kullanıcı Klasöründen Arşiv Al'));
+  userCard.appendChild(el('div',{class:'hint info'},'Kullanıcı İşlemleri bölümünde seçilmiş klasör varsa, klasörde taranan arşiv Excel dosyalarını burada seçerek mevcut arşiv olarak yükleyebilirsiniz.'));
+  const userArchiveList=el('div',{style:'margin-top:10px;'});
+  const renderUserArchiveChoices=()=>{
+    userArchiveList.innerHTML='';
+    if(!userStore.directoryHandle){
+      userArchiveList.appendChild(el('div',{class:'hint info'},'Önce Kullanıcı İşlemleri → Kullanıcı / Kullanıcı Dosyası Oluştur bölümünden bir kullanıcı klasörü seçin.'));
+      return;
+    }
+    const archiveFiles=(userStore.files||[]).filter(x=>/\\.(xlsx|xlsm)$/i.test(String(x.name||'')));
+    if(!archiveFiles.length){
+      userArchiveList.appendChild(el('div',{class:'hint warn'},'Seçili kullanıcı klasöründe tanınan Excel arşiv dosyası bulunamadı.'));
+      return;
+    }
+    archiveFiles.forEach(item=>{
+      const row=el('div',{style:'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);'});
+      row.appendChild(el('div',{style:'min-width:0;'},[
+        el('div',{style:'font-weight:600;word-break:break-word;'},item.relativePath||item.name),
+        el('div',{class:'hint',style:'margin-top:2px;'},'Kullanıcı klasöründeki arşiv Excel’i')
+      ]));
+      row.appendChild(el('button',{class:'btn btn-secondary',onclick:async()=>{
+        try{
+          const file=await userLoadArchiveFromPath(item.relativePath);
+          const parsed=await readArchiveUpload(file);
+          state.existingArchiveParsed=parsed;
+          state.existingArchiveFile={name:file.name,source:'user-folder',relativePath:item.relativePath};
+          syncSharedArchiveRefs(parsed);
+          archiveToState(parsed);
+          status.innerHTML='';
+          markFileChip(box,file.name,true);
+          const m=parsed.mukellef||{};
+          status.appendChild(el('div',{class:'hint ok'},`✓ Kullanıcı klasöründen arşiv yüklendi: ${item.relativePath}`));
+          status.appendChild(el('div',{class:'hint info',style:'margin-top:6px;'},`Mükellef: ${m.unvan||'—'} | Firma kimlik numarası: ${m.vkn||'—'}`));
+          status.appendChild(el('div',{class:'hint ok',style:'margin-top:6px;'},'✓ Bu arşiv artık Arşiv Görüntüle, Arşiv Düzenle ve Dosyadan Veri Al bağlantılarında kullanılacaktır.'));
+          renderNav();
+        }catch(err){
+          status.appendChild(el('div',{class:'hint warn',style:'margin-top:6px;'},`⚠️ Kullanıcı klasöründeki arşiv okunamadı: ${err.message}`));
+        }
+      }},'📂 Arşivi Al'));
+      userArchiveList.appendChild(row);
+    });
+  };
+  const refreshUserArchives=el('button',{class:'btn btn-secondary',onclick:async()=>{
+    try{await userScanCurrentFolder();renderUserArchiveChoices();}catch(e){alert('Kullanıcı klasörü taranamadı: '+e.message);}
+  }},'↻ Kullanıcı Klasörünü Yenile');
+  userCard.appendChild(refreshUserArchives);
+  userCard.appendChild(userArchiveList);
+  content.appendChild(userCard);
+  renderUserArchiveChoices();
+
   const card=el('div',{class:'card'});
   card.appendChild(el('h3',{},'📂 Mevcut Arşiv Dosyası'));
   card.appendChild(el('div',{class:'hint info'},'Gerçek arşiv Excel dosyanızı veya arşiv ZIP dosyanızı yükleyin. Yeni bir dosya yüklerseniz mevcut ortak arşiv verisi yeni dosyayla değiştirilir.'));
