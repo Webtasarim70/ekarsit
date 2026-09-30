@@ -49,7 +49,8 @@ function renderArchiveUploadPage(){
       userArchiveList.appendChild(el('div',{class:'hint info'},'Önce Kullanıcı İşlemleri → Kullanıcı / Kullanıcı Dosyası Oluştur bölümünden bir kullanıcı klasörü seçin.'));
       return;
     }
-    const archiveFiles=(userStore.files||[]).filter(x=>/\\.(xlsx|xlsm)$/i.test(String(x.name||'')));
+    const knownArchivePaths=new Set((userStore.firms||[]).flatMap(f=>f.files||[]));
+    const archiveFiles=(userStore.files||[]).filter(x=>knownArchivePaths.has(x.relativePath)&&/\.(xlsx|xlsm)$/i.test(String(x.name||'')));
     if(!archiveFiles.length){
       userArchiveList.appendChild(el('div',{class:'hint warn'},'Seçili kullanıcı klasöründe tanınan Excel arşiv dosyası bulunamadı.'));
       return;
