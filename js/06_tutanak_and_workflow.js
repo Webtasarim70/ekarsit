@@ -882,7 +882,7 @@ const STEPS = [
     left.appendChild(block('Ç Mükellefi',state.meta.cUnvan||'—'));left.appendChild(block('VKN',state.meta.cVkn||'—'));left.appendChild(block('Fatura Dönemleri',state.donemler.join(', ')||'—'));left.appendChild(block('KDV Dönemleri',state.kdvDonemleri.join(', ')||'—'));
     right.appendChild(block('Ortak',state.ortaklar.length));right.appendChild(block('Defter',state.defterler.length));right.appendChild(block('Fatura',state.faturalar.length));right.appendChild(block('Çalışan dönemi',state.isciler.length));right.appendChild(block('KDV dönemi',state.kdvBeyanlari.length));right.appendChild(block('İmalatçı',state.imalatcilar.length));right.appendChild(block('Tedarikçi',state.tedarikciler.length));sum.appendChild(left);sum.appendChild(right);c.appendChild(sum);
     const kontrolSonuc=el('div',{id:'son-kontrol-sonucu',style:'margin-top:16px;'});
-    const kontrolEt=el('button',{class:'btn btn-secondary'},'🔎 Arşivi Son Kez Kontrol Et');
+    const kontrolEt=el('button',{class:'btn btn-secondary'},'🔎 Karşıt Eksikliklerini Kontrol Et');
     kontrolEt.onclick=()=>{
       kontrolSonuc.innerHTML='';
       kontrolEt.disabled=true;
@@ -894,7 +894,7 @@ const STEPS = [
         kontrolSonuc.appendChild(el('div',{class:'hint warn'},'Kontrol sırasında hata oluştu: '+e.message));
       }finally{
         kontrolEt.disabled=false;
-        kontrolEt.textContent='🔎 Arşivi Son Kez Kontrol Et';
+        kontrolEt.textContent='🔎 Karşıt Eksikliklerini Kontrol Et';
       }
     };
     c.appendChild(el('div',{class:'table-actions',style:'margin-top:18px;'},[kontrolEt]));
