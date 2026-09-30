@@ -724,41 +724,31 @@ function renderDoluTutanakUploadPage(){
 function renderWelcomePage(){
   currentPage='welcome'; archiveViewParsed=null; currentStep=-1;
   const content=document.getElementById('step-content'); content.innerHTML='';
+
   content.appendChild(el('h2',{class:'step-title'},'Hoş Geldiniz'));
-  content.appendChild(el('p',{class:'step-desc'},'KDV İade · Karşıt İnceleme Arşiv Sihirbazı kullanım rehberi ve genel çalışma mantığı.'));
+  content.appendChild(el('p',{class:'step-desc'},'KDV İade · Karşıt İnceleme Arşiv Sihirbazı'));
 
   const intro=el('div',{class:'card'});
-  intro.appendChild(el('h3',{},'📖 Bu uygulama ne yapar?'));
-  intro.appendChild(el('p',{},'Bu uygulama, karşıt inceleme çalışmasında kullanılan bilgi ve belgeleri tek bir çalışma akışı içinde toplamak, yüklenen belgelerden ilgili alanları otomatik doldurmak, mevcut arşiv kayıtlarını görüntülemek/düzenlemek ve sonunda kullanılan gerçek tablo formatlarına uygun çıktılar oluşturmak için tasarlanmıştır.'));
-  intro.appendChild(el('p',{},'Dosyalar tarayıcı içinde işlenir. Çalışma mantığı, yüklediğiniz belgelerden veri okuyup bunları ilgili tablo ve arşiv kayıtlarına aktarmaya dayanır.'));
+  intro.appendChild(el('h3',{},'Uygulama'));
+  intro.appendChild(el('p',{},'Karşıt inceleme çalışmasında kullanılan belge ve bilgileri tek bir çalışma akışında toplar, uygun alanları belgelerden otomatik doldurur ve çalışma sonunda tabloları hazırlar.'));
+  intro.appendChild(el('p',{class:'hint info'},'Dosyalar tarayıcı içinde işlenir. Veriler, yüklediğiniz belgeler ve tanımladığınız kullanıcı/firma arşivleri üzerinden çalışılır.'));
   content.appendChild(intro);
 
-  const workflow=el('div',{class:'card'});
-  workflow.appendChild(el('h3',{},'🧭 Çalışma sırası'));
+  const startCard=el('div',{class:'card'});
+  startCard.appendChild(el('h3',{},'Nereden Başlamalı?'));
   const ul=el('ul',{style:'margin:8px 0 0 20px;line-height:1.8;'});
   [
-    'Gelen Karşıt: Karşıt İnceleme Tutanağı yüklenir; mükellef, firma kimlik numarası, dönem ve fatura bilgileri çıkarılır.',
-    'Ortaklık Bilgileri: Ortak kayıtları kontrol edilir ve eksik bilgiler tamamlanır.',
-    'Yasal Defter / e-Defter / e-Berat: Defter kayıtları ile e-Berat belgeleri kontrol edilip tabloya aktarılır.',
-    'Karşıt İncelemeye Konu Faturalar: Çalışmaya ait fatura kayıtları ayrı tutulur; ana arşivin kalıcı fatura bölümü olarak kullanılmaz.',
-    'Çalışan / Muhtasar: Muhtasar ve Prim Hizmet Beyannamesi bilgileri kontrol edilerek çalışan kayıtları oluşturulur.',
-    'KDV Beyannamesi: KDV beyannameleri ve ayrı tahakkuk belgeleri kontrol edilerek KDV kayıtlarına aktarılır.',
-    'Üretici / İmalatçı: İmalatçı firma ve belge bilgileri tutulur.',
-    'Tedarikçi Firmalar: İndirilecek KDV listesinden dönem bazında en yüksek matrahlı faturalar belirlenerek tedarikçi kayıtları oluşturulur.',
-    'Kontrol ve Çıktılar: Karşıt inceleme tabloları ile güncel arşiv dosyası oluşturulur.'
+    'Karşıt inceleme çalışması için soldaki “Gelen Karşıt” bölümünden tutanağı yükleyin.',
+    'Kullanıcı ve firma arşivlerinizi “Kullanıcı” ve “Firma Arşiv İşlemleri” bölümlerinden yönetin.',
+    'Belgeleri ilgili bölümlere yükledikçe bilgiler çalışma tablolarına aktarılır.'
   ].forEach(x=>ul.appendChild(el('li',{},x)));
-  workflow.appendChild(ul); content.appendChild(workflow);
+  startCard.appendChild(ul);
+  content.appendChild(startCard);
 
-  const archive=el('div',{class:'card'});
-  archive.appendChild(el('h3',{},'🗄️ Arşiv'));
-  archive.appendChild(el('p',{},'Arşiv bölümü iki ayrı amaç için kullanılır: “Arşiv Dosyası Yükle” ile arşiv bir kez yüklenir; ardından “Arşiv Görüntüle”, “Arşiv Düzenle” ve “Dosyadan Veri Al” aynı dosyadaki verileri otomatik kullanır. Yeni e-Berat, KDV, tahakkuk ve İndirilecek KDV listesi kayıtları “Dosyadan Veri Al” bölümünden arşive işlenebilir.'));
-  archive.appendChild(el('div',{class:'hint info'},'Arşiv Düzenle yükleme kontrollerinde dönem eşleşmesi aranmaz. Firma kimlik numarası kontrolleri korunur.'));
-  content.appendChild(archive);
-
-  const notes=el('div',{class:'card'});
-  notes.appendChild(el('h3',{},'ℹ️ Kullanım notları'));
-  const n=el('ul',{style:'margin:8px 0 0 20px;line-height:1.8;'});
-  notes.appendChild(n); content.appendChild(notes);
+  const note=el('div',{class:'card'});
+  note.appendChild(el('h3',{},'Kısa Not'));
+  note.appendChild(el('p',{},'Menüler, yalnızca ihtiyaç duyulan aşamaları kullanıma açacak şekilde çalışır. Bir bölümde istenen temel bilgi tamamlanmadan sonraki çalışma adımları aktif olmayabilir.'));
+  content.appendChild(note);
 
   document.getElementById('btn-prev').disabled=true;
   document.getElementById('btn-next').disabled=true;
@@ -767,8 +757,6 @@ function renderWelcomePage(){
   document.getElementById('footer-msg').textContent='Hoş Geldiniz';
   renderNav();
 }
-
-
 function finalArchivePeriod(period){ return String(period||'').trim(); }
 function runFinalArchiveCheck(){
   const archive=state.existingArchiveParsed||{};
