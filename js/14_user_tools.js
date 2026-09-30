@@ -183,6 +183,18 @@ async function userSaveCurrentArchiveToFolder(){
   await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());
   await userScanCurrentFolder();
 }
+async function userSelectFolder({createUser=false}={}){
+  if(!window.showDirectoryPicker) throw new Error('Bu tarayıcı yerel klasör seçimini desteklemiyor. Güncel Chrome/Edge kullanın.');
+  const handle=await window.showDirectoryPicker({mode:'readwrite'});
+  userStore.directoryHandle=handle;
+  if(createUser){
+    userStore.info=null; userStore.firms=[]; userStore.files=[]; userStore.scanned=false;
+    await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());
+  }
+  await userScanCurrentFolder();
+  return handle;
+}
+
 function renderUserFirmArchivesPage(){
   currentPage='user-firm-archives'; currentStep=-1;
   const content=document.getElementById('step-content'); content.innerHTML='';
@@ -191,7 +203,7 @@ function renderUserFirmArchivesPage(){
   if(!userStore.directoryHandle){
     const card=el('div',{class:'card'});
     card.appendChild(el('div',{class:'hint info'},'Önce Kullanıcı / Kullanıcı Dosyası Oluştur bölümünden bir kullanıcı klasörü seçin.'));
-    card.appendChild(el('button',{class:'btn btn-primary',onclick:()=>renderUserFolderPage()},'📁 Kullanıcı Klasörü Seç'));
+    card.appendChild(el('button',{class:'btn btn-primary',onclick:async()=>{try{await userSelectFolder();renderUserFirmArchivesPage();}catch(e){if(e?.name!=='AbortError')alert('Kullanıcı klasörü açılamadı: '+e.message);}}},'📁 Kullanıcı Klasörü Seç'));
     content.appendChild(card);
   }else{
     const refresh=el('button',{class:'btn btn-secondary',onclick:async()=>{
@@ -258,28 +270,14 @@ async function renderUserPage(){
   actions.appendChild(el('h3',{},'Kullanıcı İşlemleri'));
 
   const existing=el('button',{class:'btn btn-primary',onclick:async()=>{
-    try{
-      if(!window.showDirectoryPicker) throw new Error('Bu tarayıcı yerel klasör seçimini desteklemiyor. Güncel Chrome/Edge kullanın.');
-      userStore.directoryHandle=await window.showDirectoryPicker({mode:'readwrite'});
-      const status=document.getElementById('user-page-status');
-      status.innerHTML='<div class="hint info">⏳ Kullanıcı klasörü taranıyor...</div>';
-      await userScanCurrentFolder();
-      status.innerHTML='';
-      userFolderStatus(status);
-      renderUserPage();
-    }catch(e){alert('Kullanıcı klasörü açılamadı: '+e.message);}
+    try{await userSelectFolder();renderUserPage();}
+    catch(e){if(e?.name!=='AbortError')alert('Kullanıcı klasörü açılamadı: '+e.message);}
   }},'👤 Mevcut Kullanıcı Seç');
   actions.appendChild(existing);
 
   const create=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:async()=>{
-    try{
-      if(!window.showDirectoryPicker) throw new Error('Bu tarayıcı yerel klasör seçimini desteklemiyor. Güncel Chrome/Edge kullanın.');
-      userStore.directoryHandle=await window.showDirectoryPicker({mode:'readwrite'});
-      userStore.info=null; userStore.firms=[]; userStore.files=[]; userStore.scanned=false;
-      await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());
-      await userScanCurrentFolder();
-      renderUserPage();
-    }catch(e){alert('Yeni kullanıcı klasörü oluşturulamadı: '+e.message);}
+    try{await userSelectFolder({createUser:true});renderUserPage();}
+    catch(e){if(e?.name!=='AbortError')alert('Yeni kullanıcı klasörü oluşturulamadı: '+e.message);}
   }},'➕ Yeni Kullanıcı Oluştur');
   actions.appendChild(create);
 
