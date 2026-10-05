@@ -312,7 +312,7 @@ function renderNav() {
     el('div',{class:'num'},ymmMenuOpen?'▾':'▸'), el('div',{},'YMM Yazıları')
   ]));
   if(ymmMenuOpen){
-    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-cevap'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmCevapPage()},[el('div',{},'YMM Cevap Yazısı')]));
+    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-cevap'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmCevapPage()},[el('div',{},'Ayarlar')]));
   }
   nav.appendChild(ymmGroup);
 
