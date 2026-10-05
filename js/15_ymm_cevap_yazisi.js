@@ -55,12 +55,14 @@ async function renderYmmCevapPage(){
   c.appendChild(el('p',{class:'step-desc'},'Firma arşivindeki kayıtları ve YMM/Firma Rehberlerini kullanarak modern, düzenlenebilir bir cevap yazısı hazırlayın.'));
   const p=state.existingArchiveParsed;
   if(!p){const box=el('div',{class:'card'});box.appendChild(el('h3',{},'📂 Firma Arşivi Gerekli'));box.appendChild(el('div',{class:'hint warn'},'Cevap yazısının otomatik hazırlanabilmesi için önce Firma Arşiv İşlemleri → Firma Arşiv Dosyası Yükle / Oluştur bölümünden arşivi yükleyin.'));box.appendChild(el('button',{class:'btn btn-primary',onclick:()=>renderArchiveUploadPage()},'Firma Arşivine Git'));c.appendChild(box);document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('footer-msg').textContent='YMM Cevap Yazısı';renderNav();return;}
-  const yr=await ymmGuideRead(YMM_REHBER_FILE,{bilgiIstenen:{},bilgiVeren:{}}), fr=await ymmGuideRead(FIRMA_REHBER_FILE,{kendiFirmam:{},cevapFirmasi:{}});
-  const m=p.mukellef||{}, yi=yr.bilgiIstenen||{}, yv=yr.bilgiVeren||{}, hedef=fr.cevapFirmasi||{}, kendi=fr.kendiFirmam||{};
+  const yr=await ymmGuideRead(YMM_REHBER_FILE,{kayitlar:[]}), fr=await ymmGuideRead(FIRMA_REHBER_FILE,{kayitlar:[]});
+  const ymmKayitlari=Array.isArray(yr.kayitlar)?yr.kayitlar:([yr.bilgiVeren,yr.bilgiIstenen].filter(x=>x&&Object.keys(x).length));
+  const firmaKayitlari=Array.isArray(fr.kayitlar)?fr.kayitlar:([fr.kendiFirmam,fr.cevapFirmasi].filter(x=>x&&Object.keys(x).length));
+  const m=p.mukellef||{}, yi=ymmKayitlari[1]||ymmKayitlari[0]||{}, yv=ymmKayitlari[0]||{}, hedef=firmaKayitlari[1]||firmaKayitlari[0]||{}, kendi=firmaKayitlari[0]||{};
   const card=el('div',{class:'card'});card.appendChild(el('h3',{},'📊 Arşiv ve Rehber Özeti'));
   card.appendChild(el('div',{class:'hint ok'},'✓ '+(m.unvan||hedef.unvan||'—')+' | VKN/T.C.: '+(m.vkn||hedef.vkn||'—')+' | Fatura: '+ymmCevapCount(p,'faturalar')+' | Defter: '+ymmCevapCount(p,'defterler')+' | KDV: '+ymmCevapCount(p,'kdvBeyanlari')+' | Tedarikçi: '+ymmCevapCount(p,'tedarikciler')+' | Çalışan dönemleri: '+ymmCevapCount(p,'isciler')));
-  if(!yr.bilgiVeren?.adSoyad||!yr.bilgiIstenen?.adSoyad)card.appendChild(el('div',{class:'hint warn',style:'margin-top:10px;'},'YMM Rehberinde bilgi veren ve bilgi isteyen YMM bilgilerini tamamlamanız önerilir.'));
-  if(!fr.cevapFirmasi?.unvan)card.appendChild(el('div',{class:'hint warn',style:'margin-top:10px;'},'Firma Rehberinde cevap yazılacak firma bilgileri bulunmuyor; arşiv bilgileri otomatik kullanılacaktır.'));
+  if(ymmKayitlari.length<2)card.appendChild(el('div',{class:'hint warn',style:'margin-top:10px;'},'YMM Rehberinde bilgi veren ve bilgi isteyen YMM bilgilerini tamamlamanız önerilir.'));
+  if(firmaKayitlari.length<2)card.appendChild(el('div',{class:'hint warn',style:'margin-top:10px;'},'Firma Rehberinde cevap yazılacak firma bilgileri bulunmuyor; arşiv bilgileri otomatik kullanılacaktır.'));
   c.appendChild(card);
   const form=el('div',{class:'card',style:'margin-top:14px;'});form.appendChild(el('h3',{},'✍ Yazı Bilgileri'));const inputs={};
   [['baslik','Başlık','YMM CEVAP YAZISI'],['sayi','Sayı','YMM- /20'],['tarih','Tarih',new Date().toLocaleDateString('tr-TR')],['makam','Bilgi İsteyen YMM',yi.adSoyad||''+''],['konu','İlgi / Konu','Bilgi İsteme Yazınıza cevap']].forEach(a=>{const row=el('div',{class:'field',style:'margin-top:10px;'});row.appendChild(el('label',{},a[1]));const i=el('input',{class:'input',value:a[2]||''});inputs[a[0]]=i;row.appendChild(i);form.appendChild(row);});
