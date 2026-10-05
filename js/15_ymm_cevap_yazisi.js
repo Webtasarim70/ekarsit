@@ -58,7 +58,14 @@ async function renderYmmCevapPage(){
   const yr=await ymmGuideRead(YMM_REHBER_FILE,{kayitlar:[]}), fr=await ymmGuideRead(FIRMA_REHBER_FILE,{kayitlar:[]});
   const ymmKayitlari=Array.isArray(yr.kayitlar)?yr.kayitlar:([yr.bilgiVeren,yr.bilgiIstenen].filter(x=>x&&Object.keys(x).length));
   const firmaKayitlari=Array.isArray(fr.kayitlar)?fr.kayitlar:([fr.kendiFirmam,fr.cevapFirmasi].filter(x=>x&&Object.keys(x).length));
-  const m=p.mukellef||{}, yi=ymmKayitlari[1]||ymmKayitlari[0]||{}, yv=ymmKayitlari[0]||{}, hedef=firmaKayitlari[1]||firmaKayitlari[0]||{}, kendi=firmaKayitlari[0]||{};
+  const pref=userStore.info?.tercihler||{};
+  const ymmPick=(v, fallback)=>Number.isInteger(Number(v))&&ymmKayitlari[Number(v)]?ymmKayitlari[Number(v)]:fallback;
+  const yi=ymmPick(pref.bilgiIstenenYmm,ymmKayitlari[1]||ymmKayitlari[0]||{});
+  const yv=ymmPick(pref.bilgiVerenYmm,ymmKayitlari[0]||{});
+  const firmaPref=String(pref.bilgiVerilenFirma||'');
+  const hedef=firmaKayitlari.find(x=>(userVkn(x.vkn)||x.unvan)===firmaPref)||firmaKayitlari[1]||firmaKayitlari[0]||{};
+  const kendi=firmaKayitlari[0]||{};
+  const m=p.mukellef||{};
   const card=el('div',{class:'card'});card.appendChild(el('h3',{},'📊 Arşiv ve Rehber Özeti'));
   card.appendChild(el('div',{class:'hint ok'},'✓ '+(m.unvan||hedef.unvan||'—')+' | VKN/T.C.: '+(m.vkn||hedef.vkn||'—')+' | Fatura: '+ymmCevapCount(p,'faturalar')+' | Defter: '+ymmCevapCount(p,'defterler')+' | KDV: '+ymmCevapCount(p,'kdvBeyanlari')+' | Tedarikçi: '+ymmCevapCount(p,'tedarikciler')+' | Çalışan dönemleri: '+ymmCevapCount(p,'isciler')));
   if(ymmKayitlari.length<2)card.appendChild(el('div',{class:'hint warn',style:'margin-top:10px;'},'YMM Rehberinde bilgi veren ve bilgi isteyen YMM bilgilerini tamamlamanız önerilir.'));
