@@ -107,7 +107,7 @@ async function renderYmmRehberPage(){
     const view=el('div',{});card.appendChild(el('h4',{style:'margin-top:22px;'},'Görüntüleme'));card.appendChild(view);
     const save=async()=>{try{await ymmGuideWrite(YMM_REHBER_FILE,{kayitlar:records});}catch(e){alert('YMM rehberi kaydedilemedi: '+e.message);throw e;}};
     ymmGuideViewToggle(view,records,ymmGuideFieldsYmm());
-    c.appendChild(card);
+    stateBox.appendChild(card);
   };
   render();document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('footer-msg').textContent='YMM Rehberi';renderNav();
 }
