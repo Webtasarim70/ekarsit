@@ -66,6 +66,49 @@ async function renderYmmCevapPage(){
   const hedef=firmaKayitlari.find(x=>(userVkn(x.vkn)||x.unvan)===firmaPref)||firmaKayitlari[1]||firmaKayitlari[0]||{};
   const kendi=firmaKayitlari[0]||{};
   const m=p.mukellef||{};
+  const quickCard=el('div',{class:'card',style:'margin-bottom:14px;'});
+  quickCard.appendChild(el('h3',{},'⚡ Hızlı YMM / Firma Seçimi'));
+  quickCard.appendChild(el('p',{class:'step-desc',style:'margin-bottom:12px;'},'Cevap yazılarında kullanılacak bilgi veren YMM, bilgi isteyen YMM ve bilgi verilen firma arşivini buradan seçin.'));
+  const quickFields=[
+    ['bilgiVerenYmm','Bilgi Veren YMM'],
+    ['bilgiIstenenYmm','Bilgi İsteyen YMM'],
+    ['bilgiVerilenFirma','Bilgi Verilen Firma (Arşiv)']
+  ];
+  const quickSelects={}; const pref=userStore.info?.tercihler||{};
+  const yrQuick=await ymmGuideRead(YMM_REHBER_FILE,{kayitlar:[]});
+  const frQuick=await ymmGuideRead(FIRMA_REHBER_FILE,{kayitlar:[]});
+  const ymmQuick=ymmGuideNormalizeYmm(yrQuick);
+  const firmaQuick=[...(userStore.firms||[])];
+  ymmGuideNormalizeFirma(frQuick).forEach(x=>{
+    const key=userVkn(x.vkn)||x.unvan;
+    if(key&&!firmaQuick.some(f=>(userVkn(f.vkn)||f.unvan)===key))firmaQuick.push({...x,recordCount:0,files:[]});
+  });
+  const addQuick=(key,label,items,textFn,valueFn)=>{
+    const row=el('div',{style:'display:grid;grid-template-columns:240px 1fr;gap:10px;align-items:center;margin:9px 0;'});
+    row.appendChild(el('label',{},label));
+    const sel=el('select',{class:'input'});
+    sel.appendChild(el('option',{value:''},'Seçiniz'));
+    items.forEach((x,i)=>sel.appendChild(el('option',{value:valueFn(x,i)},textFn(x))));
+    sel.value=String(pref[key]||''); quickSelects[key]=sel; row.appendChild(sel); quickCard.appendChild(row);
+  };
+  addQuick('bilgiVerenYmm','Bilgi Veren YMM',ymmQuick,x=>x.adSoyad||'İsimsiz YMM',(x,i)=>String(i));
+  addQuick('bilgiIstenenYmm','Bilgi İsteyen YMM',ymmQuick,x=>x.adSoyad||'İsimsiz YMM',(x,i)=>String(i));
+  addQuick('bilgiVerilenFirma','Bilgi Verilen Firma (Arşiv)',firmaQuick,x=>(x.unvan||'İsimsiz Firma')+' — '+(x.vkn||'VKN yok'),x=>userVkn(x.vkn)||x.unvan);
+  const saveQuick=el('button',{class:'btn btn-primary',style:'margin-top:10px;',onclick:async()=>{
+    try{
+      const current=userStore.info||userCurrentInfo();
+      current.tercihler={
+        bilgiVerenYmm:quickSelects.bilgiVerenYmm.value,
+        bilgiIstenenYmm:quickSelects.bilgiIstenenYmm.value,
+        bilgiVerilenFirma:quickSelects.bilgiVerilenFirma.value
+      };
+      await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',current);
+      await userScanCurrentFolder();
+      alert('Hızlı seçimler kaydedildi.');
+    }catch(e){alert('Hızlı seçimler kaydedilemedi: '+e.message);}
+  }},'✓ Hızlı Seçimleri Kaydet');
+  quickCard.appendChild(saveQuick); c.appendChild(quickCard);
+
   const card=el('div',{class:'card'});card.appendChild(el('h3',{},'📊 Arşiv ve Rehber Özeti'));
   card.appendChild(el('div',{class:'hint ok'},'✓ '+(m.unvan||hedef.unvan||'—')+' | VKN/T.C.: '+(m.vkn||hedef.vkn||'—')+' | Fatura: '+ymmCevapCount(p,'faturalar')+' | Defter: '+ymmCevapCount(p,'defterler')+' | KDV: '+ymmCevapCount(p,'kdvBeyanlari')+' | Tedarikçi: '+ymmCevapCount(p,'tedarikciler')+' | Çalışan dönemleri: '+ymmCevapCount(p,'isciler')));
   if(ymmKayitlari.length<2)card.appendChild(el('div',{class:'hint warn',style:'margin-top:10px;'},'YMM Rehberinde bilgi veren ve bilgi isteyen YMM bilgilerini tamamlamanız önerilir.'));
