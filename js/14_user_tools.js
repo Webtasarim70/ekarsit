@@ -316,53 +316,6 @@ async function renderUserPage(){
     card.appendChild(update);
     content.appendChild(card);
 
-    const quickCard=el('div',{class:'card',style:'max-width:1000px;margin-top:14px;'});
-    quickCard.appendChild(el('h3',{},'⚡ Hızlı YMM / Firma Seçimi'));
-    quickCard.appendChild(el('p',{class:'step-desc',style:'margin-bottom:12px;'},'YMM Cevap Yazısı hazırlanırken kullanılacak bilgi veren YMM, bilgi isteyen YMM ve bilgi verilen firma arşivini hızlıca seçin.'));
-    const quickFields=[
-      ['bilgiVerenYmm','Bilgi Veren YMM','YMM_REHBER.json'],
-      ['bilgiIstenenYmm','Bilgi İsteyen YMM','YMM_REHBER.json'],
-      ['bilgiVerilenFirma','Bilgi Verilen Firma (Arşiv)','FIRMA_REHBER.json']
-    ];
-    const quickSelects={};
-    const pref=userStore.info?.tercihler||{};
-    const yrQuick=await ymmGuideRead(YMM_REHBER_FILE,{kayitlar:[]});
-    const frQuick=await ymmGuideRead(FIRMA_REHBER_FILE,{kayitlar:[]});
-    const ymmQuick=ymmGuideNormalizeYmm(yrQuick);
-    const firmaQuick=[...(userStore.firms||[])];
-    const firmaGuide=ymmGuideNormalizeFirma(frQuick);
-    firmaGuide.forEach(x=>{
-      const key=userVkn(x.vkn)||x.unvan;
-      if(key&&!firmaQuick.some(f=> (userVkn(f.vkn)||f.unvan)===key)) firmaQuick.push({...x,recordCount:0,files:[]});
-    });
-    const makeQuickSelect=(key,label,items,getText,getValue)=>{
-      const row=el('div',{style:'display:grid;grid-template-columns:240px 1fr;gap:10px;align-items:center;margin:9px 0;'});
-      row.appendChild(el('label',{},label));
-      const sel=el('select',{class:'input'});
-      sel.appendChild(el('option',{value:''},'Seçiniz'));
-      items.forEach((item,i)=>sel.appendChild(el('option',{value:getValue(item,i)},getText(item))));
-      sel.value=String(pref[key]||'');
-      quickSelects[key]=sel; row.appendChild(sel); quickCard.appendChild(row);
-    };
-    makeQuickSelect('bilgiVerenYmm','Bilgi Veren YMM',ymmQuick,x=>x.adSoyad||'İsimsiz YMM',(x,i)=>String(i));
-    makeQuickSelect('bilgiIstenenYmm','Bilgi İsteyen YMM',ymmQuick,x=>x.adSoyad||'İsimsiz YMM',(x,i)=>String(i));
-    makeQuickSelect('bilgiVerilenFirma','Bilgi Verilen Firma (Arşiv)',firmaQuick,x=>(x.unvan||'İsimsiz Firma')+' — '+(x.vkn||'VKN yok'),x=>userVkn(x.vkn)||x.unvan);
-    const saveQuick=el('button',{class:'btn btn-primary',style:'margin-top:10px;',onclick:async()=>{
-      try{
-        const current=userStore.info||userCurrentInfo();
-        current.tercihler={
-          bilgiVerenYmm:quickSelects.bilgiVerenYmm.value,
-          bilgiIstenenYmm:quickSelects.bilgiIstenenYmm.value,
-          bilgiVerilenFirma:quickSelects.bilgiVerilenFirma.value
-        };
-        await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',current);
-        await userScanCurrentFolder();
-        alert('Hızlı seçimler kaydedildi.');
-      }catch(e){alert('Hızlı seçimler kaydedilemedi: '+e.message);}
-    }},'✓ Hızlı Seçimleri Kaydet');
-    quickCard.appendChild(saveQuick);
-    content.appendChild(quickCard);
-
     const firmsCard=userFirmTable();
     const firmUpdate=el('button',{class:'btn btn-secondary',style:'margin-top:10px;',onclick:async()=>{
       try{await userScanCurrentFolder();renderUserPage();}
