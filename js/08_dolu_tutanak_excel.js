@@ -312,7 +312,10 @@ function renderNav() {
     el('div',{class:'num'},ymmMenuOpen?'▾':'▸'), el('div',{},'YMM Yazıları')
   ]));
   if(ymmMenuOpen){
-    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-ayarlar'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmAyarlarPage()},[el('div',{},'Ayarlar')]));
+    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-ayarlar'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmAyarlarPage()},[el('div',{class:'num'},'1'),el('div',{},'Ayarlar')]));
+    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentStep===4?' active':''),style:'padding-left:50px;',onclick:()=>renderStep(4)},[el('div',{class:'num'},'2'),el('div',{},'Bilgi İstenen Fatura')]));
+    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentStep===1?' active':''),style:'padding-left:50px;',onclick:()=>renderStep(1)},[el('div',{class:'num'},'3'),el('div',{},'Gerekli Bilgiler')]));
+    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentStep===9?' active':''),style:'padding-left:50px;',onclick:()=>renderStep(9)},[el('div',{class:'num'},'4'),el('div',{},'Sonuç')]));
   }
   nav.appendChild(ymmGroup);
 
