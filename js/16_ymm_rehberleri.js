@@ -100,10 +100,8 @@ async function renderYmmRehberPage(){
     const editorHost=el('div',{});card.appendChild(editorHost);
     const add=()=>{editorHost.innerHTML='';editorHost.appendChild(ymmGuideEditor('Yeni YMM Ekle',ymmGuideFieldsYmm(),{},async v=>{records.push(v);await save();render();},()=>{editorHost.innerHTML='';}));};
     card.appendChild(el('button',{class:'btn btn-primary',style:'margin-top:10px;',onclick:add},'+ Yeni YMM Ekle'));
-    const tableHost=el('div',{});card.appendChild(tableHost);
     const edit=i=>{editorHost.innerHTML='';editorHost.appendChild(ymmGuideEditor('YMM Kaydını Düzenle',ymmGuideFieldsYmm(),records[i],async v=>{records[i]=v;await save();render();},()=>{editorHost.innerHTML='';}));};
     const del=async i=>{if(!confirm('Bu YMM kaydı silinsin mi?'))return;records.splice(i,1);await save();render();};
-    tableHost.appendChild(ymmGuideTable(records,ymmGuideFieldsYmm(),'Henüz YMM kaydı yok.',edit,del));
     const view=el('div',{});card.appendChild(el('h4',{style:'margin-top:22px;'},'Görüntüleme'));card.appendChild(view);
     const save=async()=>{try{await ymmGuideWrite(YMM_REHBER_FILE,{kayitlar:records});}catch(e){alert('YMM rehberi kaydedilemedi: '+e.message);throw e;}};
     ymmGuideViewToggle(view,records,ymmGuideFieldsYmm());
@@ -125,10 +123,8 @@ async function renderFirmaRehberPage(){
     const editorHost=el('div',{});card.appendChild(editorHost);
     const add=()=>{editorHost.innerHTML='';editorHost.appendChild(ymmGuideEditor('Yeni Firma Ekle',ymmGuideFieldsFirma(),{},async v=>{records.push(v);await save();render();},()=>{editorHost.innerHTML='';}));};
     card.appendChild(el('button',{class:'btn btn-primary',style:'margin-top:10px;',onclick:add},'+ Yeni Firma Ekle'));
-    const tableHost=el('div',{});card.appendChild(tableHost);
     const edit=i=>{editorHost.innerHTML='';editorHost.appendChild(ymmGuideEditor('Firma Kaydını Düzenle',ymmGuideFieldsFirma(),records[i],async v=>{records[i]=v;await save();render();},()=>{editorHost.innerHTML='';}));};
     const del=async i=>{if(!confirm('Bu firma kaydı silinsin mi?'))return;records.splice(i,1);await save();render();};
-    tableHost.appendChild(ymmGuideTable(records,ymmGuideFieldsFirma(),'Henüz firma kaydı yok.',edit,del));
     const view=el('div',{});card.appendChild(el('h4',{style:'margin-top:22px;'},'Görüntüleme'));card.appendChild(view);
     const save=async()=>{try{await ymmGuideWrite(FIRMA_REHBER_FILE,{kayitlar:records});}catch(e){alert('Firma rehberi kaydedilemedi: '+e.message);throw e;}};
     ymmGuideViewToggle(view,records,ymmGuideFieldsFirma());
