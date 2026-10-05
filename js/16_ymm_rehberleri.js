@@ -74,14 +74,14 @@ function ymmGuideList(records,fields){
   if(!records.length)box.appendChild(el('div',{class:'hint info'},'Henüz kayıt bulunmuyor.'));
   return box;
 }
-function ymmGuideViewToggle(target,records,fields){
+function ymmGuideViewToggle(target,records,fields,onEdit,onDelete){
   target.innerHTML='';
   const bar=el('div',{style:'display:flex;gap:8px;margin:10px 0;flex-wrap:wrap;'});
   const tableBtn=el('button',{class:'btn btn-primary'},'Tablo Görünümü');
   const listBtn=el('button',{class:'btn'},'Liste Görünümü');
   bar.append(tableBtn,listBtn);target.appendChild(bar);
   const body=el('div',{});target.appendChild(body);
-  const showTable=()=>{tableBtn.className='btn btn-primary';listBtn.className='btn';body.innerHTML='';body.appendChild(ymmGuideTable(records,fields,'Henüz kayıt bulunmuyor.',()=>{},()=>{}));};
+  const showTable=()=>{tableBtn.className='btn btn-primary';listBtn.className='btn';body.innerHTML='';body.appendChild(ymmGuideTable(records,fields,'Henüz kayıt bulunmuyor.',onEdit,onDelete));};
   const showList=()=>{tableBtn.className='btn';listBtn.className='btn btn-primary';body.innerHTML='';body.appendChild(ymmGuideList(records,fields));};
   tableBtn.onclick=showTable;listBtn.onclick=showList;showTable();
 }
@@ -104,7 +104,7 @@ async function renderYmmRehberPage(){
     const del=async i=>{if(!confirm('Bu YMM kaydı silinsin mi?'))return;records.splice(i,1);await save();render();};
     const view=el('div',{});card.appendChild(el('h4',{style:'margin-top:22px;'},'Görüntüleme'));card.appendChild(view);
     const save=async()=>{try{await ymmGuideWrite(YMM_REHBER_FILE,{kayitlar:records});}catch(e){alert('YMM rehberi kaydedilemedi: '+e.message);throw e;}};
-    ymmGuideViewToggle(view,records,ymmGuideFieldsYmm());
+    ymmGuideViewToggle(view,records,ymmGuideFieldsYmm(),edit,del);
     stateBox.appendChild(card);
   };
   render();document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('footer-msg').textContent='YMM Rehberi';renderNav();
@@ -127,7 +127,7 @@ async function renderFirmaRehberPage(){
     const del=async i=>{if(!confirm('Bu firma kaydı silinsin mi?'))return;records.splice(i,1);await save();render();};
     const view=el('div',{});card.appendChild(el('h4',{style:'margin-top:22px;'},'Görüntüleme'));card.appendChild(view);
     const save=async()=>{try{await ymmGuideWrite(FIRMA_REHBER_FILE,{kayitlar:records});}catch(e){alert('Firma rehberi kaydedilemedi: '+e.message);throw e;}};
-    ymmGuideViewToggle(view,records,ymmGuideFieldsFirma());
+    ymmGuideViewToggle(view,records,ymmGuideFieldsFirma(),edit,del);
     c.appendChild(card);
   };
   render();document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('footer-msg').textContent='Firma Rehberi';renderNav();
