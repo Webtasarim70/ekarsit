@@ -79,7 +79,7 @@ async function renderYmmCevapPage(){
     ['bilgiIstenenYmm','Bilgi İsteyen YMM'],
     ['bilgiVerilenFirma','Bilgi Verilen Firma (Arşiv)']
   ];
-  const quickSelects={}; const pref=userStore.info?.tercihler||{};
+  const quickSelects={};
   const yrQuick=await ymmGuideRead(YMM_REHBER_FILE,{kayitlar:[]});
   const frQuick=await ymmGuideRead(FIRMA_REHBER_FILE,{kayitlar:[]});
   const ymmQuick=ymmGuideNormalizeYmm(yrQuick);
