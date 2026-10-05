@@ -244,6 +244,8 @@ function renderNav() {
   ]));
   if(userMenuOpen){
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserPage()},[el('div',{},'Kullanıcı')]));
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmRehberPage()},[el('div',{},'YMM Rehberi')]));
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='firma-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderFirmaRehberPage()},[el('div',{},'Firma Rehberi')]));
   }  nav.appendChild(userGroup);
 
   const archiveGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
@@ -311,8 +313,6 @@ function renderNav() {
   ]));
   if(ymmMenuOpen){
     ymmGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-cevap'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmCevapPage()},[el('div',{},'YMM Cevap Yazısı')]));
-    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmRehberPage()},[el('div',{},'YMM Rehberi')]));
-    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='firma-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderFirmaRehberPage()},[el('div',{},'Firma Rehberi')]));
   }
   nav.appendChild(ymmGroup);
 
