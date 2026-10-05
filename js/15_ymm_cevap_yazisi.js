@@ -49,8 +49,9 @@ function ymmCevapBuildDocx(d){
 function ymmCevapCount(p,k){return Array.isArray(p?.[k])?p[k].length:0;}
 function ymmCevapDefaultText(p){const m=p?.mukellef||{};return 'İlgi yazınız kapsamında talep edilen bilgi ve belgeler, karşıt inceleme çalışmaları kapsamında incelenen firma arşiv kayıtları esas alınarak değerlendirilmiştir.\n\nİncelemeye konu mükellef '+(m.unvan||'ilgili mükellef')+' olup, Vergi/T.C. Kimlik Numarası '+(m.vkn||'—')+'’dir. Mevcut firma arşivinde '+ymmCevapCount(p,'faturalar')+' karşıt inceleme faturası, '+ymmCevapCount(p,'defterler')+' defter kaydı ve '+ymmCevapCount(p,'kdvBeyanlari')+' KDV beyan kaydı bulunmaktadır.\n\nArşivde yer alan bilgi ve belgeler çerçevesinde gerekli açıklamalar aşağıda sunulmuş olup, ilgili kayıtların asılları ve/veya dayanak belgeleri gerektiğinde ibraz edilebilecektir.\n\nBilgilerinize arz ederim.';}
 async function renderYmmAyarlarPage(){
-  currentPage='ymm-ayarlar';
   await renderYmmCevapPage();
+  currentPage='ymm-ayarlar';
+  renderNav();
 }
 async function renderYmmCevapPage(){
   currentPage='ymm-cevap'; currentStep=-1;
