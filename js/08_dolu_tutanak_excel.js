@@ -301,10 +301,19 @@ function renderNav() {
     toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-xml'?' active':''),style:'padding-left:50px;',onclick:()=>renderEdefterXmlViewerPage()},[el('div',{},'e-Defter XML / Berat Görüntüle')]));
     toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-efatura'?' active':''),style:'padding-left:50px;',onclick:()=>renderEfaturaXmlViewerPage()},[el('div',{},'e-Fatura XML Görüntüle')]));
     toolsGroup.appendChild(el('div',{class:'nav-item',style:'padding-left:50px;opacity:.45;cursor:not-allowed;pointer-events:none;',title:'Yakında yeniden etkinleştirilecek'},[el('div',{},'XML’den KDV Listesi Oluştur')]));
-    toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-cevap'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmCevapPage()},[el('div',{},'YMM Cevap Yazısı')]));
-
   }
   nav.appendChild(toolsGroup);
+
+  const ymmGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
+  ymmGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{ymmMenuOpen=!ymmMenuOpen;renderNav();}},[
+    el('div',{class:'num'},ymmMenuOpen?'▾':'▸'), el('div',{},'YMM Yazıları')
+  ]));
+  if(ymmMenuOpen){
+    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-cevap'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmCevapPage()},[el('div',{},'YMM Cevap Yazısı')]));
+    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmRehberPage()},[el('div',{},'YMM Rehberi')]));
+    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='firma-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderFirmaRehberPage()},[el('div',{},'Firma Rehberi')]));
+  }
+  nav.appendChild(ymmGroup);
 
   const feedback=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'},[el('div',{class:'nav-item'+(currentPage==='feedback'?' active':''),onclick:()=>renderFeedbackPage()},[
     el('div',{class:'num'},'✉'), el('div',{},'Geri Bildirim / Hata Bildir')
