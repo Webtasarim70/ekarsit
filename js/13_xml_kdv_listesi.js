@@ -20,7 +20,16 @@ function kdvXmlPartyName(party){
   if(!party) return '';
   const nodes=Array.from(party.getElementsByTagName('*'));
   const find=n=>nodes.find(x=>kdvXmlLocalName(x)===n.toLowerCase());
-  return String(find('RegistrationName')?.textContent||find('Name')?.textContent||'').trim();
+  const pn=Array.from(party.getElementsByTagName('*')).find(x=>kdvXmlLocalName(x)==='partyname');
+  const pnName=pn?Array.from(pn.getElementsByTagName('*')).find(x=>kdvXmlLocalName(x)==='name'):null;
+  if(String(pnName?.textContent||'').trim()) return String(pnName.textContent).trim();
+  const reg=nodes.find(x=>kdvXmlLocalName(x)==='registrationname');
+  if(String(reg?.textContent||'').trim()) return String(reg.textContent).trim();
+  const person=Array.from(party.getElementsByTagName('*')).find(x=>kdvXmlLocalName(x)==='person');
+  const pnodes=person?Array.from(person.getElementsByTagName('*')):[];
+  const first=pnodes.find(x=>kdvXmlLocalName(x)==='firstname');
+  const last=pnodes.find(x=>kdvXmlLocalName(x)==='familyname');
+  return [first?.textContent,last?.textContent].map(x=>String(x||'').trim()).filter(Boolean).join(' ');
 }
 function kdvXmlPartyId(party){
   if(!party) return '';
@@ -183,8 +192,8 @@ function kdvXmlItemDescription(doc){
     const nodes=Array.from(line.getElementsByTagName('*'));
     const item=nodes.find(x=>kdvXmlLocalName(x)==='item');
     if(!item) return '';
-    const ds=Array.from(item.getElementsByTagName('*')).filter(x=>['description','name'].includes(kdvXmlLocalName(x)));
-    return String(ds[0]?.textContent||'').trim();
+    const ds=Array.from(item.getElementsByTagName('*')).filter(x=>['description','name'].includes(kdvXmlLocalName(x))).map(x=>String(x.textContent||'').trim()).filter(Boolean);
+    return ds[0]||'';
   }).filter(Boolean);
   return [...new Set(names)].join(', ');
 }
