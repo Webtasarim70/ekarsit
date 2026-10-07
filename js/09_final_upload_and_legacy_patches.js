@@ -252,9 +252,54 @@ function renderArchiveEditRefresh(holder){
   const m=archiveEditParsed.mukellef||{};
   const info=el('div',{class:'card'});
   info.appendChild(el('h3',{},'Arşiv Mükellefi'));
+  info.appendChild(el('div',{class:'hint info'},'Firma bilgilerini düzenleyip kaydedebilirsiniz. Vergi/T.C. Kimlik Numarası arşiv kimliği olduğu için değiştirilemez.'));
   const t=el('table',{class:'editable-table'});
-  [['Ünvan',m.unvan],['Vergi/T.C. Kimlik Numarası',m.vkn],['Vergi Dairesi',m.vergiDairesi],['Adres',m.adres],['Telefon',m.telefon]].forEach(([a,b])=>{const tr=el('tr');tr.appendChild(el('th',{},a));tr.appendChild(el('td',{},b||'—'));t.appendChild(tr);});
-  info.appendChild(t);holder.appendChild(info);
+  const fields=[
+    ['Ünvan','unvan',false],
+    ['Vergi/T.C. Kimlik Numarası','vkn',true],
+    ['Vergi Dairesi','vergiDairesi',false]
+  ];
+  const inputs={};
+  fields.forEach(([label,key,readonly])=>{
+    const tr=el('tr');
+    tr.appendChild(el('th',{},label));
+    const td=el('td');
+    const input=el('input',{class:'input',value:String(m[key]||''),readonly});
+    if(readonly) input.style.cssText='background:#f3f4f6;color:#6b7280;cursor:not-allowed;';
+    inputs[key]=input;
+    td.appendChild(input);tr.appendChild(td);t.appendChild(tr);
+  });
+  info.appendChild(t);
+  const status=el('div',{style:'margin-top:10px;'});
+  const saveBtn=el('button',{class:'btn btn-primary',style:'margin-top:10px;',onclick:async()=>{
+    const unvan=String(inputs.unvan.value||'').trim();
+    const vergiDairesi=String(inputs.vergiDairesi.value||'').trim();
+    if(!unvan){
+      status.innerHTML='';
+      status.appendChild(el('div',{class:'hint warn'},'⚠️ Ünvan boş bırakılamaz.'));
+      return;
+    }
+    archiveEditParsed.mukellef={...archiveEditParsed.mukellef,unvan,vergiDairesi,vkn:String(inputs.vkn.value||archiveEditParsed.mukellef?.vkn||'').trim()};
+    commitArchiveEditState();
+    try{
+      if(userStore?.directoryHandle){
+        const currentName=String(state.existingArchiveFile?.name||'').trim();
+        const target=/\\.(xlsx|xlsm)$/i.test(currentName)?currentName:('ARSIV_'+userFileSafeName(unvan||archiveEditParsed.mukellef.vkn||'arsiv')+'.xlsx');
+        await userSaveArchiveParsedToFolder(archiveEditParsed,target);
+        state.existingArchiveFile={...(state.existingArchiveFile||{}),name:target,source:'user-folder'};
+        status.innerHTML='';
+        status.appendChild(el('div',{class:'hint ok'},'✓ Firma bilgileri güncellendi ve kullanıcı klasöründeki firma arşiv Excel dosyasına kaydedildi.'));
+      }else{
+        status.innerHTML='';
+        status.appendChild(el('div',{class:'hint ok'},'✓ Firma bilgileri güncellendi. Kalıcı kullanıcı klasörü kaydı için önce Kullanıcı İşlemleri bölümünden kullanıcı klasörünü seçin.'));
+      }
+      renderNav();
+    }catch(err){
+      status.innerHTML='';
+      status.appendChild(el('div',{class:'hint warn'},'⚠️ Firma bilgileri güncellendi ancak kullanıcı klasörüne kaydedilemedi: '+err.message));
+    }
+  }},'💾 Firma Bilgilerini Kaydet');
+  info.appendChild(saveBtn);info.appendChild(status);holder.appendChild(info);
 
   const addSection=(title,cols,key,groupMode,valueFn)=>{
     const card=el('div',{class:'card',style:'margin-top:14px;'});
