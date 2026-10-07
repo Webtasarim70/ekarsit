@@ -1,3 +1,4 @@
+let ymmMenuOpen=false;
 /* ============================================================
    Navigasyon / uygulama başlatma
    ============================================================ */
@@ -243,6 +244,8 @@ function renderNav() {
   ]));
   if(userMenuOpen){
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserPage()},[el('div',{},'Kullanıcı')]));
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmRehberPage()},[el('div',{},'YMM Rehberi')]));
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='firma-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderFirmaRehberPage()},[el('div',{},'Firma Rehberi')]));
   }  nav.appendChild(userGroup);
 
   const archiveGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
@@ -300,9 +303,21 @@ function renderNav() {
   if(toolsMenuOpen){
     toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-xml'?' active':''),style:'padding-left:50px;',onclick:()=>renderEdefterXmlViewerPage()},[el('div',{},'e-Defter XML / Berat Görüntüle')]));
     toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-efatura'?' active':''),style:'padding-left:50px;',onclick:()=>renderEfaturaXmlViewerPage()},[el('div',{},'e-Fatura XML Görüntüle')]));
-    toolsGroup.appendChild(el('div',{class:'nav-item',style:'padding-left:50px;opacity:.45;cursor:not-allowed;pointer-events:none;',title:'Yakında yeniden etkinleştirilecek'},[el('div',{},'XML’den KDV Listesi Oluştur')]));
+    toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-xml-kdv'?' active':''),style:'padding-left:50px;',onclick:()=>renderXmlKdvListesiPage()},[el('div',{},'XML’den KDV Listesi Oluştur')]));
   }
   nav.appendChild(toolsGroup);
+
+  const ymmGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
+  ymmGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--muted);opacity:.5;cursor:not-allowed;pointer-events:none;',title:'YMM Yazıları geçici olarak pasif'},[
+    el('div',{class:'num'},'▸'), el('div',{},'YMM Yazıları')
+  ]));
+  if(ymmMenuOpen){
+    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-ayarlar'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmAyarlarPage()},[el('div',{class:'num'},'1'),el('div',{},'Ayarlar')]));
+    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentStep===4?' active':''),style:'padding-left:50px;',onclick:()=>renderStep(4)},[el('div',{class:'num'},'2'),el('div',{},'Bilgi İstenen Fatura')]));
+    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentStep===1?' active':''),style:'padding-left:50px;',onclick:()=>renderStep(1)},[el('div',{class:'num'},'3'),el('div',{},'Gerekli Bilgiler')]));
+    ymmGroup.appendChild(el('div',{class:'nav-item'+(currentStep===9?' active':''),style:'padding-left:50px;',onclick:()=>renderStep(9)},[el('div',{class:'num'},'4'),el('div',{},'Sonuç')]));
+  }
+  nav.appendChild(ymmGroup);
 
   const feedback=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'},[el('div',{class:'nav-item'+(currentPage==='feedback'?' active':''),onclick:()=>renderFeedbackPage()},[
     el('div',{class:'num'},'✉'), el('div',{},'Geri Bildirim / Hata Bildir')
