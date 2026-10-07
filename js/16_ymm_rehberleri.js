@@ -74,7 +74,7 @@ function ymmGuideArchiveFirmTable(records){
       try{
         await ymmGuideCreateArchiveFirm({unvan:inputs.unvan.value,vkn:inputs.vkn.value,vergiDairesi:inputs.vergiDairesi.value});
         addHost.innerHTML='';
-        renderArchive();
+        render();
       }catch(e){alert('Firma arşivi oluşturulamadı: '+e.message);}
     }},'Kaydet'));
     actions.appendChild(el('button',{class:'btn',onclick:()=>{addHost.innerHTML='';}},'Vazgeç'));
