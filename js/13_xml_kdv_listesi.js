@@ -134,6 +134,7 @@ function kdvXmlInvoiceData(doc,file){
     toplamIndirilenKdv,
     cins:kdvXmlItemDescription(doc),
     miktar:kdvXmlQuantity(doc),
+    kalemler:kdvXmlLineDetails(doc),
     tevkifatIndirilen,
     tevkifat2No,
     ggbTescilNo:'',
@@ -156,14 +157,26 @@ function kdvInvoiceSeriesNo(invoiceNo){
   // "Alış Faturasının Sıra No'su" alanına yazılır.
   return {series:'', number:s};
 }
-function kdvXmlQuantity(doc){
-  // Her fatura kaleminin miktarını ayrı ayrı al; tek toplam yerine
-  // kalem miktarlarını virgülle listele.
-  return kdvXmlNodes(doc,'InvoiceLine').map(line=>{
+function kdvXmlLineDetails(doc){
+  return kdvXmlNodes(doc,'InvoiceLine').map((line,index)=>{
     const nodes=Array.from(line.getElementsByTagName('*'));
     const q=nodes.find(x=>kdvXmlLocalName(x)==='invoicedquantity');
-    return String(q?.textContent||'').trim();
-  }).filter(Boolean).join(', ');
+    const item=nodes.find(x=>kdvXmlLocalName(x)==='item');
+    const descNodes=item?Array.from(item.getElementsByTagName('*')).filter(x=>['description','name'].includes(kdvXmlLocalName(x))):[];
+    const taxTotal=nodes.find(x=>kdvXmlLocalName(x)==='taxtotal');
+    const lineExtension=nodes.find(x=>kdvXmlLocalName(x)==='lineextensionamount');
+    const taxAmount=taxTotal?Array.from(taxTotal.getElementsByTagName('*')).find(x=>kdvXmlLocalName(x)==='taxamount'):null;
+    return {
+      no:index+1,
+      cins:String(descNodes[0]?.textContent||'').trim(),
+      miktar:String(q?.textContent||'').trim(),
+      matrah:kdvXmlNumber(lineExtension?.textContent),
+      kdv:kdvXmlNumber(taxAmount?.textContent)
+    };
+  });
+}
+function kdvXmlQuantity(doc){
+  return kdvXmlLineDetails(doc).map(x=>x.miktar).filter(Boolean).join(', ');
 }
 function kdvXmlItemDescription(doc){
   const names=kdvXmlNodes(doc,'InvoiceLine').map(line=>{
@@ -239,6 +252,73 @@ function kdvCreateWorkbook(rows,errors){
   }
   return wb.xlsx.writeBuffer();
 }
+function kdvCreateDetailWorkbook(rows,errors){
+  const wb=new ExcelJS.Workbook();
+  wb.creator='KDV İade · Karşıt İnceleme Arşiv Sihirbazı';
+  wb.created=new Date();
+  const ws=wb.addWorksheet('Fatura Kalem Detayı');
+  const headers=[
+    'Sıra No','Fatura Tarihi','Fatura Seri No','Fatura Sıra No',
+    'Satıcının Adı-Soyadı / Ünvanı','Satıcının Vergi Kimlik Numarası / TC Kimlik Numarası',
+    'Kalem Sıra No','Mal ve/veya Hizmetin Cinsi','Miktar',
+    'Kalem KDV Hariç Tutarı','Kalem KDV Tutarı',
+    'Faturanın Toplam Matrahı','Faturanın Toplam KDV’si',
+    'Toplam İndirilen KDV Tutarı'
+  ];
+  headers.forEach((h,i)=>{
+    const c=ws.getCell(1,i+1); c.value=h; c.font={bold:true};
+    c.alignment={horizontal:'center',vertical:'center',wrapText:true};
+    c.border={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
+  });
+  ws.getRow(1).height=52;
+  [7,14,14,16,34,22,12,34,12,18,16,18,18,20].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  let rowNo=2;
+  rows.forEach(r=>{
+    const sn=kdvInvoiceSeriesNo(r.faturaNo);
+    const lines=(r.kalemler&&r.kalemler.length)?r.kalemler:[{no:1,cins:r.cins||'',miktar:r.miktar||'',matrah:0,kdv:0}];
+    lines.forEach(line=>{
+      const values=[
+        rowNo-1,r.tarih,sn.series,sn.number,r.saticiUnvan,r.vkn,
+        line.no,line.cins,line.miktar,line.matrah,line.kdv,r.matrah,r.kdv,r.toplamIndirilenKdv
+      ];
+      const excelRow=ws.getRow(rowNo++);
+      values.forEach((v,i)=>excelRow.getCell(i+1).value=v);
+      excelRow.eachCell({includeEmpty:true},c=>{
+        c.border={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
+        c.alignment={vertical:'center',wrapText:true};
+      });
+      excelRow.getCell(2).numFmt='dd.mm.yyyy';
+      [10,11,12,13,14].forEach(c=>excelRow.getCell(c).numFmt='#,##0.00');
+    });
+  });
+  const totalRow=rowNo;
+  ws.getCell(totalRow,9).value='TOPLAM';
+  ws.getCell(totalRow,9).font={bold:true};
+  [10,11].forEach(c=>{
+    ws.getCell(totalRow,c).value={formula:'SUM('+String.fromCharCode(64+c)+'2:'+String.fromCharCode(64+c)+(totalRow-1)+')'};
+    ws.getCell(totalRow,c).numFmt='#,##0.00';
+  });
+  for(let c=9;c<=14;c++){
+    const cell=ws.getCell(totalRow,c);
+    cell.border={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
+    cell.font={bold:true};
+  }
+  ws.views=[{state:'frozen',ySplit:1}];
+  ws.autoFilter={from:'A1',to:'N1'};
+  if(errors.length){
+    const es=wb.addWorksheet('Okunamayan XML');
+    es.addRow(['Dosya','Hata']);
+    errors.forEach(e=>es.addRow([e.file,e.error]));
+    es.getRow(1).font={bold:true};
+    es.columns=[{width:45},{width:80}];
+  }
+  return wb.xlsx.writeBuffer();
+}
+function kdvDetailExcelSafeFileName(){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  return 'Detay_Kalemli_Fatura_Listesi_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+'.xlsx';
+}
 function kdvExcelSafeFileName(){
   const d=new Date();
   const pad=n=>String(n).padStart(2,'0');
@@ -272,8 +352,19 @@ function renderXmlKdvListesiPage(){
       alert('Excel oluşturulamadı: '+String(err?.message||err));
     }
   }},'⬇ Excel KDV Listesini İndir');
+  const detailDownloadBtn=el('button',{class:'btn btn-primary',style:'display:none;margin-left:8px;',onclick:async()=>{
+    const rows=window.__xmlKdvRows||[], errors=window.__xmlKdvErrors||[];
+    if(!rows.length){alert('Detaylı Excel için okunabilir XML bulunamadı.');return;}
+    try{
+      const buffer=await kdvCreateDetailWorkbook(rows,errors);
+      kdvDownloadBuffer(buffer,kdvDetailExcelSafeFileName());
+    }catch(err){
+      console.error('Detay KDV Excel oluşturma hatası:',err);
+      alert('Detaylı Excel oluşturulamadı: '+String(err?.message||err));
+    }
+  }},'⬇ Detay Kalemli Excel Fatura Listesi İndir');
   const clearBtn=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:()=>{
-    window.__xmlKdvRows=[]; window.__xmlKdvErrors=[]; status.innerHTML=''; result.innerHTML=''; downloadBtn.style.display='none';
+    window.__xmlKdvRows=[]; window.__xmlKdvErrors=[]; status.innerHTML=''; result.innerHTML=''; downloadBtn.style.display='none'; detailDownloadBtn.style.display='none';
     const input=card.querySelector('input[type="file"]'); if(input) input.value='';
     const chips=card.querySelector('.file-chip-list'); if(chips) chips.remove();
   }},'🧹 Temizle');
@@ -305,10 +396,10 @@ function renderXmlKdvListesiPage(){
       const tr=el('tr'); ['Sıra','Fatura No','Tarih','Satıcı VKN','Matrah','KDV','Toplam'].forEach(h=>tr.appendChild(el('th',{},h))); table.appendChild(tr);
       window.__xmlKdvRows.forEach((r,i)=>{const row=el('tr');[i+1,r.faturaNo,r.tarih,r.vkn,r.matrah.toFixed(2),r.kdv.toFixed(2),r.toplam.toFixed(2)].forEach(v=>row.appendChild(el('td',{},String(v))));table.appendChild(row);});
       result.appendChild(table);
-      downloadBtn.style.display='inline-flex';
+      downloadBtn.style.display='inline-flex'; detailDownloadBtn.style.display='inline-flex';
     }
   }});
-  card.appendChild(el('div',{style:'margin-top:12px;'},[downloadBtn,clearBtn]));
+  card.appendChild(el('div',{style:'margin-top:12px;'},[downloadBtn,detailDownloadBtn,clearBtn]));
   card.appendChild(status); card.appendChild(result); content.appendChild(card);
   document.getElementById('btn-prev').disabled=true; document.getElementById('btn-next').disabled=true;
   document.getElementById('footer-msg').textContent='Araçlar → XML’den KDV Listesi Oluştur'; renderNav();
