@@ -8,8 +8,154 @@ const userStore = {
   info: null,
   firms: [],
   files: [],
-  scanned: false
+  scanned: false,
+  sessionConnected: false,
+  sessionRemembered: false,
+  sessionNeedsPermission: false
 };
+
+/* ============================================================
+   Yerel kullanıcı oturumu
+   FileSystemDirectoryHandle IndexedDB'de saklanır. Kullanıcının
+   gerçek dosyaları tarayıcıya kopyalanmaz; yalnızca seçilen klasöre
+   yeniden erişebilmek için handle hatırlanır.
+   ============================================================ */
+const USER_SESSION_DB='ekarsit-user-session';
+const USER_SESSION_STORE='session';
+const USER_SESSION_KEY='directory-handle';
+let userSessionRestoreStarted=false;
+
+function userOpenSessionDb(){
+  return new Promise((resolve,reject)=>{
+    if(!('indexedDB' in window)){ reject(new Error('IndexedDB desteklenmiyor.')); return; }
+    const req=indexedDB.open(USER_SESSION_DB,1);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains(USER_SESSION_STORE)) db.createObjectStore(USER_SESSION_STORE);
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error||new Error('Yerel oturum veritabanı açılamadı.'));
+  });
+}
+async function userRememberDirectoryHandle(handle){
+  if(!handle) return false;
+  try{
+    const db=await userOpenSessionDb();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(USER_SESSION_STORE,'readwrite');
+      tx.objectStore(USER_SESSION_STORE).put(handle,USER_SESSION_KEY);
+      tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error||new Error('Oturum kaydedilemedi.'));
+    });
+    db.close();
+    userStore.sessionRemembered=true;
+    return true;
+  }catch(e){
+    userStore.sessionRemembered=false;
+    return false;
+  }
+}
+async function userGetRememberedDirectoryHandle(){
+  try{
+    const db=await userOpenSessionDb();
+    const handle=await new Promise((resolve,reject)=>{
+      const tx=db.transaction(USER_SESSION_STORE,'readonly');
+      const req=tx.objectStore(USER_SESSION_STORE).get(USER_SESSION_KEY);
+      req.onsuccess=()=>resolve(req.result||null);
+      req.onerror=()=>reject(req.error);
+    });
+    db.close();
+    userStore.sessionRemembered=!!handle;
+    return handle;
+  }catch(e){
+    userStore.sessionRemembered=false;
+    return null;
+  }
+}
+async function userForgetRememberedDirectoryHandle(){
+  try{
+    const db=await userOpenSessionDb();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(USER_SESSION_STORE,'readwrite');
+      tx.objectStore(USER_SESSION_STORE).delete(USER_SESSION_KEY);
+      tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error||new Error('Oturum silinemedi.'));
+    });
+    db.close();
+  }catch(e){}
+  userStore.sessionRemembered=false;
+}
+async function userCheckDirectoryPermission(handle,request=false){
+  if(!handle) return 'denied';
+  try{
+    const options={mode:'readwrite'};
+    if(request && typeof handle.requestPermission==='function') return await handle.requestPermission(options);
+    if(typeof handle.queryPermission==='function') return await handle.queryPermission(options);
+    return 'granted';
+  }catch(e){ return 'denied'; }
+}
+function userResetLocalStore(){
+  userStore.directoryHandle=null;
+  userStore.info=null;
+  userStore.firms=[];
+  userStore.files=[];
+  userStore.scanned=false;
+  userStore.sessionConnected=false;
+  userStore.sessionNeedsPermission=false;
+}
+async function userRestoreRememberedSession({rerender=true}={}){
+  if(userSessionRestoreStarted) return userStore.sessionConnected;
+  userSessionRestoreStarted=true;
+  const handle=await userGetRememberedDirectoryHandle();
+  if(!handle) return false;
+  const permission=await userCheckDirectoryPermission(handle,false);
+  if(permission!=='granted'){
+    userStore.directoryHandle=handle;
+    userStore.sessionConnected=false;
+    userStore.sessionNeedsPermission=true;
+    if(rerender && typeof renderNav==='function') renderNav();
+    return false;
+  }
+  try{
+    userStore.directoryHandle=handle;
+    await handle.getFileHandle('KULLANICI_BILGILERI.json');
+    await userScanCurrentFolder();
+    if(!userStore.info?.kullanici) throw new Error('Geçerli kullanıcı bilgisi bulunamadı.');
+    userStore.sessionConnected=true;
+    userStore.sessionNeedsPermission=false;
+    if(rerender && typeof renderNav==='function') renderNav();
+    return true;
+  }catch(e){
+    await userForgetRememberedDirectoryHandle();
+    userResetLocalStore();
+    if(rerender && typeof renderNav==='function') renderNav();
+    return false;
+  }
+}
+async function userReconnectRememberedSession(){
+  const handle=userStore.directoryHandle||await userGetRememberedDirectoryHandle();
+  if(!handle) throw new Error('Hatırlanan kullanıcı klasörü bulunamadı.');
+  const permission=await userCheckDirectoryPermission(handle,true);
+  if(permission!=='granted') throw new Error('Kullanıcı klasörüne erişim izni verilmedi.');
+  userStore.directoryHandle=handle;
+  await handle.getFileHandle('KULLANICI_BILGILERI.json');
+  await userScanCurrentFolder();
+  if(!userStore.info?.kullanici) throw new Error('KULLANICI_BILGILERI.json geçerli kullanıcı bilgisi içermiyor.');
+  userStore.sessionConnected=true;
+  userStore.sessionNeedsPermission=false;
+  await userRememberDirectoryHandle(handle);
+  if(typeof renderNav==='function') renderNav();
+  if(currentPage==='user' && typeof renderUserPage==='function') renderUserPage();
+  return true;
+}
+async function userLogout(){
+  await userForgetRememberedDirectoryHandle();
+  userResetLocalStore();
+  // Çıkışta bellekteki arşiv/kullanıcı verilerinin başka kullanıcıya görünmemesi için
+  // uygulama baştan başlatılır; klasördeki hiçbir dosya silinmez/değiştirilmez.
+  window.location.reload();
+}
+
+// Sayfa yenilendiğinde son kullanıcı klasörünü otomatik olarak geri yükle.
+window.addEventListener('load',()=>{ userRestoreRememberedSession({rerender:true}); });
 
 function userFileSafeName(v){
   return String(v||'').replace(/[<>:"/\\|?*\x00-\x1F]/g,' ').replace(/\s+/g,' ').trim().slice(0,80) || 'Kullanici';
@@ -195,16 +341,16 @@ async function userSaveCurrentArchiveToFolder(){
 async function userSelectFolder({createUser=false}={}){
   if(!window.showDirectoryPicker) throw new Error('Bu tarayıcı yerel klasör seçimini desteklemiyor. Güncel Chrome/Edge kullanın.');
   const handle=await window.showDirectoryPicker({mode:'readwrite'});
+  userResetLocalStore();
   userStore.directoryHandle=handle;
   if(createUser){
-    userStore.info=null; userStore.firms=[]; userStore.files=[]; userStore.scanned=false;
     await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());
   }else{
     try{
       await handle.getFileHandle('KULLANICI_BILGILERI.json');
     }catch(e){
-      userStore.directoryHandle=null;
-      userStore.info=null; userStore.firms=[]; userStore.files=[]; userStore.scanned=false;
+      userResetLocalStore();
+      await userForgetRememberedDirectoryHandle();
       if(e?.name==='NotFoundError'){
         throw new Error('Bu klasörde KULLANICI_BILGILERI.json bulunamadı. Lütfen daha önce kullanıcı olarak tanımlanmış klasörü seçin. Firma arşiv klasörleri bu kontrol yapılmadan kullanıma açılamaz.');
       }
@@ -213,17 +359,26 @@ async function userSelectFolder({createUser=false}={}){
   }
   await userScanCurrentFolder();
   if(!createUser && !userStore.info?.kullanici){
-    userStore.directoryHandle=null; userStore.info=null; userStore.firms=[]; userStore.files=[]; userStore.scanned=false;
+    userResetLocalStore();
+    await userForgetRememberedDirectoryHandle();
     throw new Error('KULLANICI_BILGILERI.json bulundu ancak geçerli kullanıcı bilgisi içermiyor. Firma arşivleri bu klasörden yüklenemez.');
   }
+  userStore.sessionConnected=true;
+  userStore.sessionNeedsPermission=false;
+  await userRememberDirectoryHandle(handle);
   return handle;
 }
-
 function userFolderStatus(container){
-  const ok=!!userStore.directoryHandle;
-  container.appendChild(el('div',{class:'hint '+(ok?'ok':'info')},ok
-    ? '✓ Kullanıcı klasörü: '+(userStore.directoryHandle.name||'seçildi')
-    : 'Kullanıcı klasörü henüz tanımlanmadı.'));
+  if(userStore.sessionConnected && userStore.directoryHandle){
+    container.appendChild(el('div',{class:'hint ok'},'✓ Kullanıcı bağlı · Klasör: '+(userStore.directoryHandle.name||'seçildi')));
+    container.appendChild(el('div',{class:'hint info',style:'margin-top:6px;'},userStore.sessionRemembered?'Bu tarayıcıda kullanıcı oturumu hatırlanıyor. Sayfa yenilendiğinde klasör otomatik yeniden bağlanır.':'Kullanıcı klasörü bu oturumda bağlı.'));
+    return;
+  }
+  if(userStore.sessionNeedsPermission && userStore.directoryHandle){
+    container.appendChild(el('div',{class:'hint warn'},'⚠️ Kullanıcı klasörü hatırlanıyor ancak erişim izni yeniden onaylanmalı.'));
+    return;
+  }
+  container.appendChild(el('div',{class:'hint info'},'Kullanıcı klasörü henüz tanımlanmadı.'));
 }
 function userFirmTable(){
   const box=el('div',{class:'card',style:'margin-top:14px;'});
@@ -264,6 +419,18 @@ async function renderUserPage(){
     catch(e){if(e?.name!=='AbortError')alert('Yeni kullanıcı klasörü oluşturulamadı: '+e.message);}
   }},'➕ Yeni Kullanıcı Oluştur');
   actions.appendChild(create);
+
+  if(userStore.sessionNeedsPermission && userStore.directoryHandle){
+    actions.appendChild(el('button',{class:'btn btn-primary',style:'margin-left:8px;',onclick:async()=>{
+      try{await userReconnectRememberedSession();}
+      catch(e){if(e?.name!=='AbortError') alert('Kullanıcı klasörü yeniden bağlanamadı: '+e.message);}
+    }},'🔐 Klasör Erişimini Onayla'));
+  }
+  if(userStore.sessionConnected){
+    actions.appendChild(el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:async()=>{
+      if(confirm('Oturumu kapatmak istediğinize emin misiniz? Kullanıcı klasöründeki dosyalar silinmez.')) await userLogout();
+    }},'↪ Çıkış Yap'));
+  }
 
   const status=el('div',{id:'user-page-status',style:'margin-top:14px;'});
   userFolderStatus(status);
