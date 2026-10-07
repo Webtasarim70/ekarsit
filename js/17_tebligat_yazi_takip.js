@@ -34,6 +34,62 @@ function tebligatDateInput(v){
   return m?m[3]+'-'+m[2]+'-'+m[1]:'';
 }
 function tebligatDateDisplay(v){ return String(v||''); }
+
+// Excel içe/dışa aktarma
+function tebligatExcelValue(v){
+  if(v==null||v==='') return '';
+  if(v instanceof Date) return tebligatDateValue(v.toISOString().slice(0,10));
+  if(typeof v==='object'){
+    if(v.result!=null) return tebligatExcelValue(v.result);
+    if(v.text!=null) return String(v.text);
+  }
+  if(typeof v==='number'){
+    const d=new Date(Math.round((v-25569)*86400*1000));
+    if(!Number.isNaN(d.getTime())) return tebligatDateValue(d.toISOString().slice(0,10));
+  }
+  return String(v).trim();
+}
+function tebligatExcelNorm(v){
+  return String(v??'').toLocaleLowerCase('tr-TR').replace(/\s+/g,'').replace(/[İIıi]/g,'i').replace(/[Üü]/g,'u').replace(/[Öö]/g,'o').replace(/[Şş]/g,'s').replace(/[Ğğ]/g,'g').replace(/[Çç]/g,'c').replace(/[^a-z0-9]/g,'');
+}
+function tebligatExcelHeaderMap(headers){
+  const aliases={
+    mukellef:['ilgilimukellef','mukellef','mukellefadiunvan','mukellefadi','unvan'],
+    donem:['donem','donemi'],
+    yaziTarihi:['yazitarihi','yazitarih'],
+    tebligTarihi:['tebligatarihi','tebligtarihi','tebligTarihi','tebligarihi'],
+    sonTarih:['sontarih','sontebligtarihi'],
+    durum:['durum']
+  };
+  const map={};
+  headers.forEach((h,i)=>{const n=tebligatExcelNorm(h);for(const k of Object.keys(aliases)){if(aliases[k].includes(n)&&map[k]==null)map[k]=i;}});
+  return map;
+}
+async function tebligatExcelImport(file){
+  const wb=new ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer());
+  const ws=wb.worksheets[0]; if(!ws) throw new Error('Excel çalışma sayfası bulunamadı.');
+  const headers=[]; ws.getRow(1).eachCell({includeEmpty:true},(cell,i)=>headers[i-1]=tebligatExcelValue(cell.value));
+  const map=tebligatExcelHeaderMap(headers);
+  if(map.mukellef==null||map.donem==null||map.sonTarih==null) throw new Error('Excel başlıklarında en az İlgili Mükellef, Dönem ve Son Tarih bulunmalıdır.');
+  const records=[]; ws.eachRow((row,ri)=>{
+    if(ri===1)return;
+    const get=k=>map[k]==null?'':tebligatExcelValue(row.getCell(map[k]+1).value);
+    const muk=String(get('mukellef')).trim(), don=String(get('donem')).trim(), son=String(get('sonTarih')).trim();
+    if(!muk&&!don&&!son)return;
+    if(!muk||!don||!son)return;
+    records.push({id:(crypto.randomUUID?crypto.randomUUID():String(Date.now()+ri)),mukellef:muk,donem:don,yaziTarihi:tebligatDateValue(get('yaziTarihi')),tebligTarihi:tebligatDateValue(get('tebligTarihi')),sonTarih:tebligatDateValue(son),durum:String(get('durum')||'diğer').trim()||'diğer',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+  });
+  return records;
+}
+async function tebligatExcelYedekle(){
+  const data=await tebligatRead();
+  const wb=new ExcelJS.Workbook(); const ws=wb.addWorksheet('Tebligat Yazı Takip');
+  ws.columns=[{header:'İlgili Mükellef',key:'mukellef',width:34},{header:'Dönem',key:'donem',width:14},{header:'Yazı Tarihi',key:'yaziTarihi',width:16},{header:'Tebliğ Tarihi',key:'tebligTarihi',width:16},{header:'Son Tarih',key:'sonTarih',width:16},{header:'Durum',key:'durum',width:20}];
+  data.records.forEach(r=>ws.addRow(r)); ws.getRow(1).font={bold:true};
+  const buf=await wb.xlsx.writeBuffer(); const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='TEBLIGAT_YAZI_TAKIP_YEDEK.xlsx'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
 async function renderTebligatYaziTakipPage(){
   currentPage='tebligat-yazi-takip'; archiveViewParsed=null; currentStep=-1;
   const content=document.getElementById('step-content'); content.innerHTML='';
@@ -54,6 +110,25 @@ async function renderTebligatYaziTakipPage(){
     }
     const formCard=el('div',{class:'card'});
     formCard.appendChild(el('h3',{},'Yeni Tebligat / Yazı Kaydı'));
+    const excelBar=el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px;'});
+    const importInput=el('input',{type:'file',accept:'.xlsx,.xlsm',style:'display:none;'});
+    const importBtn=el('button',{class:'btn btn-secondary',onclick:()=>importInput.click()},'⬆ Excelden Liste Al');
+    const backupBtn=el('button',{class:'btn btn-secondary',onclick:async()=>{try{await tebligatExcelYedekle();}catch(e){alert('Excel yedeği oluşturulamadı: '+e.message);}}},'⬇ Excel\'e Yedekle');
+    const excelStatus=el('div',{class:'hint info',style:'margin:8px 0;display:none;'});
+    importInput.addEventListener('change',async()=>{
+      const file=importInput.files?.[0]; if(!file)return;
+      try{
+        const imported=await tebligatExcelImport(file);
+        if(!imported.length){excelStatus.style.display='block';excelStatus.textContent='Excelde aktarılacak kayıt bulunamadı.';return;}
+        const mevcut=await tebligatRead();
+        mevcut.records=[...imported,...mevcut.records];
+        await tebligatWrite(mevcut);
+        excelStatus.style.display='block';excelStatus.className='hint ok';excelStatus.textContent='✓ '+imported.length+' kayıt Excelden listeye eklendi.';
+        await render();
+      }catch(e){excelStatus.style.display='block';excelStatus.className='hint warn';excelStatus.textContent='⚠️ Excel aktarılamadı: '+e.message;}
+      importInput.value='';
+    });
+    excelBar.appendChild(importBtn);excelBar.appendChild(backupBtn);excelBar.appendChild(importInput);formCard.appendChild(excelBar);formCard.appendChild(excelStatus);
     const grid=el('div',{class:'archive-create-grid',style:'margin-top:12px;'});
     const mukellef=el('input',{class:'input',placeholder:'Mükellef adı / unvanı'});
     const donem=el('input',{class:'input',placeholder:'Örn. 01/2026'});
