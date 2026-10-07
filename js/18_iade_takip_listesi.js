@@ -27,6 +27,58 @@ function iadeSelectOptions(select,items,placeholder){
   select.innerHTML=''; if(placeholder) select.appendChild(el('option',{value:''},placeholder));
   items.forEach(x=>select.appendChild(el('option',{value:x},x)));
 }
+
+function iadeExcelValue(v){
+  if(v==null||v==='')return '';
+  if(v instanceof Date)return v.toLocaleDateString('tr-TR');
+  if(typeof v==='object'){if(v.result!=null)return iadeExcelValue(v.result);if(v.text!=null)return String(v.text);}
+  return String(v).trim();
+}
+function iadeExcelNorm(v){
+  return String(v??'').toLocaleLowerCase('tr-TR').replace(/\s+/g,'').replace(/[İIıi]/g,'i').replace(/[Üü]/g,'u').replace(/[Öö]/g,'o').replace(/[Şş]/g,'s').replace(/[Ğğ]/g,'g').replace(/[Çç]/g,'c').replace(/[^a-z0-9]/g,'');
+}
+function iadeExcelHeaderMap(headers){
+  const aliases={
+    firma:['firma','firmaadiunvan','firmadiunvan','unvan'],
+    donem:['donem','donemi'],
+    iadeTuru:['iadeturu','iadeturuadi'],
+    tutar:['tutar','tutartl','iadeedilentutar'],
+    iadeDurumu:['iadedurumu','durum'],
+    isDurumu:['isdurumu','isdurumuaciklama'],
+    aciklama:['aciklama'],
+    ekBilgiler:['ekbilgiler','ekbilgi']
+  };
+  const map={}; headers.forEach((h,i)=>{const n=iadeExcelNorm(h);for(const k of Object.keys(aliases)){if(aliases[k].includes(n)&&map[k]==null)map[k]=i;}}); return map;
+}
+async function iadeExcelImport(file){
+  const wb=new ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer());
+  const ws=wb.worksheets[0]; if(!ws)throw new Error('Excel çalışma sayfası bulunamadı.');
+  const headers=[];ws.getRow(1).eachCell({includeEmpty:true},(cell,i)=>headers[i-1]=iadeExcelValue(cell.value));
+  const map=iadeExcelHeaderMap(headers);
+  if(map.firma==null||map.donem==null||map.iadeTuru==null)throw new Error('Excel başlıklarında en az Firma, Dönem ve İade Türü bulunmalıdır.');
+  const records=[], now=new Date().toISOString();
+  ws.eachRow((row,ri)=>{
+    if(ri===1)return;
+    const get=k=>map[k]==null?'':iadeExcelValue(row.getCell(map[k]+1).value);
+    const firma=String(get('firma')).trim(),donem=String(get('donem')).trim(),tur=String(get('iadeTuru')).trim();
+    if(!firma&&!donem&&!tur)return;
+    if(!firma||!donem||!tur)return;
+    const rawTutar=String(get('tutar')).trim().replace(/\s/g,'').replace(/\.(?=\d{3}(?:,|$))/g,'').replace(',','.');
+    const tutar=rawTutar===''?'':(Number(rawTutar)||0);
+    const isDurumu=String(get('isDurumu')).trim();
+    records.push({id:(crypto.randomUUID?crypto.randomUUID():String(Date.now()+ri)),firma,donem,iadeTuru:tur,tutar,iadeDurumu:String(get('iadeDurumu')).trim(),isDurumu,aciklama:String(get('aciklama')).trim(),ekBilgiler:String(get('ekBilgiler')).trim(),createdAt:now,updatedAt:now});
+  });
+  return records;
+}
+async function iadeExcelYedekle(){
+  const data=await iadeTakipRead();
+  const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('İade Takip Listesi');
+  ws.columns=[{header:'Firma',key:'firma',width:34},{header:'Dönem',key:'donem',width:14},{header:'İade Türü',key:'iadeTuru',width:70},{header:'Tutar (TL)',key:'tutar',width:16},{header:'İade Durumu',key:'iadeDurumu',width:20},{header:'İş Durumu',key:'isDurumu',width:28},{header:'Açıklama',key:'aciklama',width:42},{header:'Ek Bilgiler',key:'ekBilgiler',width:42}];
+  data.records.forEach(r=>ws.addRow(r));ws.getRow(1).font={bold:true};ws.getColumn('tutar').numFmt='#,##0.00';
+  const buf=await wb.xlsx.writeBuffer();const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='IADE_TAKIP_LISTESI_YEDEK.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
 function iadeInputField(label,input,grid,wide=false){
   const f=el('div',{class:'field',style:wide?'grid-column:1/-1;':''});
   f.appendChild(el('label',{},label)); f.appendChild(input); grid.appendChild(f);
@@ -45,17 +97,45 @@ async function renderIadeTakipListesiPage(){
     }
     const data=await iadeTakipRead();
     const form=el('div',{class:'card'}); form.appendChild(el('h3',{},'Yeni İade Takip Kaydı'));
+    const excelBar=el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px;'});
+    const importInput=el('input',{type:'file',accept:'.xlsx,.xlsm',style:'display:none;'});
+    const importBtn=el('button',{class:'btn btn-secondary',onclick:()=>importInput.click()},'⬆ Excelden Liste Al');
+    const backupBtn=el('button',{class:'btn btn-secondary',onclick:async()=>{try{await iadeExcelYedekle();}catch(e){alert('Excel yedeği oluşturulamadı: '+e.message);}}},'⬇ Excel\'e Yedekle');
+    const excelStatus=el('div',{class:'hint info',style:'margin:8px 0;display:none;'});
+    importInput.addEventListener('change',async()=>{
+      const file=importInput.files?.[0];if(!file)return;
+      try{
+        const imported=await iadeExcelImport(file);
+        if(!imported.length){excelStatus.style.display='block';excelStatus.textContent='Excelde aktarılacak kayıt bulunamadı.';return;}
+        const mevcut=await iadeTakipRead();
+        imported.forEach(r=>{if(r.isDurumu&&!mevcut.isDurumlari.includes(r.isDurumu))mevcut.isDurumlari.unshift(r.isDurumu);if(r.iadeTuru&&!mevcut.iadeTurleri.includes(r.iadeTuru))mevcut.iadeTurleri.push(r.iadeTuru);});
+        mevcut.records=[...imported,...mevcut.records];
+        await iadeTakipWrite(mevcut);
+        excelStatus.style.display='block';excelStatus.className='hint ok';excelStatus.textContent='✓ '+imported.length+' kayıt Excelden listeye eklendi.';
+        await render();
+      }catch(e){excelStatus.style.display='block';excelStatus.className='hint warn';excelStatus.textContent='⚠️ Excel aktarılamadı: '+e.message;}
+      importInput.value='';
+    });
+    excelBar.appendChild(importBtn);excelBar.appendChild(backupBtn);excelBar.appendChild(importInput);form.appendChild(excelBar);form.appendChild(excelStatus);
     const grid=el('div',{class:'archive-create-grid',style:'margin-top:12px;'});
     const firma=el('input',{class:'input',placeholder:'Firma adı / unvanı'});
     const donem=el('input',{class:'input',placeholder:'Örn: 11/2025'});
     const tur=el('select',{class:'input'}); iadeSelectOptions(tur,data.iadeTurleri,'İade türü seçin');
+    const yeniTur=el('input',{class:'input',placeholder:'Yeni iade türü yazın',style:'margin-top:6px;'});
+    const yeniTurBtn=el('button',{class:'btn btn-secondary',style:'margin-top:6px;',onclick:async()=>{
+      const v=yeniTur.value.trim();if(!v)return;
+      if(!data.iadeTurleri.includes(v))data.iadeTurleri.push(v);
+      iadeSelectOptions(tur,data.iadeTurleri,'İade türü seçin');tur.value=v;yeniTur.value='';
+      try{await iadeTakipWrite(data);}catch(e){alert('Yeni iade türü kaydedilemedi: '+e.message);}
+    }},'＋ Yeni İade Türü Ekle');
+    const turWrap=el('div');turWrap.appendChild(tur);turWrap.appendChild(yeniTur);turWrap.appendChild(yeniTurBtn);
     const tutar=el('input',{class:'input',type:'number',step:'0.01',min:'0',placeholder:'0,00'});
     const iadeDurumu=el('select',{class:'input'}); iadeSelectOptions(iadeDurumu,IADE_DURUMLARI,'İade durumu seçin');
     const isDurumu=el('input',{class:'input',list:'iade-is-durum-list',placeholder:'İş durumu yazın'});
     const dl=el('datalist',{id:'iade-is-durum-list'}); data.isDurumlari.forEach(x=>dl.appendChild(el('option',{value:x})));
     const aciklama=el('textarea',{class:'input',rows:'4',placeholder:'Açıklama'});
     const ekBilgiler=el('textarea',{class:'input',rows:'4',placeholder:'Ek Bilgiler'});
-    iadeInputField('Firma *',firma,grid); iadeInputField('Dönem *',donem,grid); iadeInputField('İade Türü *',tur,grid);
+    iadeInputField('Firma *',firma,grid); iadeInputField('Dönem *',donem,grid); iadeInputField('İade Türü *',turWrap,grid);
     iadeInputField('Tutar (TL)',tutar,grid); iadeInputField('İade Durumu',iadeDurumu,grid); iadeInputField('İş Durumu',isDurumu,grid);
     iadeInputField('Açıklama',aciklama,grid,true); iadeInputField('Ek Bilgiler',ekBilgiler,grid,true);
     const status=el('div');
