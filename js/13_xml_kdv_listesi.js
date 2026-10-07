@@ -171,16 +171,18 @@ function kdvXmlLineDetails(doc){
     const nodes=Array.from(line.getElementsByTagName('*'));
     const q=nodes.find(x=>kdvXmlLocalName(x)==='invoicedquantity');
     const item=nodes.find(x=>kdvXmlLocalName(x)==='item');
-    const descNodes=item?Array.from(item.getElementsByTagName('*')).filter(x=>['description','name'].includes(kdvXmlLocalName(x))):[];
+    const descNodes=item?Array.from(item.getElementsByTagName('*')).filter(x=>['description','name'].includes(kdvXmlLocalName(x))).map(x=>String(x.textContent||'').trim()).filter(Boolean):[];
     const taxTotal=nodes.find(x=>kdvXmlLocalName(x)==='taxtotal');
     const lineExtension=nodes.find(x=>kdvXmlLocalName(x)==='lineextensionamount');
+    const taxSubtotal=taxTotal?Array.from(taxTotal.getElementsByTagName('*')).find(x=>kdvXmlLocalName(x)==='taxsubtotal'):null;
+    const subtotalTaxAmount=taxSubtotal?Array.from(taxSubtotal.getElementsByTagName('*')).find(x=>kdvXmlLocalName(x)==='taxamount'):null;
     const taxAmount=taxTotal?Array.from(taxTotal.getElementsByTagName('*')).find(x=>kdvXmlLocalName(x)==='taxamount'):null;
     return {
-      no:index+1,
-      cins:String(descNodes[0]?.textContent||'').trim(),
+      no:String(nodes.find(x=>kdvXmlLocalName(x)==='id')?.textContent||'').trim()||String(index+1),
+      cins:descNodes[0]||'',
       miktar:String(q?.textContent||'').trim(),
       matrah:kdvXmlNumber(lineExtension?.textContent),
-      kdv:kdvXmlNumber(taxAmount?.textContent)
+      kdv:kdvXmlNumber(subtotalTaxAmount?.textContent||taxAmount?.textContent)
     };
   });
 }
