@@ -34,7 +34,7 @@ function tebligatDateInput(v){
   return m?m[3]+'-'+m[2]+'-'+m[1]:'';
 }
 function tebligatDateDisplay(v){ return String(v||''); }
-function renderTebligatYaziTakipPage(){
+async function renderTebligatYaziTakipPage(){
   currentPage='tebligat-yazi-takip'; archiveViewParsed=null; currentStep=-1;
   const content=document.getElementById('step-content'); content.innerHTML='';
   content.appendChild(el('h2',{class:'step-title'},'Tebligat Yazı Takip'));
@@ -69,7 +69,7 @@ function renderTebligatYaziTakipPage(){
     const saveBtn=el('button',{class:'btn btn-primary',style:'margin-top:12px;',onclick:async()=>{
       const m=String(mukellef.value||'').trim(), d=String(donem.value||'').trim(), s=String(sonTarih.value||'').trim();
       if(!m||!d||!s){status.innerHTML='';status.appendChild(el('div',{class:'hint warn'},'⚠️ İlgili Mükellef, Dönem ve Son Tarih zorunludur.'));return;}
-      const record={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),mukellef:m,donem:d,yaziTarihi:tebligDateValue(yaziTarihi.value),tebligTarihi:tebligDateValue(tebligTarihi.value),sonTarih:tebligDateValue(s),durum:durum.value,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+      const record={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),mukellef:m,donem:d,yaziTarihi:tebligatDateValue(yaziTarihi.value),tebligTarihi:tebligatDateValue(tebligTarihi.value),sonTarih:tebligatDateValue(s),durum:durum.value,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
       try{data.records.unshift(record);await tebligatWrite(data);status.innerHTML='';status.appendChild(el('div',{class:'hint ok'},'✓ Kayıt kullanıcı klasörüne kaydedildi.'));await render();}catch(e){status.innerHTML='';status.appendChild(el('div',{class:'hint warn'},'⚠️ Kayıt kaydedilemedi: '+e.message));}
     }},'＋ Kaydı Ekle');
     formCard.appendChild(grid);formCard.appendChild(saveBtn);formCard.appendChild(status);host.appendChild(formCard);
