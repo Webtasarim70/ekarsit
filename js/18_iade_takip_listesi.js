@@ -31,7 +31,7 @@ function iadeInputField(label,input,grid,wide=false){
   const f=el('div',{class:'field',style:wide?'grid-column:1/-1;':''});
   f.appendChild(el('label',{},label)); f.appendChild(input); grid.appendChild(f);
 }
-function renderIadeTakipListesiPage(){
+async function renderIadeTakipListesiPage(){
   currentPage='iade-takip-listesi'; archiveViewParsed=null; currentStep=-1;
   const content=document.getElementById('step-content'); content.innerHTML='';
   content.appendChild(el('h2',{class:'step-title'},'İade Takip Listesi'));
