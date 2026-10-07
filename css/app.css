@@ -404,3 +404,86 @@ details.raw-details summary {
   }
   #app.sidebar-collapsed #step-panel{width:100%;}
 }
+
+
+/* Tema / görünüm seçenekleri */
+body.theme-dark{
+  --primary:#38bdf8;
+  --primary-dark:#0f172a;
+  --accent:#2dd4bf;
+  --bg:#0f1720;
+  --panel:#17212b;
+  --border:#30404d;
+  --text:#e6edf3;
+  --muted:#9fb0bc;
+  --danger:#fb7185;
+  --ok:#4ade80;
+}
+body.theme-dark #app-header{background:linear-gradient(120deg,#0f172a,#17212b);}
+body.theme-dark #step-nav,
+body.theme-dark #app-footer,
+body.theme-dark .card,
+body.theme-dark .version-note{background:var(--panel);}
+body.theme-dark .nav-item.active{background:#183b3a;}
+body.theme-dark .nav-item .num{background:#26343f;}
+body.theme-dark table.editable-table th{background:#22303b;}
+body.theme-dark table.editable-table td.rownum{background:#1b2730;}
+body.theme-dark .field input,
+body.theme-dark .field select,
+body.theme-dark .field textarea{background:#101922;color:var(--text);border-color:var(--border);}
+body.theme-dark .upload-box{background:#111c24;}
+body.theme-dark .btn-secondary{background:#26343f;color:var(--text);}
+body.theme-dark .btn-ghost{color:#b9d7df;}
+body.theme-dark .sidebar-toggle{background:#0b2732;}
+
+body.theme-slate{
+  --primary:#475569;
+  --primary-dark:#334155;
+  --accent:#6366f1;
+  --bg:#f1f5f9;
+  --panel:#ffffff;
+  --border:#cbd5e1;
+  --text:#1e293b;
+  --muted:#64748b;
+}
+body.theme-slate #app-header{background:linear-gradient(120deg,#475569,#334155);}
+body.theme-slate .nav-item.active{background:#eef2ff;}
+
+body.theme-emerald{
+  --primary:#047857;
+  --primary-dark:#065f46;
+  --accent:#10b981;
+  --bg:#f0fdf4;
+  --panel:#ffffff;
+  --border:#d1fae5;
+  --text:#18352d;
+  --muted:#5f766e;
+}
+body.theme-emerald #app-header{background:linear-gradient(120deg,#047857,#065f46);}
+body.theme-emerald .nav-item.active{background:#ecfdf5;}
+
+.theme-picker{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-left:auto;
+  flex-wrap:wrap;
+}
+.theme-picker select{
+  height:34px;
+  border:1px solid rgba(255,255,255,.28);
+  border-radius:7px;
+  padding:0 9px;
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  font:inherit;
+  font-size:12px;
+  outline:none;
+}
+.theme-picker select option{color:#1f2937;background:#fff;}
+@media(max-width:700px){
+  #app-header{padding-right:10px;}
+  .theme-picker{position:absolute;right:10px;top:10px;}
+  #app-header .brand{padding-right:125px;}
+  .theme-picker select{max-width:112px;}
+}
