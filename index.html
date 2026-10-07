@@ -9,7 +9,7 @@
 <body>
   <div id="app">
     <header id="app-header">
-      <div class="brand">
+      <div class="brand" id="app-brand" title="Hoş Geldiniz ekranına dön" style="cursor:pointer;">
         <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0Ij48cmVjdCB4PSIyIiB5PSIyIiB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHJ4PSIxMCIgZmlsbD0iI2ZmZiIvPjx0ZXh0IHg9IjMyIiB5PSI0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLEhlbHZldGljYSxzYW5zLXNlcmlmIiBmb250LXNpemU9IjUyIiBmb250LXdlaWdodD0iNzAwIiBmb250LXN0eWxlPSJpdGFsaWMiIGZpbGw9IiNjNjI4MjgiPmU8L3RleHQ+PC9zdmc+" alt="e" />
         <div>
           <h1>KDV İade &middot; Karşıt İnceleme Arşiv Sihirbazı <small style="font-weight:600;opacity:.75">v1.5</small></h1>
@@ -17,6 +17,7 @@
         </div>
       </div>
     </header>
+  <script>document.getElementById("app-brand").addEventListener("click",()=>{if(typeof renderWelcomePage==="function") renderWelcomePage();});</script>
 
     <div id="app-body">
       <nav id="step-nav"></nav>
