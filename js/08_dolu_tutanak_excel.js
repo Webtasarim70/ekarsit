@@ -247,6 +247,7 @@ function renderNav() {
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmRehberPage()},[el('div',{},'YMM Rehberi')]));
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='firma-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderFirmaRehberPage()},[el('div',{},'Firma Rehberi')]));
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tebligat-yazi-takip'?' active':''),style:'padding-left:50px;',onclick:()=>renderTebligatYaziTakipPage()},[el('div',{},'Tebligat Yazı Takip')]));
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='iade-takip-listesi'?' active':''),style:'padding-left:50px;',onclick:()=>renderIadeTakipListesiPage()},[el('div',{},'İade Takip Listesi')]));
   }  nav.appendChild(userGroup);
 
   const archiveGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
