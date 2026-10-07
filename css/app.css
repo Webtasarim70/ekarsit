@@ -20,6 +20,7 @@ body {
 #app { display: flex; flex-direction: column; min-height: 100vh; }
 
 #app-header {
+  position: relative;
   background: linear-gradient(120deg, var(--primary), var(--primary-dark));
   color: #fff;
   padding: 16px 24px;
@@ -318,7 +319,7 @@ details.raw-details summary {
   position:absolute;
   left:260px;
   top:12px;
-  z-index:1100;
+  z-index:1102;
   display:flex;
   align-items:center;
   justify-content:center;
