@@ -69,6 +69,7 @@ function renderArchiveUploadPage(){
           state.existingArchiveFile={name:file.name,source:'user-folder',relativePath:item.relativePath};
           syncSharedArchiveRefs(parsed);
           archiveToState(parsed);
+          await userRememberArchivePath(item.relativePath);
           status.innerHTML='';
           const m=parsed.mukellef||{};
           status.appendChild(el('div',{class:'hint ok'},`✓ Kullanıcı klasöründen arşiv yüklendi: ${item.relativePath}`));
@@ -106,6 +107,13 @@ function renderArchiveUploadPage(){
       const m=parsed.mukellef||{};
       if(userStore?.directoryHandle){
         await userSaveArchiveParsedToFolder(parsed,'ARSIV_'+userFileSafeName(m.unvan||m.vkn||'arsiv')+'.xlsx');
+      }
+      if(userStore?.directoryHandle && state.existingArchiveFile?.relativePath){
+        await userRememberArchivePath(state.existingArchiveFile.relativePath);
+      } else if(userStore?.directoryHandle){
+        const vkn=userVkn(m.vkn);
+        const safe=userFileSafeName(m.unvan||m.vkn||'arsiv');
+        if(vkn) await userRememberArchivePath(vkn+'/ARSIV_'+safe+'.xlsx');
       }
       status.appendChild(el('div',{class:'hint ok'},`✓ Firma arşiv yüklendi: ${file.name}`));
       status.appendChild(el('div',{class:'hint info',style:'margin-top:6px;'},`Mükellef: ${m.unvan||'—'} | Firma kimlik numarası: ${m.vkn||'—'}`));
