@@ -146,6 +146,61 @@ function eKarsitTakipRenderTable(host,data,onRowClick){
   };
   filter.addEventListener('input',draw);draw();host.appendChild(card);
 }
+
+function eKarsitTakipDateForInput(value){
+  const m=String(value||'').trim().match(/^(\\d{2})\\.(\\d{2})\\.(\\d{4})$/);
+  return m?m[3]+'-'+m[2]+'-'+m[1]:'';
+}
+function eKarsitTakipDateFromInput(value){
+  const m=String(value||'').trim().match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+  return m?m[3]+'.'+m[2]+'.'+m[1]:'';
+}
+function eKarsitTakipEditor(host,data,record,onSaved){
+  host.innerHTML='';
+  const editing=!!record;
+  const card=el('div',{class:'card',style:'margin-top:14px;'});
+  card.appendChild(el('h3',{},editing?'e-Karşıt Kaydını Düzenle':'e-Karşıt Kaydı Ekle'));
+  card.appendChild(el('div',{class:'hint info',style:'margin-bottom:12px;'},editing?'Kaydı düzenleyip kaydetmek için alanları değiştirin.':'Exceldeki 15 sütunla aynı alanları elle doldurarak yeni kayıt ekleyebilirsiniz.'));
+  const form=el('div',{style:'display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;'});
+  const controls={};
+  const dateFields=new Set(['Son Düzenleme Tarihi','Onay Tarihi']);
+  EKARSIT_TAKIP_HEADERS.forEach(h=>{
+    const box=el('div');
+    box.appendChild(el('label',{style:'display:block;font-weight:600;margin-bottom:4px;'},h));
+    const input=el('input',{class:'input',style:'width:100%;box-sizing:border-box;',placeholder:h});
+    if(dateFields.has(h)){input.type='date';input.value=eKarsitTakipDateForInput(record?.[h]);}
+    else{input.type='text';input.value=String(record?.[h]??'');}
+    if(h==='İşlem ID'&&editing) input.readOnly=true;
+    controls[h]=input;box.appendChild(input);form.appendChild(box);
+  });
+  card.appendChild(form);
+  const actions=el('div',{style:'margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;'});
+  const saveBtn=el('button',{class:'btn btn-primary'},editing?'💾 Değişiklikleri Kaydet':'➕ Kaydı Ekle');
+  const cancelBtn=el('button',{class:'btn btn-secondary'},'Vazgeç');
+  actions.appendChild(saveBtn);actions.appendChild(cancelBtn);card.appendChild(actions);
+  const status=el('div',{class:'hint',style:'margin-top:10px;display:none;'});card.appendChild(status);host.appendChild(card);
+  cancelBtn.addEventListener('click',()=>{host.innerHTML='';onSaved?.(false);});
+  saveBtn.addEventListener('click',async()=>{
+    try{
+      const values={};
+      EKARSIT_TAKIP_HEADERS.forEach(h=>values[h]=dateFields.has(h)?eKarsitTakipDateFromInput(controls[h].value):String(controls[h].value||'').trim());
+      if(!values['İşlem ID']) throw new Error('İşlem ID boş bırakılamaz.');
+      if(!values['Durum']) throw new Error('Durum boş bırakılamaz.');
+      if(!values['Tasdik Hizmeti Verilen Mükellef VKN/TCKN']) throw new Error('Tasdik Hizmeti Verilen Mükellef VKN/TCKN boş bırakılamaz.');
+      if(editing) Object.assign(record,values);
+      else{
+        if(data.records.some(r=>String(r['İşlem ID']||'')===values['İşlem ID'])) throw new Error('Bu İşlem ID zaten kayıtlı. Mevcut kaydı düzenleyin.');
+        data.records.unshift(values);
+      }
+      data.headers=[...EKARSIT_TAKIP_HEADERS];
+      await eKarsitTakipWrite(data);
+      const fresh=await eKarsitTakipRead();
+      status.style.display='block';status.className='hint ok';status.textContent=editing?'✓ Kayıt güncellendi.':'✓ Kayıt eklendi.';
+      setTimeout(()=>onSaved?.(true,fresh),200);
+    }catch(e){status.style.display='block';status.className='hint warn';status.textContent='⚠️ Kaydedilemedi: '+e.message;}
+  });
+}
+
 async function renderEKarsitTakipPage(){
   currentPage='e-karsit-takip'; archiveViewParsed=null; currentStep=-1;
   const content=document.getElementById('step-content');
