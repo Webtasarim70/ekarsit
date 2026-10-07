@@ -239,9 +239,15 @@ function renderNav() {
   const nav=document.getElementById('step-nav'); nav.innerHTML='';
 
   const userGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
-  userGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{userMenuOpen=!userMenuOpen;renderNav();}},[
-    el('div',{class:'num'},userMenuOpen?'▾':'▸'), el('div',{},'Kullanıcı')
-  ]));
+  const userHeader=el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{userMenuOpen=!userMenuOpen;renderNav();}},[
+    el('div',{class:'num'},userMenuOpen?'▾':'▸'), el('div',{style:'flex:1;'},'Kullanıcı')
+  ]);
+  if(typeof userStore!=='undefined' && userStore.sessionConnected){
+    userHeader.appendChild(el('span',{style:'font-size:11px;color:#15803d;font-weight:700;'},'● BAĞLI'));
+  }else if(typeof userStore!=='undefined' && userStore.sessionNeedsPermission){
+    userHeader.appendChild(el('span',{style:'font-size:11px;color:#b45309;font-weight:700;'},'● İZİN GEREKLİ'));
+  }
+  userGroup.appendChild(userHeader);
   if(userMenuOpen){
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserPage()},[el('div',{},'Kullanıcı')]));
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmRehberPage()},[el('div',{},'YMM Rehberi')]));
