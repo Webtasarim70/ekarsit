@@ -308,8 +308,8 @@ function renderNav() {
   nav.appendChild(toolsGroup);
 
   const ymmGroup=el('div',{style:'margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:8px;'});
-  ymmGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{ymmMenuOpen=!ymmMenuOpen;renderNav();}},[
-    el('div',{class:'num'},ymmMenuOpen?'▾':'▸'), el('div',{},'YMM Yazıları')
+  ymmGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--muted);opacity:.5;cursor:not-allowed;pointer-events:none;',title:'YMM Yazıları geçici olarak pasif'},[
+    el('div',{class:'num'},'▸'), el('div',{},'YMM Yazıları')
   ]));
   if(ymmMenuOpen){
     ymmGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-ayarlar'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmAyarlarPage()},[el('div',{class:'num'},'1'),el('div',{},'Ayarlar')]));
