@@ -117,6 +117,7 @@ async function tebligatExcelYedekle(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='TEBLIGAT_YAZI_TAKIP_YEDEK.xlsx'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 
+let tebligatEditingId=null;
 async function renderTebligatYaziTakipPage(){
   currentPage='tebligat-yazi-takip'; archiveViewParsed=null; currentStep=-1;
   const content=document.getElementById('step-content'); content.innerHTML='';
@@ -167,13 +168,27 @@ async function renderTebligatYaziTakipPage(){
     [['İlgili Mükellef *',mukellef],['Dönem *',donem],['Yazı Tarihi',yaziTarihi],['Tebliğ Tarihi',tebligTarihi],['Son Tarih *',sonTarih],['Durum',durum]].forEach(([label,input])=>{
       const f=el('div',{class:'field'}); f.appendChild(el('label',{},label)); f.appendChild(input); grid.appendChild(f);
     });
+    const editing=tebligatEditingId?data.records.find(x=>x.id===tebligatEditingId):null;
+    if(editing){
+      mukellef.value=editing.mukellef||''; donem.value=editing.donem||''; yaziTarihi.value=tebligatDateInput(editing.yaziTarihi); tebligTarihi.value=tebligatDateInput(editing.tebligTarihi); sonTarih.value=tebligatDateInput(editing.sonTarih); durum.value=editing.durum||'diğer';
+    }
+    formCard.querySelector('h3').textContent=editing?'Tebligat / Yazı Kaydını Düzenle':'Yeni Tebligat / Yazı Kaydı';
     const status=el('div',{style:'margin-top:10px;'});
     const saveBtn=el('button',{class:'btn btn-primary',style:'margin-top:12px;',onclick:async()=>{
       const m=String(mukellef.value||'').trim(), d=String(donem.value||'').trim(), s=String(sonTarih.value||'').trim();
       if(!m||!d||!s){status.innerHTML='';status.appendChild(el('div',{class:'hint warn'},'⚠️ İlgili Mükellef, Dönem ve Son Tarih zorunludur.'));return;}
-      const record={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),mukellef:m,donem:d,yaziTarihi:tebligatDateValue(yaziTarihi.value),tebligTarihi:tebligatDateValue(tebligTarihi.value),sonTarih:tebligatDateValue(s),durum:durum.value,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
-      try{data.records.unshift(record);await tebligatWrite(data);status.innerHTML='';status.appendChild(el('div',{class:'hint ok'},'✓ Kayıt kullanıcı klasörüne kaydedildi.'));await render();}catch(e){status.innerHTML='';status.appendChild(el('div',{class:'hint warn'},'⚠️ Kayıt kaydedilemedi: '+e.message));}
-    }},'＋ Kaydı Ekle');
+      try{
+        if(tebligatEditingId){
+          const r=data.records.find(x=>x.id===tebligatEditingId); if(!r)return;
+          r.mukellef=m;r.donem=d;r.yaziTarihi=tebligatDateValue(yaziTarihi.value);r.tebligTarihi=tebligatDateValue(tebligTarihi.value);r.sonTarih=tebligatDateValue(s);r.durum=durum.value;r.updatedAt=new Date().toISOString();
+          tebligatEditingId=null;
+        }else{
+          data.records.unshift({id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),mukellef:m,donem:d,yaziTarihi:tebligatDateValue(yaziTarihi.value),tebligTarihi:tebligatDateValue(tebligTarihi.value),sonTarih:tebligatDateValue(s),durum:durum.value,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+        }
+        await tebligatWrite(data); status.innerHTML=''; status.appendChild(el('div',{class:'hint ok'},editing?'✓ Kayıt güncellendi.':'✓ Kayıt kullanıcı klasörüne kaydedildi.')); await render();
+      }catch(e){status.innerHTML='';status.appendChild(el('div',{class:'hint warn'},'⚠️ Kayıt kaydedilemedi: '+e.message));}
+    }},editing?'💾 Değişiklikleri Kaydet':'＋ Kaydı Ekle');
+    if(editing) formCard.appendChild(el('button',{class:'btn btn-secondary',style:'margin:12px 0 0 8px;',onclick:async()=>{tebligatEditingId=null;await render();}},'İptal'));
     formCard.appendChild(grid);formCard.appendChild(saveBtn);formCard.appendChild(status);host.appendChild(formCard);
 
     const listCard=el('div',{class:'card',style:'margin-top:14px;'});
@@ -186,7 +201,7 @@ async function renderTebligatYaziTakipPage(){
       const tr=el('tr');
       [rec.mukellef,rec.donem,tebligatDateDisplay(rec.yaziTarihi),tebligatDateDisplay(rec.tebligTarihi),tebligatDateDisplay(rec.sonTarih),rec.durum].forEach(v=>tr.appendChild(el('td',{},v||'—')));
       const actions=el('td',{style:'white-space:nowrap;text-align:center;'});
-      actions.appendChild(el('button',{class:'btn btn-secondary',title:'Düzenle',style:'padding:5px 9px;margin-right:4px;',onclick:()=>tebligatEditRecord(rec.id)},'✎'));
+      actions.appendChild(el('button',{class:'btn btn-secondary',title:'Düzenle',style:'padding:5px 9px;margin-right:4px;',onclick:async()=>{tebligatEditingId=rec.id;await render();}},'✎'));
       actions.appendChild(el('button',{class:'btn btn-secondary',title:'Sil',style:'padding:5px 9px;',onclick:()=>tebligatDeleteRecord(rec.id)},'🗑'));
       tr.appendChild(actions);body.appendChild(tr);
     });
@@ -196,21 +211,7 @@ async function renderTebligatYaziTakipPage(){
   await render();
   document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('btn-next').textContent='Tebligat Yazı Takip';document.getElementById('footer-msg').textContent='Tebligat Yazı Takip';renderNav();
 }
-async function tebligatEditRecord(id){
-  if(!userStore?.directoryHandle) return;
-  const data=await tebligatRead(), r=data.records.find(x=>x.id===id); if(!r)return;
-  const m=prompt('İlgili Mükellef:',r.mukellef); if(m===null)return;
-  const d=prompt('Dönem:',r.donem); if(d===null)return;
-  const yt=prompt('Yazı Tarihi (gg.aa.yyyy):',r.yaziTarihi||''); if(yt===null)return;
-  const tt=prompt('Tebliğ Tarihi (gg.aa.yyyy):',r.tebligTarihi||''); if(tt===null)return;
-  const s=prompt('Son Tarih (gg.aa.yyyy):',r.sonTarih); if(s===null)return;
-  const durum=prompt('Durum (yazı gönderildi / cevaplandı / tamamlandı / diğer):',r.durum); if(durum===null)return;
-  if(!m.trim()||!d.trim()||!s.trim()){alert('İlgili Mükellef, Dönem ve Son Tarih zorunludur.');return;}
-  r.mukellef=m.trim();r.donem=d.trim();r.yaziTarihi=tebligatDateValue(yt.trim());r.tebligTarihi=tebligatDateValue(tt.trim());r.sonTarih=tebligatDateValue(s.trim());
-  r.durum=['yazı gönderildi','cevaplandı','tamamlandı','diğer'].includes(durum.trim().toLocaleLowerCase('tr-TR'))?durum.trim().toLocaleLowerCase('tr-TR'):'diğer';
-  r.updatedAt=new Date().toISOString();
-  await tebligatWrite(data); if(window.tebligatYaziTakipRerender) await window.tebligatYaziTakipRerender();
-}
+async function tebligatEditRecord(id){ tebligatEditingId=id; if(window.tebligatYaziTakipRerender) await window.tebligatYaziTakipRerender(); }
 async function tebligatDeleteRecord(id){
   if(!userStore?.directoryHandle)return;
   if(!confirm('Bu Tebligat Yazı kaydı silinsin mi?'))return;
