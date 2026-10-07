@@ -76,7 +76,7 @@ body {
 .nav-item.done .num { background: var(--ok); color: #fff; }
 
 #step-panel { flex: 1; min-width: 0; padding: 26px 32px; overflow-y: auto; }
-#step-content { max-width: 980px; }
+#step-content { max-width: none; width: 100%; }
 
 h2.step-title { margin: 0 0 4px; font-size: 20px; }
 p.step-desc { margin: 0 0 18px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
@@ -326,19 +326,24 @@ details.raw-details summary {
   cursor:pointer;
   flex:0 0 auto;
 }
-#app-header{position:relative;display:flex;align-items:center;gap:12px;}
-.sidebar-toggle{position:relative;order:0;}
-#app-header .brand{order:1;flex:1;min-width:0;}
+#app-header{position:relative;}
+#app-header .brand{display:flex;align-items:center;gap:14px;}
+.sidebar-toggle{
+  position:absolute;
+  left:260px;
+  top:14px;
+  z-index:1003;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.16);
+}
 @media (max-width: 900px){
   #app-header{padding:10px 14px;}
   #app-header .brand{padding-right:48px;}
   .sidebar-toggle{
-    align-items:center;
-    justify-content:center;
-    position:absolute;
-    right:14px;
+    left:260px;
     top:12px;
-    z-index:1002;
+    transform:translateX(-50%);
   }
   #app-body{position:relative;overflow:hidden;}
   #step-nav{
