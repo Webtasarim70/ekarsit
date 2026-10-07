@@ -16,8 +16,31 @@
           <p class="subtitle">Tarayıcıdan bağımsız çalışır &middot; Hiçbir dosya internete gönderilmez, her şey bu sekmede işlenir.</p>
         </div>
       </div>
+      <div class="theme-picker" title="Görünüm">
+        <select id="theme-selector" aria-label="Görünüm seç">
+          <option value="light">☀ Aydınlık</option>
+          <option value="dark">☾ Karanlık</option>
+          <option value="slate">◈ Slate</option>
+          <option value="emerald">● Emerald</option>
+        </select>
+      </div>
     </header>
-  <script>document.getElementById("app-brand").addEventListener("click",()=>{if(typeof renderWelcomePage==="function") renderWelcomePage();});</script>
+  <script>
+  (function(){
+    const key="ekarsit-theme";
+    function applyTheme(theme){
+      document.body.classList.remove("theme-dark","theme-slate","theme-emerald");
+      if(theme!=="light") document.body.classList.add("theme-"+theme);
+      const sel=document.getElementById("theme-selector");
+      if(sel) sel.value=theme;
+      try{localStorage.setItem(key,theme);}catch(e){}
+    }
+    const saved=(()=>{try{return localStorage.getItem(key)||"light";}catch(e){return "light";}})();
+    applyTheme(saved);
+    document.getElementById("theme-selector").addEventListener("change",e=>applyTheme(e.target.value));
+    document.getElementById("app-brand").addEventListener("click",()=>{if(typeof renderWelcomePage==="function") renderWelcomePage();});
+  })();
+  </script>
 
     <div id="app-body">
       <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Yan menüyü aç/kapat" aria-expanded="true" title="Yan menüyü aç/kapat">☰</button>
