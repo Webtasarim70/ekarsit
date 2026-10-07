@@ -23,6 +23,7 @@ const userStore = {
 const USER_SESSION_DB='ekarsit-user-session';
 const USER_SESSION_STORE='session';
 const USER_SESSION_KEY='directory-handle';
+const USER_ARCHIVE_KEY='archive-relative-path';
 let userSessionRestoreStarted=false;
 
 function userOpenSessionDb(){
@@ -71,6 +72,60 @@ async function userGetRememberedDirectoryHandle(){
     return null;
   }
 }
+async function userRememberArchivePath(relativePath){
+  if(!relativePath) return false;
+  try{
+    const db=await userOpenSessionDb();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(USER_SESSION_STORE,'readwrite');
+      tx.objectStore(USER_SESSION_STORE).put(String(relativePath),USER_ARCHIVE_KEY);
+      tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error||new Error('Arşiv oturumu kaydedilemedi.'));
+    });
+    db.close();
+    return true;
+  }catch(e){ return false; }
+}
+async function userGetRememberedArchivePath(){
+  try{
+    const db=await userOpenSessionDb();
+    const path=await new Promise((resolve,reject)=>{
+      const tx=db.transaction(USER_SESSION_STORE,'readonly');
+      const req=tx.objectStore(USER_SESSION_STORE).get(USER_ARCHIVE_KEY);
+      req.onsuccess=()=>resolve(req.result||'');
+      req.onerror=()=>reject(req.error);
+    });
+    db.close();
+    return String(path||'');
+  }catch(e){ return ''; }
+}
+async function userForgetRememberedArchivePath(){
+  try{
+    const db=await userOpenSessionDb();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(USER_SESSION_STORE,'readwrite');
+      tx.objectStore(USER_SESSION_STORE).delete(USER_ARCHIVE_KEY);
+      tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error||new Error('Arşiv oturumu silinemedi.'));
+    });
+    db.close();
+  }catch(e){}
+}
+async function userRestoreRememberedArchive(){
+  const relativePath=await userGetRememberedArchivePath();
+  if(!relativePath || !userStore.directoryHandle) return false;
+  try{
+    const file=await userLoadArchiveFromPath(relativePath);
+    const parsed=await readArchiveUpload(file);
+    state.existingArchiveParsed=parsed;
+    state.existingArchiveFile={name:file.name,source:'user-folder',relativePath};
+    syncSharedArchiveRefs(parsed);
+    archiveToState(parsed);
+    return true;
+  }catch(e){
+    await userForgetRememberedArchivePath();
+    return false;
+  }
+}
+
 async function userForgetRememberedDirectoryHandle(){
   try{
     const db=await userOpenSessionDb();
@@ -119,6 +174,7 @@ async function userRestoreRememberedSession({rerender=true}={}){
     await handle.getFileHandle('KULLANICI_BILGILERI.json');
     await userScanCurrentFolder();
     if(!userStore.info?.kullanici) throw new Error('Geçerli kullanıcı bilgisi bulunamadı.');
+    await userRestoreRememberedArchive();
     userStore.sessionConnected=true;
     userStore.sessionNeedsPermission=false;
     if(rerender && typeof renderNav==='function') renderNav();
@@ -148,6 +204,7 @@ async function userReconnectRememberedSession(){
 }
 async function userLogout(){
   await userForgetRememberedDirectoryHandle();
+  await userForgetRememberedArchivePath();
   userResetLocalStore();
   // Çıkışta bellekteki arşiv/kullanıcı verilerinin başka kullanıcıya görünmemesi için
   // uygulama baştan başlatılır; klasördeki hiçbir dosya silinmez/değiştirilmez.
@@ -366,6 +423,7 @@ async function userSelectFolder({createUser=false}={}){
   userStore.sessionConnected=true;
   userStore.sessionNeedsPermission=false;
   await userRememberDirectoryHandle(handle);
+  await userForgetRememberedArchivePath();
   return handle;
 }
 function userFolderStatus(container){
