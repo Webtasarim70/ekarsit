@@ -195,6 +195,7 @@ async function userReconnectRememberedSession(){
   await handle.getFileHandle('KULLANICI_BILGILERI.json');
   await userScanCurrentFolder();
   if(!userStore.info?.kullanici) throw new Error('KULLANICI_BILGILERI.json geçerli kullanıcı bilgisi içermiyor.');
+  await userRestoreRememberedArchive();
   userStore.sessionConnected=true;
   userStore.sessionNeedsPermission=false;
   await userRememberDirectoryHandle(handle);
