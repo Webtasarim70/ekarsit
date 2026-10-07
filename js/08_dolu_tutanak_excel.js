@@ -246,7 +246,9 @@ function renderNav() {
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserPage()},[el('div',{},'Kullanıcı')]));
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmRehberPage()},[el('div',{},'YMM Rehberi')]));
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='firma-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderFirmaRehberPage()},[el('div',{},'Firma Rehberi')]));
-    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tebligat-yazi-takip'?' active':''),style:'padding-left:50px;',onclick:()=>renderTebligatYaziTakipPage()},[el('div',{},'Tebligat Yazı Takip')]));
+    const tebligatNavItem=el('div',{class:'nav-item'+(currentPage==='tebligat-yazi-takip'?' active':''),style:'padding-left:50px;display:flex;align-items:center;justify-content:space-between;gap:8px;',onclick:()=>renderTebligatYaziTakipPage()},[el('div',{},'Tebligat Yazı Takip')]);
+    const tebligatBadge=el('span',{id:'tebligat-yazi-takip-badge',style:'display:'+(tebligatYaziTakipBadgeCount>0?'inline-flex':'none')+';align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#dc2626;color:#fff;font-size:12px;font-weight:700;line-height:20px;'} ,String(tebligatYaziTakipBadgeCount));
+    tebligatNavItem.appendChild(tebligatBadge); userGroup.appendChild(tebligatNavItem);
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='iade-takip-listesi'?' active':''),style:'padding-left:50px;',onclick:()=>renderIadeTakipListesiPage()},[el('div',{},'İade Takip Listesi')]));
   }  nav.appendChild(userGroup);
 
@@ -330,6 +332,7 @@ function renderNav() {
     el('div',{class:'num'},'⌂'), el('div',{},'Hoş Geldiniz')
   ])]);
   nav.appendChild(welcome);
+  if(typeof tebligatYaziTakipRefreshBadge==='function') tebligatYaziTakipRefreshBadge();
 }
 
 function renderFeedbackPage(){
