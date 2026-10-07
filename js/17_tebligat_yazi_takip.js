@@ -38,7 +38,7 @@ function tebligatYaziTakipYaklasanCount(records){
   const today=new Date(); today.setHours(0,0,0,0);
   const limit=new Date(today); limit.setDate(limit.getDate()+5);
   return (Array.isArray(records)?records:[]).filter(r=>{
-    const m=String(r?.sonTarih||'').trim().match(/^(\d{2})\\.(\d{2})\\.(\d{4})$/);
+    const m=String(r?.sonTarih||'').trim().match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
     if(!m) return false;
     const d=new Date(Number(m[3]),Number(m[2])-1,Number(m[1]));
     d.setHours(0,0,0,0);
