@@ -392,7 +392,6 @@ function renderXmlKdvListesiPage(){
         if(doc.getElementsByTagName('parsererror')[0]) throw new Error('XML sözdizimi okunamadı.');
         const row=kdvXmlInvoiceData(doc,file);
         window.__xmlKdvRows.push(row); ok++;
-        markFileChip(box,file.name,true);
       }catch(err){
         const msg=String(err?.message||err||'Bilinmeyen hata');
         console.error('XML KDV okuma hatası:',file.name,err);
@@ -400,13 +399,30 @@ function renderXmlKdvListesiPage(){
         markFileChip(box,file.name,false);
       }
     }
-    status.appendChild(el('div',{class:'hint '+(ok?'ok':'warn')},ok?'✓ '+ok+' XML fatura okundu.':'⚠️ Okunabilir XML fatura bulunamadı.'));
-    if(window.__xmlKdvErrors.length) status.appendChild(el('div',{class:'hint warn',style:'margin-top:6px;'},'⚠️ '+window.__xmlKdvErrors.length+' dosya okunamadı; ayrıntılar Excel içindeki “Okunamayan XML” sayfasına eklenir.'));
+    const total=validFiles.length;
+    const bad=window.__xmlKdvErrors.length;
+    const summary=el('div',{class:'hint '+(bad?'warn':'ok')},
+      '✓ '+ok+' dosya okundu'+(bad?' · ⚠️ '+bad+' hatalı dosya':'')+' · Toplam '+total+' dosya');
+    status.appendChild(summary);
+    if(bad){
+      const errorCard=el('div',{class:'hint warn',style:'margin-top:8px;'});
+      errorCard.appendChild(el('strong',{},'Okunamayan / hatalı dosyalar'));
+      const errorList=el('div',{style:'margin-top:6px;'});
+      window.__xmlKdvErrors.forEach(e=>{
+        errorList.appendChild(el('div',{style:'margin-top:3px;'},['❌ ',e.file,' — ',e.error]));
+      });
+      errorCard.appendChild(errorList);
+      status.appendChild(errorCard);
+    }
     if(ok){
+      const previewCount=Math.min(20,window.__xmlKdvRows.length);
       const table=el('table',{class:'data-table'});
       const tr=el('tr'); ['Sıra','Fatura No','Tarih','Satıcı VKN','Matrah','KDV','Toplam'].forEach(h=>tr.appendChild(el('th',{},h))); table.appendChild(tr);
-      window.__xmlKdvRows.forEach((r,i)=>{const row=el('tr');[i+1,r.faturaNo,r.tarih,r.vkn,r.matrah.toFixed(2),r.kdv.toFixed(2),r.toplam.toFixed(2)].forEach(v=>row.appendChild(el('td',{},String(v))));table.appendChild(row);});
+      window.__xmlKdvRows.slice(0,previewCount).forEach((r,i)=>{const row=el('tr');[i+1,r.faturaNo,r.tarih,r.vkn,r.matrah.toFixed(2),r.kdv.toFixed(2),r.toplam.toFixed(2)].forEach(v=>row.appendChild(el('td',{},String(v))));table.appendChild(row);});
       result.appendChild(table);
+      if(window.__xmlKdvRows.length>previewCount){
+        result.appendChild(el('div',{class:'hint info',style:'margin-top:8px;'},'ℹ️ Ekranda ilk '+previewCount+' fatura gösteriliyor. '+window.__xmlKdvRows.length+' okunabilir dosyanın tamamı Excel’e aktarılır.'));
+      }
       downloadBtn.style.display='inline-flex'; detailDownloadBtn.style.display='inline-flex';
     }
   }});
