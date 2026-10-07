@@ -34,6 +34,33 @@ function tebligatDateInput(v){
   return m?m[3]+'-'+m[2]+'-'+m[1]:'';
 }
 function tebligatDateDisplay(v){ return String(v||''); }
+function tebligatYaziTakipYaklasanCount(records){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const limit=new Date(today); limit.setDate(limit.getDate()+5);
+  return (Array.isArray(records)?records:[]).filter(r=>{
+    const m=String(r?.sonTarih||'').trim().match(/^(\\d{2})\\.(\\d{2})\\.(\\d{4})$/);
+    if(!m) return false;
+    const d=new Date(Number(m[3]),Number(m[2])-1,Number(m[1]));
+    d.setHours(0,0,0,0);
+    return !Number.isNaN(d.getTime()) && d>=today && d<=limit;
+  }).length;
+}
+let tebligatYaziTakipBadgeCount=0;
+async function tebligatYaziTakipRefreshBadge(){
+  if(!userStore?.directoryHandle){ tebligatYaziTakipBadgeCount=0; return 0; }
+  try{
+    const data=await tebligatRead();
+    tebligatYaziTakipBadgeCount=tebligatYaziTakipYaklasanCount(data.records);
+  }catch(e){
+    tebligatYaziTakipBadgeCount=0;
+  }
+  const badge=document.getElementById('tebligat-yazi-takip-badge');
+  if(badge){
+    badge.textContent=String(tebligatYaziTakipBadgeCount);
+    badge.style.display=tebligatYaziTakipBadgeCount>0?'inline-flex':'none';
+  }
+  return tebligatYaziTakipBadgeCount;
+}
 
 // Excel içe/dışa aktarma
 function tebligatExcelValue(v){
