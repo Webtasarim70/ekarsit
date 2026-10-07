@@ -256,6 +256,7 @@ function renderNav() {
     const tebligatBadge=el('span',{id:'tebligat-yazi-takip-badge',style:'display:'+(tebligatYaziTakipBadgeCount>0?'inline-flex':'none')+';align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#dc2626;color:#fff;font-size:12px;font-weight:700;line-height:20px;'} ,String(tebligatYaziTakipBadgeCount));
     tebligatNavItem.appendChild(tebligatBadge); userGroup.appendChild(tebligatNavItem);
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='iade-takip-listesi'?' active':''),style:'padding-left:50px;',onclick:()=>renderIadeTakipListesiPage()},[el('div',{},'İade Takip Listesi')]));
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='e-karsit-takip'?' active':''),style:'padding-left:50px;',onclick:()=>renderEKarsitTakipPage()},[el('div',{},'e-Karşıt Takip')]));
   }  nav.appendChild(userGroup);
 
   const archiveGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
