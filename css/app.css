@@ -343,9 +343,9 @@ details.raw-details summary {
 @media (max-width:900px){
   .sidebar-toggle{
     position:fixed;
-    left:min(310px,86vw);
+    left:0;
     top:72px;
-    transform:translateX(-50%);
+    transform:none;
     width:38px;
     height:38px;
     z-index:1102;
