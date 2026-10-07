@@ -25,7 +25,10 @@ body {
   color: #fff;
   padding: 16px 24px;
 }
-.brand { display: flex; align-items: center; gap: 14px; }
+#app-header{display:flex;align-items:center;gap:10px;min-width:0;}
+.brand { display: flex; align-items: center; gap: 14px; min-width:0; flex:1 1 auto; }
+.brand > div{min-width:0;}
+.brand h1,.subtitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .brand img { width: 40px; height: 40px; }
 .brand h1 { font-size: 18px; margin: 0; }
 .subtitle { margin: 2px 0 0; font-size: 12.5px; opacity: 0.85; }
@@ -316,9 +319,9 @@ details.raw-details summary {
 
 /* Responsive açılır/kapanır yan menü */
 .sidebar-toggle{
-  position:absolute;
-  left:260px;
-  top:12px;
+  position:static;
+  flex:0 0 38px;
+  order:2;
   z-index:1102;
   display:flex;
   align-items:center;
@@ -334,12 +337,12 @@ details.raw-details summary {
   line-height:1;
   cursor:pointer;
   box-shadow:0 2px 8px rgba(0,0,0,.18);
-  transition:left .22s ease, background .15s ease, transform .15s ease;
+  transition:background .15s ease, transform .15s ease;
 }
 .sidebar-toggle:hover{background:#083d4b;}
 #app-body{position:relative;min-width:0;}
 #step-nav{transition:width .22s ease, transform .22s ease, padding .22s ease;}
-#app.sidebar-collapsed .sidebar-toggle{left:0;}
+#app.sidebar-collapsed .sidebar-toggle{transform:none;}
 
 @media (max-width:900px){
   .sidebar-toggle{
@@ -465,6 +468,7 @@ body.theme-emerald .nav-item.active{background:#ecfdf5;}
 
 .theme-picker{
   display:flex;
+  order:3;
   align-items:center;
   gap:6px;
   margin-left:auto;
@@ -487,4 +491,47 @@ body.theme-emerald .nav-item.active{background:#ecfdf5;}
   .theme-picker{position:absolute;right:10px;top:10px;}
   #app-header .brand{padding-right:125px;}
   .theme-picker select{max-width:112px;}
+}
+
+
+/* Ek profesyonel temalar */
+body.theme-corporate{--primary:#1d4ed8;--primary-dark:#1e3a8a;--accent:#2563eb;--bg:#f5f8fc;--panel:#fff;--border:#d8e2ef;--text:#172033;--muted:#64748b;--danger:#dc2626;--ok:#15803d;}
+body.theme-corporate #app-header{background:linear-gradient(120deg,#1d4ed8,#1e3a8a);}
+body.theme-corporate .nav-item.active{background:#eff6ff;}
+
+body.theme-indigo{--primary:#4f46e5;--primary-dark:#312e81;--accent:#6366f1;--bg:#f5f5ff;--panel:#fff;--border:#dddff5;--text:#20213a;--muted:#696b86;--danger:#dc2626;--ok:#15803d;}
+body.theme-indigo #app-header{background:linear-gradient(120deg,#4f46e5,#312e81);}
+body.theme-indigo .nav-item.active{background:#eef2ff;}
+
+body.theme-burgundy{--primary:#8f1d3f;--primary-dark:#5b1029;--accent:#b4234d;--bg:#fbf6f7;--panel:#fff;--border:#ead7dd;--text:#321d25;--muted:#75636a;--danger:#b42318;--ok:#18794e;}
+body.theme-burgundy #app-header{background:linear-gradient(120deg,#8f1d3f,#5b1029);}
+body.theme-burgundy .nav-item.active{background:#fdf0f4;}
+
+body.theme-graphite{--primary:#374151;--primary-dark:#1f2937;--accent:#6b7280;--bg:#f3f4f6;--panel:#fff;--border:#d1d5db;--text:#111827;--muted:#6b7280;--danger:#dc2626;--ok:#15803d;}
+body.theme-graphite #app-header{background:linear-gradient(120deg,#374151,#111827);}
+body.theme-graphite .nav-item.active{background:#f3f4f6;}
+
+body.theme-ocean{--primary:#0369a1;--primary-dark:#0c4a6e;--accent:#0891b2;--bg:#f0f9ff;--panel:#fff;--border:#cfe8f5;--text:#163044;--muted:#5d7585;--danger:#dc2626;--ok:#15803d;}
+body.theme-ocean #app-header{background:linear-gradient(120deg,#0369a1,#0c4a6e);}
+body.theme-ocean .nav-item.active{background:#e0f2fe;}
+
+body.theme-sand{--primary:#9a6b2f;--primary-dark:#6b4b21;--accent:#b7791f;--bg:#faf7f0;--panel:#fffdf9;--border:#e8dcc8;--text:#332b20;--muted:#786e60;--danger:#b42318;--ok:#39734a;}
+body.theme-sand #app-header{background:linear-gradient(120deg,#9a6b2f,#6b4b21);}
+body.theme-sand .nav-item.active{background:#fff7e6;}
+
+body.theme-rose{--primary:#be185d;--primary-dark:#831843;--accent:#db2777;--bg:#fff7fb;--panel:#fff;--border:#f0d6e4;--text:#3b2030;--muted:#806477;--danger:#be123c;--ok:#15803d;}
+body.theme-rose #app-header{background:linear-gradient(120deg,#be185d,#831843);}
+body.theme-rose .nav-item.active{background:#fdf2f8;}
+
+body.theme-contrast{--primary:#000;--primary-dark:#000;--accent:#0057ff;--bg:#fff;--panel:#fff;--border:#111;--text:#000;--muted:#333;--danger:#b00020;--ok:#006b35;}
+body.theme-contrast #app-header{background:#000;}
+body.theme-contrast .nav-item.active{background:#e8f0ff;}
+body.theme-contrast .card,body.theme-contrast .field input,body.theme-contrast .field select,body.theme-contrast .field textarea{border-width:2px;}
+
+@media(min-width:901px){
+  #app-header .sidebar-toggle{margin-left:6px;}
+}
+@media(max-width:900px){
+  #app-header{display:block;}
+  .sidebar-toggle{position:fixed;left:0;top:72px;order:initial;}
 }
