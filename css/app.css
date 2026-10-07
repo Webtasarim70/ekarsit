@@ -341,7 +341,7 @@ details.raw-details summary {
   #app-header{padding:10px 14px;}
   #app-header .brand{padding-right:48px;}
   .sidebar-toggle{
-    left:260px;
+    left:min(310px,86vw);
     top:12px;
     transform:translateX(-50%);
   }
