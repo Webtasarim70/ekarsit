@@ -178,6 +178,7 @@ async function userRestoreRememberedSession({rerender=true}={}){
     userStore.sessionConnected=true;
     userStore.sessionNeedsPermission=false;
     if(rerender && typeof renderNav==='function') renderNav();
+    if(rerender && typeof renderWelcomePage==='function' && currentPage==='welcome') await renderWelcomePage();
     return true;
   }catch(e){
     await userForgetRememberedDirectoryHandle();
