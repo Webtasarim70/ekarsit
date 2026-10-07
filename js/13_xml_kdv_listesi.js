@@ -151,8 +151,10 @@ function kdvExcelDate(value){
 }
 function kdvInvoiceSeriesNo(invoiceNo){
   const s=String(invoiceNo||'').trim();
-  const m=s.match(/^([A-Za-z]+)(.*)$/);
-  return {series:m?m[1]:s, number:m?m[2]:''};
+  // GİB KDV listesinde seri alanı boş bırakılır; XML'deki
+  // tam fatura numarası (örn. ABC2026000000001) doğrudan
+  // "Alış Faturasının Sıra No'su" alanına yazılır.
+  return {series:'', number:s};
 }
 function kdvXmlQuantity(doc){
   return kdvXmlNodes(doc,'InvoicedQuantity').reduce((sum,n)=>sum+kdvXmlNumber(n.textContent),0);
