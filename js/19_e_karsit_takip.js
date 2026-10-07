@@ -181,7 +181,7 @@ async function renderEKarsitTakipPage(){
   card.appendChild(el('div',{class:'hint info',style:'margin-bottom:10px;'},'Örnek Excel şablonundaki 15 sütun okunur. Aynı İşlem ID daha önce aktarılmışsa mevcut kayıt güncellenir; yeni İşlem ID kayıtları eklenir.'));
   const input=el('input',{type:'file',accept:'.xlsx,.xlsm',style:'display:none;'});
   const importBtn=el('button',{class:'btn btn-primary',onclick:()=>input.click()},'⬆ Excel Yükle');
-  const backupBtn=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:async()=>{try{await eKarsitTakipExcelYedekle();}catch(e){alert('Excel yedeği oluşturulamadı: '+e.message);}}},'⬇ Excel'e Aktar');
+  const backupBtn=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:async()=>{try{await eKarsitTakipExcelYedekle();}catch(e){alert('Excel yedeği oluşturulamadı: '+e.message);}}},'⬇ Excel’e Aktar');
   const status=el('div',{class:'hint info',style:'margin-top:10px;display:none;'});
   input.addEventListener('change',async()=>{
     const file=input.files?.[0]; if(!file)return;
