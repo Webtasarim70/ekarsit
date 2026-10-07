@@ -258,7 +258,7 @@ function renderNav() {
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-upload'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveUploadPage()},[el('div',{},'Firma Arşiv Dosyası Yükle / Oluştur')]));
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-view'?' active':'')+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveViewPage();}},[el('div',{},'Firma Arşiv Görüntüle')]));
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-edit'?' active':'')+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveEditPage();}},[el('div',{},'Firma Arşiv Düzenle')]));
-    archiveGroup.appendChild(el('div',{class:'nav-item'+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveDataImportPage();}},[el('div',{},'Dosyadan Veri Al')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-data-import'?' active':'')+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveDataImportPage();}},[el('div',{},'Dosyadan Veri Al')]));
     archiveGroup.appendChild(el('div',{class:'nav-item'+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)downloadCurrentArchive();}},[el('div',{},'Güncel Firma Arşivini İndir')]));
   }
   nav.appendChild(archiveGroup);
