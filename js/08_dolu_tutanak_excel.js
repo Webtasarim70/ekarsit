@@ -1,4 +1,24 @@
 let ymmMenuOpen=false;
+function toggleResponsiveSidebar(force){
+  const app=document.getElementById('app'), body=document.getElementById('app-body'), btn=document.getElementById('sidebar-toggle');
+  if(!app||!body)return;
+  if(window.matchMedia('(max-width: 900px)').matches){
+    const open=typeof force==='boolean'?force:!body.classList.contains('sidebar-open');
+    body.classList.toggle('sidebar-open',open);
+    if(btn){btn.setAttribute('aria-expanded',String(open));btn.textContent=open?'✕':'☰';}
+  }else{
+    const collapsed=typeof force==='boolean'?force:!app.classList.contains('sidebar-collapsed');
+    app.classList.toggle('sidebar-collapsed',collapsed);
+    if(btn)btn.setAttribute('aria-expanded',String(!collapsed));
+  }
+}
+function closeResponsiveSidebar(){
+  const body=document.getElementById('app-body'),btn=document.getElementById('sidebar-toggle');
+  if(body)body.classList.remove('sidebar-open');
+  if(btn){btn.setAttribute('aria-expanded','false');btn.textContent='☰';}
+}
+window.addEventListener('resize',()=>{if(window.matchMedia('(min-width:901px)').matches)closeResponsiveSidebar();});
+
 /* ============================================================
    Navigasyon / uygulama başlatma
    ============================================================ */
