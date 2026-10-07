@@ -315,7 +315,7 @@ details.raw-details summary {
 
 /* Responsive açılır/kapanır yan menü */
 .sidebar-toggle{
-  display:none;
+  display:flex;
   border:0;
   background:rgba(255,255,255,.14);
   color:#fff;
@@ -326,12 +326,13 @@ details.raw-details summary {
   cursor:pointer;
   flex:0 0 auto;
 }
-#app-header{position:relative;}
+#app-header{position:relative;display:flex;align-items:center;gap:12px;}
+.sidebar-toggle{position:relative;order:0;}
+#app-header .brand{order:1;flex:1;min-width:0;}
 @media (max-width: 900px){
   #app-header{padding:10px 14px;}
   #app-header .brand{padding-right:48px;}
   .sidebar-toggle{
-    display:flex;
     align-items:center;
     justify-content:center;
     position:absolute;
