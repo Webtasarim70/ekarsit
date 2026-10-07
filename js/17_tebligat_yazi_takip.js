@@ -24,17 +24,16 @@ async function tebligatWrite(data){
 function tebligatDateValue(v){
   const s=String(v||'').trim();
   if(!s) return '';
-  let m=s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m) return m[3]+'.'+m[2]+'.'+m[1];
+  m=s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
   return m?String(m[1]).padStart(2,'0')+'.'+String(m[2]).padStart(2,'0')+'.'+m[3]:s;
 }
 function tebligatDateInput(v){
   const m=String(v||'').match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
   return m?m[3]+'-'+m[2]+'-'+m[1]:'';
 }
-function tebligatDateDisplay(v){
-  const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m?m[3]+'.'+m[2]+'.'+m[1]:String(v||'');
-}
+function tebligatDateDisplay(v){ return String(v||''); }
 function renderTebligatYaziTakipPage(){
   currentPage='tebligat-yazi-takip'; archiveViewParsed=null; currentStep=-1;
   const content=document.getElementById('step-content'); content.innerHTML='';
@@ -100,9 +99,14 @@ async function tebligatEditRecord(id){
   const data=await tebligatRead(), r=data.records.find(x=>x.id===id); if(!r)return;
   const m=prompt('İlgili Mükellef:',r.mukellef); if(m===null)return;
   const d=prompt('Dönem:',r.donem); if(d===null)return;
+  const yt=prompt('Yazı Tarihi (gg.aa.yyyy):',r.yaziTarihi||''); if(yt===null)return;
+  const tt=prompt('Tebliğ Tarihi (gg.aa.yyyy):',r.tebligTarihi||''); if(tt===null)return;
   const s=prompt('Son Tarih (gg.aa.yyyy):',r.sonTarih); if(s===null)return;
   const durum=prompt('Durum (yazı gönderildi / cevaplandı / tamamlandı / diğer):',r.durum); if(durum===null)return;
-  r.mukellef=m.trim();r.donem=d.trim();r.sonTarih=tebligDateValue(s.trim());r.durum=durum.trim()||'diğer';r.updatedAt=new Date().toISOString();
+  if(!m.trim()||!d.trim()||!s.trim()){alert('İlgili Mükellef, Dönem ve Son Tarih zorunludur.');return;}
+  r.mukellef=m.trim();r.donem=d.trim();r.yaziTarihi=tebligatDateValue(yt.trim());r.tebligTarihi=tebligatDateValue(tt.trim());r.sonTarih=tebligatDateValue(s.trim());
+  r.durum=['yazı gönderildi','cevaplandı','tamamlandı','diğer'].includes(durum.trim().toLocaleLowerCase('tr-TR'))?durum.trim().toLocaleLowerCase('tr-TR'):'diğer';
+  r.updatedAt=new Date().toISOString();
   await tebligatWrite(data); if(window.tebligatYaziTakipRerender) await window.tebligatYaziTakipRerender();
 }
 async function tebligatDeleteRecord(id){
