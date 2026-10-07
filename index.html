@@ -61,5 +61,15 @@
 <script src="js/16_ymm_rehberleri.js"></script>
 <script src="js/17_tebligat_yazi_takip.js"></script>
 <script src="js/18_iade_takip_listesi.js"></script>
-<script src="js/19_e_karsit_takip.js"></script></body>
+<script src="js/19_e_karsit_takip.js"></script><script>
+document.addEventListener("DOMContentLoaded",()=>{
+  const btn=document.getElementById("sidebar-toggle");
+  const nav=document.getElementById("step-nav");
+  if(btn) btn.addEventListener("click",()=>{ if(typeof toggleResponsiveSidebar==="function") toggleResponsiveSidebar(); });
+  if(nav) nav.addEventListener("click",e=>{
+    if(e.target.closest(".nav-item") && window.matchMedia("(max-width: 900px)").matches && typeof closeResponsiveSidebar==="function") closeResponsiveSidebar();
+  });
+});
+</script>
+</body>
 </html>
