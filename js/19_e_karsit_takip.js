@@ -176,13 +176,32 @@ async function renderEKarsitTakipPage(){
     return;
   }
 
-  const card=el('div',{class:'card'});
-  card.appendChild(el('h3',{},'Excel Listesi'));
-  card.appendChild(el('div',{class:'hint info',style:'margin-bottom:10px;'},'Örnek Excel şablonundaki 15 sütun okunur. Aynı İşlem ID daha önce aktarılmışsa mevcut kayıt güncellenir; yeni İşlem ID kayıtları eklenir.'));
+  const editorHost=el('div');
+  const tableHost=el('div');
+
+  const openEditor=record=>{
+    eKarsitTakipEditor(editorHost,data,record,async(saved,fresh)=>{
+      editorHost.innerHTML='';
+      if(saved){
+        data=fresh||await eKarsitTakipRead();
+      }
+      eKarsitTakipRenderTable(tableHost,data,openEditor);
+    });
+  };
+
+  const excelCard=el('div',{class:'card'});
+  excelCard.appendChild(el('h3',{},'Excel Listesi'));
+  excelCard.appendChild(el('div',{class:'hint info',style:'margin-bottom:10px;'},'Örnek Excel şablonundaki 15 sütun okunur. Aynı İşlem ID daha önce aktarılmışsa mevcut kayıt güncellenir; yeni İşlem ID kayıtları eklenir.'));
+
   const input=el('input',{type:'file',accept:'.xlsx,.xlsm',style:'display:none;'});
   const importBtn=el('button',{class:'btn btn-primary',onclick:()=>input.click()},'⬆ Excel Yükle');
-  const backupBtn=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:async()=>{try{await eKarsitTakipExcelYedekle();}catch(e){alert('Excel yedeği oluşturulamadı: '+e.message);}}},'⬇ Excel’e Aktar');
+  const backupBtn=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:async()=>{
+    try{await eKarsitTakipExcelYedekle();}
+    catch(e){alert('Excel yedeği oluşturulamadı: '+e.message);}
+  }},'⬇ Excel’e Aktar');
+  const addBtn=el('button',{class:'btn btn-primary',style:'margin-left:8px;',onclick:()=>openEditor(null)},'➕ Elle Kayıt Ekle');
   const status=el('div',{class:'hint info',style:'margin-top:10px;display:none;'});
+  
   input.addEventListener('change',async()=>{
     const file=input.files?.[0]; if(!file)return;
     try{
@@ -199,16 +218,23 @@ async function renderEKarsitTakipPage(){
       data=await eKarsitTakipRead();
       status.style.display='block';status.className='hint ok';
       status.textContent='✓ Excel aktarıldı. '+added+' yeni kayıt, '+updated+' güncellenen kayıt.';
-      eKarsitTakipRenderTable(tableHost,data);
+      eKarsitTakipRenderTable(tableHost,data,openEditor);
     }catch(e){
       status.style.display='block';status.className='hint warn';
       status.textContent='⚠️ Excel aktarılamadı: '+e.message;
     }
     input.value='';
   });
-  card.appendChild(importBtn);card.appendChild(backupBtn);card.appendChild(input);card.appendChild(status);host.appendChild(card);
-  const tableHost=el('div');host.appendChild(tableHost);
-  eKarsitTakipRenderTable(tableHost,data);
+
+  excelCard.appendChild(importBtn);
+  excelCard.appendChild(backupBtn);
+  excelCard.appendChild(addBtn);
+  excelCard.appendChild(input);
+  excelCard.appendChild(status);
+  host.appendChild(excelCard);
+  host.appendChild(editorHost);
+  host.appendChild(tableHost);
+  eKarsitTakipRenderTable(tableHost,data,openEditor);
 
   document.getElementById('btn-prev').disabled=true;
   document.getElementById('btn-next').disabled=true;
