@@ -157,7 +157,13 @@ function kdvInvoiceSeriesNo(invoiceNo){
   return {series:'', number:s};
 }
 function kdvXmlQuantity(doc){
-  return kdvXmlNodes(doc,'InvoicedQuantity').reduce((sum,n)=>sum+kdvXmlNumber(n.textContent),0);
+  // Her fatura kaleminin miktarını ayrı ayrı al; tek toplam yerine
+  // kalem miktarlarını virgülle listele.
+  return kdvXmlNodes(doc,'InvoiceLine').map(line=>{
+    const nodes=Array.from(line.getElementsByTagName('*'));
+    const q=nodes.find(x=>kdvXmlLocalName(x)==='invoicedquantity');
+    return String(q?.textContent||'').trim();
+  }).filter(Boolean).join(', ');
 }
 function kdvXmlItemDescription(doc){
   const names=kdvXmlNodes(doc,'InvoiceLine').map(line=>{
@@ -167,7 +173,7 @@ function kdvXmlItemDescription(doc){
     const ds=Array.from(item.getElementsByTagName('*')).filter(x=>['description','name'].includes(kdvXmlLocalName(x)));
     return String(ds[0]?.textContent||'').trim();
   }).filter(Boolean);
-  return [...new Set(names)].join(' / ');
+  return [...new Set(names)].join(', ');
 }
 function kdvCreateWorkbook(rows,errors){
   const wb=new ExcelJS.Workbook();
