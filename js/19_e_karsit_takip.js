@@ -172,6 +172,77 @@ function eKarsitTakipRenderTable(host,data,onRowClick){
   globalSearch.addEventListener('input',draw);filters.forEach(input=>input.addEventListener(input.tagName==='SELECT'?'change':'input',draw));draw();host.appendChild(card);
 }
 
+function eKarsitTakipGibNormalizeRecord(source){
+  const r=source||{};
+  const record={};
+  record['İşlem ID']=String(r.islemId??'').trim();
+  record['Son Düzenleme Tarihi']=String(r.sonDuzenlemeTarihi??'').trim();
+  record['Onay Tarihi']=String(r.onayTarihi??'').trim();
+  record['Durum']=r.isPasif===true||r.pasif===true?'Pasife Çekilmiş':String(r.durum??'').trim();
+  record['Karşıt İnceleme Talep Eden YMM VKN/TCKN']=String(r.karsitIsteyenYmmVkn??'').trim();
+  record['Karşıt İnceleme Talep Eden YMM Adı Soyadı/Ünvanı']=String(r.karsitIsteyenYmmAdSoyad??'').trim();
+  record['Tasdik Hizmeti Verilen Mükellef VKN/TCKN']=String(r.karsitIsteyenMukellefVknTckn??'').trim();
+  record['Tasdik Hizmeti Verilen Mükellef Adı Soyadı/Ünvanı']=String(r.karsitIsteyenMukellefAdSoyad??'').trim();
+  record['Sözleşme Başlangıç Dönemi']=String(r.sozlesmeBaslangicDonemi??'').trim();
+  record['Sözleşme Bitiş Dönemi']=String(r.sozlesmeBitisDonemi??'').trim();
+  record['Nezdinde Karşıt İnceleme Yapılan Mükellef Adı Soyadı/Ünvanı']=String(r.nezdindeIncelemeYapilanMukellefAdSoyad??'').trim();
+  record['Nezdinde Karşıt İnceleme Yapılan Mükellef VKN/TCKN']=String(r.nezdindeIncelemeYapilanMukellefVknTckn??'').trim();
+  record['Son Düzenleme Yapan Kullanıcı T.C. Kimlik Numarası']=String(r.yaziyiOlusturanTckn??'').trim();
+  record['Son Düzenleme Yapan Kullanıcı Adı Soyadı/Ünvanı']=String(r.yaziyiOlusturanAdSoyad??'').trim();
+  record['İptal/Pasif Açıklama']=String(r.iptalPasifAciklama??'').trim();
+  record['Not']='';
+  return record;
+}
+
+async function eKarsitTakipApplyGibData(payload){
+  if(!payload||!Array.isArray(payload.records)) throw new Error('GİB aktarım verisi bulunamadı.');
+  if(!userStore?.directoryHandle) throw new Error('Önce Kullanıcı bölümünden bir kullanıcı klasörü seçin.');
+
+  const data=await eKarsitTakipRead();
+  const byId=new Map(data.records.map(r=>[String(r['İşlem ID']||''),r]));
+  let added=0,updated=0;
+  const incomingIds=new Set();
+
+  payload.records.forEach(source=>{
+    const record=eKarsitTakipGibNormalizeRecord(source);
+    const id=record['İşlem ID'];
+    if(!id||incomingIds.has(id)) return;
+    incomingIds.add(id);
+
+    if(byId.has(id)){
+      const existing=byId.get(id);
+      const notValue=existing['Not']??'';
+      Object.assign(existing,record);
+      existing['Not']=notValue;
+      updated++;
+    }else{
+      data.records.unshift(record);
+      byId.set(id,record);
+      added++;
+    }
+  });
+
+  data.headers=[...EKARSIT_TAKIP_HEADERS];
+  await eKarsitTakipWrite(data);
+  const fresh=await eKarsitTakipRead();
+
+  if(typeof renderEKarsitTakipPage==='function' && currentPage==='e-karsit-takip'){
+    await renderEKarsitTakipPage();
+  }
+
+  return {added,updated,total:fresh.records.length,received:payload.records.length,pages:payload.fetchedPages||0};
+}
+
+window.addEventListener('message',async event=>{
+  if(event.source!==window || event.data?.source!=='ekarsit-gib-extension' || event.data.type!=='EKARSIT_GIB_DATA') return;
+  try{
+    const result=await eKarsitTakipApplyGibData(event.data.payload);
+    window.postMessage({source:'ekarsit-app',type:'EKARSIT_GIB_APPLY_RESULT',result},'*');
+  }catch(error){
+    window.postMessage({source:'ekarsit-app',type:'EKARSIT_GIB_APPLY_ERROR',message:error?.message||String(error)},'*');
+  }
+});
+
 function eKarsitTakipDateForInput(value){
   const m=String(value||'').trim().match(/^(\\d{2})\\.(\\d{2})\\.(\\d{4})$/);
   return m?m[3]+'-'+m[2]+'-'+m[1]:'';
