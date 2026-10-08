@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "e-Karşıt GİB Senkronizasyon",
+  "version": "1.0.0",
+  "description": "GİB e-Karşıt gönderilen kayıtlarını tüm sayfalarıyla alıp e-Karşıt Takip uygulamasına aktarır.",
+  "permissions": ["tabs"],
+  "host_permissions": [
+    "https://eymm.gib.gov.tr/*",
+    "https://webtasarim70.github.io/ekarsit/*"
+  ],
+  "background": {"service_worker": "background.js"},
+  "content_scripts": [
+    {
+      "matches": ["https://eymm.gib.gov.tr/*"],
+      "js": ["gib-main.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://eymm.gib.gov.tr/portal/karsitIncelemeTutanagi*"],
+      "js": ["gib-content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://webtasarim70.github.io/ekarsit/*"],
+      "js": ["app-content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
