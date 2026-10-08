@@ -1,23 +1,40 @@
 let ymmMenuOpen=false;
+function setResponsiveSidebarButton(open){
+  const btn=document.getElementById('sidebar-toggle');
+  if(!btn)return;
+  btn.setAttribute('aria-expanded',String(!!open));
+  btn.setAttribute('aria-label',open?'Menüyü kapat':'Menüyü aç');
+  btn.title=open?'Menüyü kapat':'Menüyü aç';
+  btn.textContent=open?'✕':'☰';
+}
 function toggleResponsiveSidebar(force){
-  const app=document.getElementById('app'), body=document.getElementById('app-body'), btn=document.getElementById('sidebar-toggle');
+  const app=document.getElementById('app'), body=document.getElementById('app-body');
   if(!app||!body)return;
-  if(window.matchMedia('(max-width: 900px)').matches){
+  const mobile=window.matchMedia('(max-width:900px)').matches;
+  if(mobile){
     const open=typeof force==='boolean'?force:!body.classList.contains('sidebar-open');
     body.classList.toggle('sidebar-open',open);
-    if(btn){btn.setAttribute('aria-expanded',String(open));btn.textContent=open?'✕':'☰';}
+    setResponsiveSidebarButton(open);
   }else{
-    const collapsed=typeof force==='boolean'?force:!app.classList.contains('sidebar-collapsed');
+    const collapsed=typeof force==='boolean'?!force:!app.classList.contains('sidebar-collapsed');
     app.classList.toggle('sidebar-collapsed',collapsed);
-    if(btn)btn.setAttribute('aria-expanded',String(!collapsed));
+    body.classList.remove('sidebar-open');
+    setResponsiveSidebarButton(!collapsed);
   }
 }
 function closeResponsiveSidebar(){
-  const body=document.getElementById('app-body'),btn=document.getElementById('sidebar-toggle');
+  const body=document.getElementById('app-body');
   if(body)body.classList.remove('sidebar-open');
-  if(btn){btn.setAttribute('aria-expanded','false');btn.textContent='☰';}
+  setResponsiveSidebarButton(false);
 }
-window.addEventListener('resize',()=>{if(window.matchMedia('(min-width:901px)').matches)closeResponsiveSidebar();});
+window.addEventListener('resize',()=>{
+  const app=document.getElementById('app');
+  if(window.matchMedia('(min-width:901px)').matches){
+    setResponsiveSidebarButton(!app?.classList.contains('sidebar-collapsed'));
+  }else{
+    setResponsiveSidebarButton(Boolean(document.getElementById('app-body')?.classList.contains('sidebar-open')));
+  }
+});
 
 /* ============================================================
    Navigasyon / uygulama başlatma
