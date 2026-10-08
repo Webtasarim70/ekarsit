@@ -194,18 +194,39 @@ async function renderTebligatYaziTakipPage(){
     const listCard=el('div',{class:'card',style:'margin-top:14px;'});
     listCard.appendChild(el('h3',{},'Kayıtlar — '+data.records.length));
     if(!data.records.length){listCard.appendChild(el('div',{class:'hint info'},'Henüz kayıt bulunmuyor.'));host.appendChild(listCard);return;}
+    const columns=[['İlgili Mükellef',r=>r.mukellef],['Dönem',r=>r.donem],['Yazı Tarihi',r=>r.yaziTarihi],['Tebliğ Tarihi',r=>r.tebligTarihi],['Son Tarih',r=>r.sonTarih],['Durum',r=>r.durum]];
+    const tools=el('div',{class:'table-search-tools'});
+    const globalSearch=el('input',{class:'input',placeholder:'Gelişmiş arama: mükellef, dönem, tarih, durum…'});
+    tools.appendChild(globalSearch);
+    const fieldFilters=el('div',{class:'table-column-filters'});
+    const filters=columns.map(([label])=>{const box=el('div',{class:'field'});box.appendChild(el('label',{},label+' filtresi'));const input=el('input',{class:'input',placeholder:label+' ara…'});box.appendChild(input);fieldFilters.appendChild(box);return input;});
+    tools.appendChild(fieldFilters);listCard.appendChild(tools);
     const table=el('table',{class:'editable-table'});
-    const head=el('tr');['İlgili Mükellef','Dönem','Yazı Tarihi','Tebliğ Tarihi','Son Tarih','Durum','İşlem'].forEach(x=>head.appendChild(el('th',{},x)));table.appendChild(el('thead',{},head));
-    const body=el('tbody');
-    data.records.forEach(rec=>{
-      const tr=el('tr');
-      [rec.mukellef,rec.donem,tebligatDateDisplay(rec.yaziTarihi),tebligatDateDisplay(rec.tebligTarihi),tebligatDateDisplay(rec.sonTarih),rec.durum].forEach(v=>tr.appendChild(el('td',{},v||'—')));
-      const actions=el('td',{style:'white-space:nowrap;text-align:center;'});
-      actions.appendChild(el('button',{class:'btn btn-secondary',title:'Düzenle',style:'padding:5px 9px;margin-right:4px;',onclick:async()=>{tebligatEditingId=rec.id;await render();}},'✎'));
-      actions.appendChild(el('button',{class:'btn btn-secondary',title:'Sil',style:'padding:5px 9px;',onclick:()=>tebligatDeleteRecord(rec.id)},'🗑'));
-      tr.appendChild(actions);body.appendChild(tr);
-    });
-    table.appendChild(body);const sc=el('div',{class:'table-scroll'});sc.appendChild(table);listCard.appendChild(sc);host.appendChild(listCard);
+    const thead=el('thead');const head=el('tr');let sortIndex=-1,sortDirection=1;
+    columns.forEach(([label],i)=>{const th=el('th',{class:'sortable-th',title:'Sıralamak için tıklayın'},label+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});head.appendChild(th);});
+    head.appendChild(el('th',{},'İşlem'));thead.appendChild(head);table.appendChild(thead);
+    const body=el('tbody');table.appendChild(body);
+    const draw=()=>{
+      body.innerHTML='';
+      const q=String(globalSearch.value||'').trim().toLocaleLowerCase('tr-TR');
+      const rows=data.records.filter(rec=>{
+        const vals=columns.map(([,get])=>String(get(rec)||''));
+        return (!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q)))&&filters.every((input,i)=>!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR').includes(input.value.trim().toLocaleLowerCase('tr-TR')));
+      });
+      if(sortIndex>=0) rows.sort((a,b)=>String(columns[sortIndex][1](a)||'').localeCompare(String(columns[sortIndex][1](b)||''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
+      listCard.querySelector('h3').textContent='Kayıtlar — '+rows.length+' / '+data.records.length;
+      rows.forEach(rec=>{
+        const tr=el('tr');
+        columns.forEach(([,get])=>tr.appendChild(el('td',{},get(rec)||'—')));
+        const actions=el('td',{style:'white-space:nowrap;text-align:center;'});
+        actions.appendChild(el('button',{class:'btn btn-secondary',title:'Düzenle',style:'padding:5px 9px;margin-right:4px;',onclick:async()=>{tebligatEditingId=rec.id;await render();}},'✎'));
+        actions.appendChild(el('button',{class:'btn btn-secondary',title:'Sil',style:'padding:5px 9px;',onclick:()=>tebligatDeleteRecord(rec.id)},'🗑'));
+        tr.appendChild(actions);body.appendChild(tr);
+      });
+      if(!rows.length)body.appendChild(el('tr',{},[el('td',{colSpan:'7',style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
+    };
+    globalSearch.addEventListener('input',draw);filters.forEach(input=>input.addEventListener('input',draw));
+    draw();const sc=el('div',{class:'table-scroll'});sc.appendChild(table);listCard.appendChild(sc);host.appendChild(listCard);const sc=el('div',{class:'table-scroll'});sc.appendChild(table);listCard.appendChild(sc);host.appendChild(listCard);
   };
   window.tebligatYaziTakipRerender=render;
   await render();
