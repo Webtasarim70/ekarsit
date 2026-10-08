@@ -163,17 +163,23 @@ async function renderIadeTakipListesiPage(){
     form.appendChild(grid);form.appendChild(btn);form.appendChild(dl);form.appendChild(status);host.appendChild(form);
     const list=el('div',{class:'card',style:'margin-top:14px;'}); list.appendChild(el('h3',{},'İade Kayıtları — '+data.records.length));
     if(!data.records.length){list.appendChild(el('div',{class:'hint info'},'Henüz kayıt bulunmuyor.'));host.appendChild(list);return;}
-    const table=el('table',{class:'editable-table'}), trh=el('tr');
-    ['Firma','Dönem','İade Türü','Tutar (TL)','İade Durumu','İş Durumu','Açıklama','Ek Bilgiler','İşlem'].forEach(x=>trh.appendChild(el('th',{},x)));
-    table.appendChild(el('thead',{},trh)); const body=el('tbody');
-    data.records.forEach(r=>{
-      const tr=el('tr'); [r.firma,r.donem,r.iadeTuru,r.tutar===''?'':Number(r.tutar).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}),r.iadeDurumu||'—',r.isDurumu||'—',r.aciklama||'—',r.ekBilgiler||'—'].forEach(v=>tr.appendChild(el('td',{},v)));
-      const a=el('td',{style:'white-space:nowrap;text-align:center;'});
-      a.appendChild(el('button',{class:'btn btn-secondary',title:'Düzenle',style:'padding:5px 9px;margin-right:4px;',onclick:async()=>{iadeEditingId=r.id;await render();}},'✎'));
-      a.appendChild(el('button',{class:'btn btn-secondary',title:'Sil',style:'padding:5px 9px;',onclick:()=>iadeTakipDeleteRecord(r.id)},'🗑'));
-      tr.appendChild(a);body.appendChild(tr);
-    });
-    table.appendChild(body);const sc=el('div',{class:'table-scroll'});sc.appendChild(table);list.appendChild(sc);host.appendChild(list);
+    const columns=[['Firma',r=>r.firma],['Dönem',r=>r.donem],['İade Türü',r=>r.iadeTuru],['Tutar (TL)',r=>r.tutar===''?'':Number(r.tutar).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})],['İade Durumu',r=>r.iadeDurumu],['İş Durumu',r=>r.isDurumu],['Açıklama',r=>r.aciklama],['Ek Bilgiler',r=>r.ekBilgiler]];
+    const tools=el('div',{class:'table-search-tools'});
+    const globalSearch=el('input',{class:'input',placeholder:'Gelişmiş arama: firma, dönem, tutar, durum, açıklama…'});tools.appendChild(globalSearch);
+    const fieldFilters=el('div',{class:'table-column-filters'});const filters=columns.map(([label])=>{const box=el('div',{class:'field'});box.appendChild(el('label',{},label+' filtresi'));const input=el('input',{class:'input',placeholder:label+' ara…'});box.appendChild(input);fieldFilters.appendChild(box);return input;});tools.appendChild(fieldFilters);list.appendChild(tools);
+    const table=el('table',{class:'editable-table'}),thead=el('thead'),trh=el('tr');let sortIndex=-1,sortDirection=1;
+    columns.forEach(([label],i)=>{const th=el('th',{class:'sortable-th',title:'Sıralamak için tıklayın'},label+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});trh.appendChild(th);});
+    trh.appendChild(el('th',{},'İşlem'));thead.appendChild(trh);table.appendChild(thead);const body=el('tbody');table.appendChild(body);
+    const draw=()=>{
+      body.innerHTML='';const q=String(globalSearch.value||'').trim().toLocaleLowerCase('tr-TR');
+      const rows=data.records.filter(r=>{const vals=columns.map(([,get])=>String(get(r)??''));return (!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q)))&&filters.every((input,i)=>!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR').includes(input.value.trim().toLocaleLowerCase('tr-TR')));});
+      if(sortIndex>=0)rows.sort((a,b)=>String(columns[sortIndex][1](a)??'').localeCompare(String(columns[sortIndex][1](b)??''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
+      list.querySelector('h3').textContent='İade Kayıtları — '+rows.length+' / '+data.records.length;
+      rows.forEach(r=>{const tr=el('tr');columns.forEach(([label,get])=>{let value=get(r);if(value==null||value==='')value='—';tr.appendChild(el('td',{},String(value)));});
+        const a=el('td',{style:'white-space:nowrap;text-align:center;'});a.appendChild(el('button',{class:'btn btn-secondary',title:'Düzenle',style:'padding:5px 9px;margin-right:4px;',onclick:async()=>{iadeEditingId=r.id;await render();}},'✎'));a.appendChild(el('button',{class:'btn btn-secondary',title:'Sil',style:'padding:5px 9px;',onclick:()=>iadeTakipDeleteRecord(r.id)},'🗑'));tr.appendChild(a);body.appendChild(tr);});
+      if(!rows.length)body.appendChild(el('tr',{},[el('td',{colSpan:'9',style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
+    };
+    globalSearch.addEventListener('input',draw);filters.forEach(input=>input.addEventListener('input',draw));draw();const sc=el('div',{class:'table-scroll'});sc.appendChild(table);list.appendChild(sc);host.appendChild(list);const sc=el('div',{class:'table-scroll'});sc.appendChild(table);list.appendChild(sc);host.appendChild(list);
   };
   window.iadeTakipRerender=render; await render();
   document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('btn-next').textContent='İade Takip Listesi';document.getElementById('footer-msg').textContent='İade Takip Listesi';renderNav();
