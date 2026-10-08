@@ -9,14 +9,47 @@
 <body>
   <div id="app">
     <header id="app-header">
-      <div class="brand">
+      <div class="brand" id="app-brand" title="Hoş Geldiniz ekranına dön" style="cursor:pointer;">
         <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0Ij48cmVjdCB4PSIyIiB5PSIyIiB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHJ4PSIxMCIgZmlsbD0iI2ZmZiIvPjx0ZXh0IHg9IjMyIiB5PSI0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLEhlbHZldGljYSxzYW5zLXNlcmlmIiBmb250LXNpemU9IjUyIiBmb250LXdlaWdodD0iNzAwIiBmb250LXN0eWxlPSJpdGFsaWMiIGZpbGw9IiNjNjI4MjgiPmU8L3RleHQ+PC9zdmc+" alt="e" />
         <div>
           <h1>KDV İade &middot; Karşıt İnceleme Arşiv Sihirbazı <small style="font-weight:600;opacity:.75">v1.5</small></h1>
           <p class="subtitle">Tarayıcıdan bağımsız çalışır &middot; Hiçbir dosya internete gönderilmez, her şey bu sekmede işlenir.</p>
         </div>
       </div>
+      <div class="theme-picker" title="Görünüm">
+        <select id="theme-selector" aria-label="Görünüm seç">
+          <option value="light">☀ Aydınlık</option>
+          <option value="dark">☾ Karanlık</option>
+          <option value="slate">◈ Slate</option>
+          <option value="emerald">● Emerald</option>
+          <option value="corporate">◆ Kurumsal Mavi</option>
+          <option value="indigo">◆ Indigo</option>
+          <option value="burgundy">◆ Bordo</option>
+          <option value="graphite">◆ Antrasit</option>
+          <option value="ocean">◆ Okyanus</option>
+          <option value="sand">◆ Kum</option>
+          <option value="rose">◆ Gül</option>
+          <option value="contrast">◆ Yüksek Kontrast</option>
+        </select>
+      </div>
+      <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Yan menüyü aç/kapat" aria-expanded="true" title="Yan menüyü aç/kapat">☰</button>
     </header>
+  <script>
+  (function(){
+    const key="ekarsit-theme";
+    function applyTheme(theme){
+      document.body.classList.remove("theme-dark","theme-slate","theme-emerald","theme-corporate","theme-indigo","theme-burgundy","theme-graphite","theme-ocean","theme-sand","theme-rose","theme-contrast");
+      if(theme!=="light") document.body.classList.add("theme-"+theme);
+      const sel=document.getElementById("theme-selector");
+      if(sel) sel.value=theme;
+      try{localStorage.setItem(key,theme);}catch(e){}
+    }
+    const saved=(()=>{try{return localStorage.getItem(key)||"light";}catch(e){return "light";}})();
+    applyTheme(saved);
+    document.getElementById("theme-selector").addEventListener("change",e=>applyTheme(e.target.value));
+    document.getElementById("app-brand").addEventListener("click",()=>{if(typeof renderWelcomePage==="function") renderWelcomePage();});
+  })();
+  </script>
 
     <div id="app-body">
       <nav id="step-nav"></nav>
@@ -57,5 +90,18 @@
 <script src="js/13_xml_kdv_listesi.js"></script>
 <script src="js/14_user_tools.js"></script>
 <script src="js/15_ymm_cevap_yazisi.js"></script>
-<script src="js/16_ymm_rehberleri.js"></script></body>
+<script src="js/16_ymm_rehberleri.js"></script>
+<script src="js/17_tebligat_yazi_takip.js"></script>
+<script src="js/18_iade_takip_listesi.js"></script>
+<script src="js/19_e_karsit_takip.js"></script><script>
+document.addEventListener("DOMContentLoaded",()=>{
+  const btn=document.getElementById("sidebar-toggle");
+  const nav=document.getElementById("step-nav");
+  if(btn) btn.addEventListener("click",()=>{ if(typeof toggleResponsiveSidebar==="function") toggleResponsiveSidebar(); });
+  if(nav) nav.addEventListener("click",e=>{
+    if(e.target.closest(".nav-item") && window.matchMedia("(max-width: 900px)").matches && typeof closeResponsiveSidebar==="function") closeResponsiveSidebar();
+  });
+});
+</script>
+</body>
 </html>

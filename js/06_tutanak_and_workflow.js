@@ -721,40 +721,115 @@ function renderDoluTutanakUploadPage(){
   document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('footer-msg').textContent='Dolu Karşıt Kontrol — Tutanak Yükle';renderNav();
 }
 
-function renderWelcomePage(){
+async function renderWelcomePage(){
   currentPage='welcome'; archiveViewParsed=null; currentStep=-1;
   const content=document.getElementById('step-content'); content.innerHTML='';
 
-  content.appendChild(el('h2',{class:'step-title'},'Hoş Geldiniz'));
-  content.appendChild(el('p',{class:'step-desc'},'KDV İade · Karşıt İnceleme Arşiv Sihirbazı'));
+  const connected=typeof userStore!=='undefined' && !!userStore?.sessionConnected && !!userStore?.directoryHandle;
+  if(!connected){
+    content.appendChild(el('h2',{class:'step-title'},'Hoş Geldiniz'));
+    content.appendChild(el('p',{class:'step-desc'},'KDV İade · Karşıt İnceleme Arşiv Sihirbazı'));
 
-  const intro=el('div',{class:'card'});
-  intro.appendChild(el('h3',{},'Uygulama'));
-  intro.appendChild(el('p',{},'Karşıt inceleme çalışmasında kullanılan belge ve bilgileri tek bir çalışma akışında toplar, uygun alanları belgelerden otomatik doldurur ve çalışma sonunda tabloları hazırlar.'));
-  intro.appendChild(el('p',{class:'hint info'},'Dosyalar tarayıcı içinde işlenir. Veriler, yüklediğiniz belgeler ve tanımladığınız kullanıcı/firma arşivleri üzerinden çalışılır.'));
-  content.appendChild(intro);
+    const intro=el('div',{class:'card'});
+    intro.appendChild(el('h3',{},'Uygulama'));
+    intro.appendChild(el('p',{},'Karşıt inceleme çalışmasında kullanılan belge ve bilgileri tek bir çalışma akışında toplar, uygun alanları belgelerden otomatik doldurur ve çalışma sonunda tabloları hazırlar.'));
+    intro.appendChild(el('p',{class:'hint info'},'Kullanıcı klasörünüzü bağladığınızda bu ekran, çalışmalarınızı özetleyen bir ana panele dönüşür.'));
+    content.appendChild(intro);
 
-  const startCard=el('div',{class:'card'});
-  startCard.appendChild(el('h3',{},'Nereden Başlamalı?'));
-  const ul=el('ul',{style:'margin:8px 0 0 20px;line-height:1.8;'});
-  [
-    'Karşıt inceleme çalışması için soldaki “Gelen Karşıt” bölümünden tutanağı yükleyin.',
-    'Kullanıcı ve firma arşivlerinizi “Kullanıcı” ve “Firma Arşiv İşlemleri” bölümlerinden yönetin.',
-    'Belgeleri ilgili bölümlere yükledikçe bilgiler çalışma tablolarına aktarılır.'
-  ].forEach(x=>ul.appendChild(el('li',{},x)));
-  startCard.appendChild(ul);
-  content.appendChild(startCard);
+    const startCard=el('div',{class:'card'});
+    startCard.appendChild(el('h3',{},'Nereden Başlamalı?'));
+    const ul=el('ul',{style:'margin:8px 0 0 20px;line-height:1.8;'});
+    ['Karşıt inceleme çalışması için soldaki “Gelen Karşıt” bölümünden tutanağı yükleyin.','Kullanıcı ve firma arşivlerinizi “Kullanıcı” ve “Firma Arşiv İşlemleri” bölümlerinden yönetin.','Belgeleri ilgili bölümlere yükledikçe bilgiler çalışma tablolarına aktarılır.'].forEach(x=>ul.appendChild(el('li',{},x)));
+    startCard.appendChild(ul); content.appendChild(startCard);
+    const note=el('div',{class:'card'});
+    note.appendChild(el('h3',{},'Kısa Not'));
+    note.appendChild(el('p',{},'Menüler, yalnızca ihtiyaç duyulan aşamaları kullanıma açacak şekilde çalışır. Bir bölümde istenen temel bilgi tamamlanmadan sonraki çalışma adımları aktif olmayabilir.'));
+    content.appendChild(note);
+  }else{
+    let ymmCount=0, tebligatCount=0, yaklasanCount=0, iadeCount=0;
+    let eKarsitTotal=0, eKarsitCevapBekliyor=0, eKarsitPasifTalepBekliyor=0, eKarsitIptalTalepBekliyor=0, eKarsitPasifeCekilmis=0;
+    try{
+      if(typeof ymmGuideRead==='function'){
+        const yd=await ymmGuideRead(YMM_REHBER_FILE,{kayitlar:[]});
+        ymmCount=typeof ymmGuideNormalizeYmm==='function'?ymmGuideNormalizeYmm(yd).length:(Array.isArray(yd?.kayitlar)?yd.kayitlar.length:0);
+      }
+    }catch(e){}
+    try{
+      if(typeof tebligatRead==='function'){
+        const td=await tebligatRead(); tebligatCount=Array.isArray(td?.records)?td.records.length:0;
+        yaklasanCount=typeof tebligatYaziTakipYaklasanCount==='function'?tebligatYaziTakipYaklasanCount(td.records):0;
+      }
+    }catch(e){}
+    try{
+      if(typeof iadeTakipRead==='function'){
+        const id=await iadeTakipRead(); iadeCount=Array.isArray(id?.records)?id.records.length:0;
+      }
+    }catch(e){}
+    try{
+      if(typeof eKarsitTakipRead==='function'){
+        const ed=await eKarsitTakipRead();
+        const records=Array.isArray(ed?.records)?ed.records:[];
+        const statusOf=r=>String(r?.['Durum']??'').trim().toLocaleLowerCase('tr-TR');
+        eKarsitTotal=records.length;
+        eKarsitCevapBekliyor=records.filter(r=>statusOf(r)==='cevap bekliyor').length;
+        eKarsitPasifTalepBekliyor=records.filter(r=>statusOf(r)==='gönderilen pasif talebi onay bekliyor').length;
+        eKarsitIptalTalepBekliyor=records.filter(r=>statusOf(r)==='gönderilen iptal talebi onay bekliyor').length;
+        eKarsitPasifeCekilmis=records.filter(r=>statusOf(r)==='pasife çekilmiş').length;
+      }
+    }catch(e){}
 
-  const note=el('div',{class:'card'});
-  note.appendChild(el('h3',{},'Kısa Not'));
-  note.appendChild(el('p',{},'Menüler, yalnızca ihtiyaç duyulan aşamaları kullanıma açacak şekilde çalışır. Bir bölümde istenen temel bilgi tamamlanmadan sonraki çalışma adımları aktif olmayabilir.'));
-  content.appendChild(note);
+    const info=userCurrentInfo();
+    const adSoyad=String(info?.kullanici?.adSoyad||'').trim()||'Kullanıcı';
+    const firmCount=Array.isArray(userStore.firms)?userStore.firms.length:0;
+    const archiveCount=(Array.isArray(userStore.files)?userStore.files:[]).filter(x=>/\.(xlsx|xlsm)$/i.test(String(x?.name||'')) && !/^~\\$/i.test(String(x?.name||''))).length;
+
+    content.appendChild(el('h2',{class:'step-title'},'Hoş Geldiniz, '+adSoyad));
+    content.appendChild(el('p',{class:'step-desc'},'Çalışma paneliniz hazır. Aşağıdaki kutulardan ilgili bölüme hızlıca geçebilirsiniz.'));
+
+    const grid=el('div',{style:'display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:18px;'});
+    const dashboardCards=[
+      ['📁','Arşiv Dosyaları',archiveCount,'Kullanıcı klasöründeki firma arşivleri','archive-upload'],
+      ['🏢','Firma Bilgileri',firmCount,'Arşivinizde kayıtlı firmalar','user-info'],
+      ['👤','YMM Bilgileri',ymmCount,'YMM rehberindeki kayıtlar','ymm-rehber'],
+      ['✉','Eksiklik Yazıları',tebligatCount,'Tebligat / yazı takip kayıtları','tebligat-yazi-takip'],
+      ['⏰','Süresi Gelen Yazılar',yaklasanCount,'Önümüzdeki 5 gün içindeki yazılar','tebligat-yazi-takip'],
+      ['↩','İade Takipleri',iadeCount,'İade takip listesi kayıtları','iade-takip-listesi'],
+      ['↔','Toplam Karşıt',eKarsitTotal,'e-Karşıt takip kayıtlarının tamamı','e-karsit-takip'],
+      ['↩','Cevap Bekliyor',eKarsitCevapBekliyor,'Cevabı beklenen karşıt incelemeler','e-karsit-takip'],
+      ['⏳','Gönderilen Pasif Talebi Onay Bekliyor',eKarsitPasifTalepBekliyor,'Pasife çekme talebi onay bekleyen kayıtlar','e-karsit-takip'],
+      ['⏳','Gönderilen İptal Talebi Onay Bekliyor',eKarsitIptalTalepBekliyor,'İptal talebi onay bekleyen kayıtlar','e-karsit-takip'],
+      ['⛔','Pasife Çekilmiş',eKarsitPasifeCekilmis,'Pasife çekilmiş karşıt incelemeler','e-karsit-takip']
+    ];
+    dashboardCards.forEach(([icon,title,count,desc,page])=>{
+      const card=el('div',{class:'card',style:'margin:0;cursor:pointer;min-height:132px;transition:transform .15s,box-shadow .15s;',onclick:()=>{
+        if(page==='archive-upload') renderArchiveUploadPage();
+        else if(page==='user-info') renderUserInfoPage();
+        else if(page==='ymm-rehber') renderYmmRehberPage();
+        else if(page==='tebligat-yazi-takip') renderTebligatYaziTakipPage();
+        else if(page==='iade-takip-listesi') renderIadeTakipListesiPage();
+        else if(page==='e-karsit-takip') renderEKarsitTakipPage();
+      }});
+      card.onmouseenter=()=>{card.style.transform='translateY(-2px)';card.style.boxShadow='0 6px 18px rgba(0,0,0,.08)';};
+      card.onmouseleave=()=>{card.style.transform='';card.style.boxShadow='';};
+      card.appendChild(el('div',{style:'font-size:25px;'},icon));
+      card.appendChild(el('div',{style:'font-size:30px;font-weight:700;line-height:1.15;margin-top:5px;'},String(count)));
+      card.appendChild(el('div',{style:'font-weight:700;margin-top:4px;'},title));
+      card.appendChild(el('div',{class:'hint',style:'margin-top:4px;'},desc));
+      grid.appendChild(card);
+    });
+    content.appendChild(grid);
+
+    const activeArchive=state?.existingArchiveParsed?.mukellef;
+    const statusCard=el('div',{class:'card',style:'margin-top:16px;'});
+    statusCard.appendChild(el('h3',{},'Çalışma Durumu'));
+    statusCard.appendChild(el('div',{class:'hint ok'},'✓ Kullanıcı klasörü bağlı ve oturum otomatik olarak hatırlanıyor.'));
+    statusCard.appendChild(el('div',{class:'hint info',style:'margin-top:6px;'},activeArchive?('Aktif Firma Arşivi: '+(activeArchive.unvan||activeArchive.vkn||'—')):'Aktif Firma Arşivi: Henüz seçilmedi'));
+    content.appendChild(statusCard);
+  }
 
   document.getElementById('btn-prev').disabled=true;
   document.getElementById('btn-next').disabled=true;
-  document.getElementById('btn-next').textContent='Gelen Karşıt →';
-  document.getElementById('btn-next').title='Karşıt inceleme çalışma ekranına geçmek için soldaki “Gelen Karşıt” bağlantısını kullanın.';
-  document.getElementById('footer-msg').textContent='Hoş Geldiniz';
+  document.getElementById('footer-msg').textContent=connected?'Dashboard':'Hoş Geldiniz';
   renderNav();
 }
 function finalArchivePeriod(period){ return String(period||'').trim(); }

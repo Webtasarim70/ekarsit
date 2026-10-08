@@ -27,6 +27,78 @@ function ymmGuideNormalizeFirma(d){
 function ymmGuideFieldsYmm(){
   return [['adSoyad','Adı Soyadı'],['oda','Bağlı Olduğu Oda'],['sicil','Oda Sicil / Mühür No'],['vkn','VKN / T.C. No'],['vergiDairesi','Vergi Dairesi'],['adres','Adres'],['telefon','Telefon / Faks'],['ePosta','E-posta']];
 }
+async function ymmGuideCreateArchiveFirm(v){
+  if(!userStore.directoryHandle) throw new Error('Önce kullanıcı klasörünü seçin.');
+  const unvan=String(v?.unvan||'').trim();
+  const vkn=userVkn(v?.vkn);
+  const vergiDairesi=String(v?.vergiDairesi||'').trim();
+  if(!unvan) throw new Error('Firma ünvanı zorunludur.');
+  if(!vkn) throw new Error('Vergi Kimlik No / T.C. Kimlik No zorunludur.');
+
+  const existing=userStore.firms.find(x=>userVkn(x.vkn)===vkn);
+  if(existing) throw new Error('Bu VKN/T.C. Kimlik No ile kullanıcı arşivinde zaten bir firma bulunuyor.');
+
+  const folder=await userEnsureVknFolder(vkn,unvan);
+  const safe=userFileSafeName(unvan);
+  const target='ARSIV_'+safe+'.xlsx';
+  const parsed={
+    mukellef:{unvan,vkn,vergiDairesi},
+    ortaklar:[],defterler:[],faturalar:[],isciler:[],
+    kdvBeyanlari:[],imalatcilar:[],tedarikciler:[]
+  };
+  const wb=buildArchiveWorkbook(parsed);
+  await userWriteWorkbook(folder,target,wb);
+  await userWriteJson(userStore.directoryHandle,'KULLANICI_BILGILERI.json',userCurrentInfo());
+  await userScanCurrentFolder();
+  return userStore.firms.find(x=>userVkn(x.vkn)===vkn)||null;
+}
+
+function ymmGuideArchiveFirmTable(records){
+  const box=el('div',{class:'card',style:'margin-top:18px;'});
+  box.appendChild(el('h3',{},'Kullanıcının Arşivindeki Firmalar'));
+  box.appendChild(el('div',{class:'hint info'},'Kullanıcı klasöründe bulunan firma arşiv Excel dosyaları burada ayrı olarak listelenir. Yeni firma eklendiğinde VKN klasörü ve arşiv Excel dosyası otomatik oluşturulur.'));
+  const addHost=el('div',{});
+  const addBtn=el('button',{class:'btn btn-primary',style:'margin-top:10px;',onclick:()=>{
+    addHost.innerHTML='';
+    const form=el('div',{class:'card',style:'margin-top:10px;background:#fbfdfd;'});
+    form.appendChild(el('h4',{},'Yeni Arşiv Firması Ekle'));
+    const inputs={};
+    [['unvan','Firma Ünvanı'],['vkn','Vergi Kimlik No / T.C. Kimlik No'],['vergiDairesi','Vergi Dairesi']].forEach(([k,l])=>{
+      const row=el('div',{style:'display:grid;grid-template-columns:230px 1fr;gap:10px;align-items:center;margin:8px 0;'});
+      row.appendChild(el('label',{},l));
+      const input=el('input',{class:'input',placeholder:l});
+      inputs[k]=input;row.appendChild(input);form.appendChild(row);
+    });
+    const actions=el('div',{style:'display:flex;gap:8px;margin-top:12px;'});
+    actions.appendChild(el('button',{class:'btn btn-primary',onclick:async()=>{
+      try{
+        await ymmGuideCreateArchiveFirm({unvan:inputs.unvan.value,vkn:inputs.vkn.value,vergiDairesi:inputs.vergiDairesi.value});
+        addHost.innerHTML='';
+        render();
+      }catch(e){alert('Firma arşivi oluşturulamadı: '+e.message);}
+    }},'Kaydet'));
+    actions.appendChild(el('button',{class:'btn',onclick:()=>{addHost.innerHTML='';}},'Vazgeç'));
+    form.appendChild(actions);addHost.appendChild(form);
+  }},'+ Yeni Arşiv Firması Ekle');
+  box.appendChild(addBtn);box.appendChild(addHost);
+
+  const tableWrap=el('div',{style:'overflow:auto;margin-top:14px;'});
+  if(!records.length){
+    tableWrap.appendChild(el('div',{class:'hint info'},'Kullanıcı klasöründe henüz firma arşiv Excel dosyası bulunmuyor.'));
+    box.appendChild(tableWrap);return box;
+  }
+  const table=el('table',{class:'table',style:'width:100%;'});
+  const tr=el('tr',{});
+  ['Firma Ünvanı','Vergi Kimlik No','Vergi Dairesi','Arşiv Excel','Kayıt'].forEach(h=>tr.appendChild(el('th',{},h)));
+  table.appendChild(tr);
+  records.forEach(f=>{
+    const row=el('tr',{});
+    [f.unvan||'—',f.vkn||'—',f.vergiDairesi||'—',f.fileName||((f.files||[]).join(', ')||'—'),String(f.recordCount||0)].forEach(v=>row.appendChild(el('td',{},v)));
+    table.appendChild(row);
+  });
+  tableWrap.appendChild(table);box.appendChild(tableWrap);return box;
+}
+
 function ymmGuideFieldsFirma(){
   return [['unvan','Firma Ünvanı'],['vkn','Vergi Kimlik No'],['vergiDairesi','Vergi Dairesi'],['adres','Adres'],['telefon','Telefon / Faks'],['ePosta','E-posta'],['oda','Bağlı Olduğu Oda'],['sicil','Oda Sicil No']];
 }
@@ -116,6 +188,7 @@ async function renderFirmaRehberPage(){
   c.appendChild(el('p',{class:'step-desc'},'Firma bilgilerini yazılardan bağımsız bir telefon/adres defteri gibi kaydedin. Kayıtlar kullanıcı klasöründe FIRMA_REHBER.json dosyasında tutulur.'));
   const d=await ymmGuideRead(FIRMA_REHBER_FILE,{kayitlar:[]});let records=ymmGuideNormalizeFirma(d);
   const stateBox=el('div',{});c.appendChild(stateBox);
+  const archiveRecords=()=>Array.isArray(userStore.firms)?userStore.firms.slice():[];
   const render=()=>{
     stateBox.innerHTML='';
     const card=el('div',{class:'card'});card.appendChild(el('h3',{},'Firma Kayıtları'));
@@ -128,7 +201,13 @@ async function renderFirmaRehberPage(){
     const view=el('div',{});card.appendChild(el('h4',{style:'margin-top:22px;'},'Görüntüleme'));card.appendChild(view);
     const save=async()=>{try{await ymmGuideWrite(FIRMA_REHBER_FILE,{kayitlar:records});}catch(e){alert('Firma rehberi kaydedilemedi: '+e.message);throw e;}};
     ymmGuideViewToggle(view,records,ymmGuideFieldsFirma(),edit,del);
-    c.appendChild(card);
+    stateBox.appendChild(card);
+    const archiveBox=ymmGuideArchiveFirmTable(archiveRecords());
+    const refreshArchive=el('button',{class:'btn btn-secondary',style:'margin-top:10px;',onclick:async()=>{
+      try{await userScanCurrentFolder();render();}catch(e){alert('Arşiv firmaları güncellenemedi: '+e.message);}
+    }},'↻ Arşiv Firmalarını Güncelle');
+    archiveBox.appendChild(refreshArchive);
+    stateBox.appendChild(archiveBox);
   };
   render();document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('footer-msg').textContent='Firma Rehberi';renderNav();
 }

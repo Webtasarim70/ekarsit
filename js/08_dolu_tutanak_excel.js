@@ -1,4 +1,41 @@
 let ymmMenuOpen=false;
+function setResponsiveSidebarButton(open){
+  const btn=document.getElementById('sidebar-toggle');
+  if(!btn)return;
+  btn.setAttribute('aria-expanded',String(!!open));
+  btn.setAttribute('aria-label',open?'Menüyü kapat':'Menüyü aç');
+  btn.title=open?'Menüyü kapat':'Menüyü aç';
+  btn.textContent=open?'✕':'☰';
+}
+function toggleResponsiveSidebar(force){
+  const app=document.getElementById('app'), body=document.getElementById('app-body');
+  if(!app||!body)return;
+  const mobile=window.matchMedia('(max-width:900px)').matches;
+  if(mobile){
+    const open=typeof force==='boolean'?force:!body.classList.contains('sidebar-open');
+    body.classList.toggle('sidebar-open',open);
+    setResponsiveSidebarButton(open);
+  }else{
+    const collapsed=typeof force==='boolean'?!force:!app.classList.contains('sidebar-collapsed');
+    app.classList.toggle('sidebar-collapsed',collapsed);
+    body.classList.remove('sidebar-open');
+    setResponsiveSidebarButton(!collapsed);
+  }
+}
+function closeResponsiveSidebar(){
+  const body=document.getElementById('app-body');
+  if(body)body.classList.remove('sidebar-open');
+  setResponsiveSidebarButton(false);
+}
+window.addEventListener('resize',()=>{
+  const app=document.getElementById('app');
+  if(window.matchMedia('(min-width:901px)').matches){
+    setResponsiveSidebarButton(!app?.classList.contains('sidebar-collapsed'));
+  }else{
+    setResponsiveSidebarButton(Boolean(document.getElementById('app-body')?.classList.contains('sidebar-open')));
+  }
+});
+
 /* ============================================================
    Navigasyon / uygulama başlatma
    ============================================================ */
@@ -239,13 +276,24 @@ function renderNav() {
   const nav=document.getElementById('step-nav'); nav.innerHTML='';
 
   const userGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
-  userGroup.appendChild(el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{userMenuOpen=!userMenuOpen;renderNav();}},[
-    el('div',{class:'num'},userMenuOpen?'▾':'▸'), el('div',{},'Kullanıcı')
-  ]));
+  const userHeader=el('div',{class:'nav-item',style:'font-weight:700;color:var(--text);',onclick:()=>{userMenuOpen=!userMenuOpen;renderNav();}},[
+    el('div',{class:'num'},userMenuOpen?'▾':'▸'), el('div',{style:'flex:1;'},'Kullanıcı')
+  ]);
+  if(typeof userStore!=='undefined' && userStore.sessionConnected){
+    userHeader.appendChild(el('span',{style:'font-size:11px;color:#15803d;font-weight:700;'},'● BAĞLI'));
+  }else if(typeof userStore!=='undefined' && userStore.sessionNeedsPermission){
+    userHeader.appendChild(el('span',{style:'font-size:11px;color:#b45309;font-weight:700;'},'● İZİN GEREKLİ'));
+  }
+  userGroup.appendChild(userHeader);
   if(userMenuOpen){
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='user'?' active':''),style:'padding-left:50px;',onclick:()=>renderUserPage()},[el('div',{},'Kullanıcı')]));
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='ymm-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderYmmRehberPage()},[el('div',{},'YMM Rehberi')]));
     userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='firma-rehber'?' active':''),style:'padding-left:50px;',onclick:()=>renderFirmaRehberPage()},[el('div',{},'Firma Rehberi')]));
+    const tebligatNavItem=el('div',{class:'nav-item'+(currentPage==='tebligat-yazi-takip'?' active':''),style:'padding-left:50px;display:flex;align-items:center;justify-content:space-between;gap:8px;',onclick:()=>renderTebligatYaziTakipPage()},[el('div',{},'Tebligat Yazı Takip')]);
+    const tebligatBadge=el('span',{id:'tebligat-yazi-takip-badge',style:'display:'+(tebligatYaziTakipBadgeCount>0?'inline-flex':'none')+';align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#dc2626;color:#fff;font-size:12px;font-weight:700;line-height:20px;'} ,String(typeof tebligatYaziTakipBadgeCount!=='undefined'?tebligatYaziTakipBadgeCount:0));
+    tebligatNavItem.appendChild(tebligatBadge); userGroup.appendChild(tebligatNavItem);
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='iade-takip-listesi'?' active':''),style:'padding-left:50px;',onclick:()=>renderIadeTakipListesiPage()},[el('div',{},'İade Takip Listesi')]));
+    userGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='e-karsit-takip'?' active':''),style:'padding-left:50px;',onclick:()=>renderEKarsitTakipPage()},[el('div',{},'e-Karşıt Takip')]));
   }  nav.appendChild(userGroup);
 
   const archiveGroup=el('div',{style:'margin-top:0;border-bottom:1px solid var(--border);padding-bottom:8px;'});
@@ -258,7 +306,7 @@ function renderNav() {
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-upload'?' active':''),style:'padding-left:50px;',onclick:()=>renderArchiveUploadPage()},[el('div',{},'Firma Arşiv Dosyası Yükle / Oluştur')]));
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-view'?' active':'')+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveViewPage();}},[el('div',{},'Firma Arşiv Görüntüle')]));
     archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-edit'?' active':'')+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveEditPage();}},[el('div',{},'Firma Arşiv Düzenle')]));
-    archiveGroup.appendChild(el('div',{class:'nav-item'+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveDataImportPage();}},[el('div',{},'Dosyadan Veri Al')]));
+    archiveGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='archive-data-import'?' active':'')+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)renderArchiveDataImportPage();}},[el('div',{},'Dosyadan Veri Al')]));
     archiveGroup.appendChild(el('div',{class:'nav-item'+(archiveLoaded?'':' disabled'),style:archiveLoaded?'padding-left:50px;':archiveLockedStyle,onclick:()=>{if(archiveLoaded)downloadCurrentArchive();}},[el('div',{},'Güncel Firma Arşivini İndir')]));
   }
   nav.appendChild(archiveGroup);
@@ -303,7 +351,7 @@ function renderNav() {
   if(toolsMenuOpen){
     toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-xml'?' active':''),style:'padding-left:50px;',onclick:()=>renderEdefterXmlViewerPage()},[el('div',{},'e-Defter XML / Berat Görüntüle')]));
     toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-efatura'?' active':''),style:'padding-left:50px;',onclick:()=>renderEfaturaXmlViewerPage()},[el('div',{},'e-Fatura XML Görüntüle')]));
-    toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-xml-kdv'?' active':''),style:'padding-left:50px;',onclick:()=>renderXmlKdvListesiPage()},[el('div',{},'XML’den KDV Listesi Oluştur')]));
+    toolsGroup.appendChild(el('div',{class:'nav-item'+(currentPage==='tools-xml-kdv-list'?' active':''),style:'padding-left:50px;',onclick:()=>renderXmlKdvListesiPage()},[el('div',{},'XML’den KDV Listesi Oluştur')]));
   }
   nav.appendChild(toolsGroup);
 
@@ -328,6 +376,7 @@ function renderNav() {
     el('div',{class:'num'},'⌂'), el('div',{},'Hoş Geldiniz')
   ])]);
   nav.appendChild(welcome);
+  if(typeof tebligatYaziTakipRefreshBadge==='function') tebligatYaziTakipRefreshBadge();
 }
 
 function renderFeedbackPage(){
