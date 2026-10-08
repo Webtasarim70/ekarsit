@@ -173,7 +173,8 @@ async function renderIadeTakipListesiPage(){
     const draw=()=>{
       body.innerHTML='';const q=String(globalSearch.value||'').trim().toLocaleLowerCase('tr-TR');
       const rows=data.records.filter(r=>{const vals=columns.map(([,get])=>String(get(r)??''));return (!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q)))&&filters.every((input,i)=>!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR').includes(input.value.trim().toLocaleLowerCase('tr-TR')));});
-      if(sortIndex>=0)rows.sort((a,b)=>String(columns[sortIndex][1](a)??'').localeCompare(String(columns[sortIndex][1](b)??''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);\n      visibleRows=rows.slice();
+      if(sortIndex>=0)rows.sort((a,b)=>String(columns[sortIndex][1](a)??'').localeCompare(String(columns[sortIndex][1](b)??''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
+      visibleRows=rows.slice();
       sortHeads.forEach((th,i)=>{th.textContent=columns[i][0]+' '+(sortIndex===i?(sortDirection===1?'▲':'▼'):'↕');th.setAttribute('aria-sort',sortIndex===i?(sortDirection===1?'ascending':'descending'):'none');});
       list.querySelector('h3').textContent='İade Kayıtları — '+rows.length+' / '+data.records.length;
       rows.forEach(r=>{const tr=el('tr');columns.forEach(([label,get])=>{let value=get(r);if(value==null||value==='')value='—';tr.appendChild(el('td',{},String(value)));});
