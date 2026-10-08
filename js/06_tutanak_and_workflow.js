@@ -747,6 +747,7 @@ async function renderWelcomePage(){
     content.appendChild(note);
   }else{
     let ymmCount=0, tebligatCount=0, yaklasanCount=0, iadeCount=0;
+    let eKarsitTotal=0, eKarsitCevapBekliyor=0, eKarsitPasifTalepBekliyor=0, eKarsitIptalTalepBekliyor=0, eKarsitPasifeCekilmis=0;
     try{
       if(typeof ymmGuideRead==='function'){
         const yd=await ymmGuideRead(YMM_REHBER_FILE,{kayitlar:[]});
@@ -762,6 +763,18 @@ async function renderWelcomePage(){
     try{
       if(typeof iadeTakipRead==='function'){
         const id=await iadeTakipRead(); iadeCount=Array.isArray(id?.records)?id.records.length:0;
+      }
+    }catch(e){}
+    try{
+      if(typeof eKarsitTakipRead==='function'){
+        const ed=await eKarsitTakipRead();
+        const records=Array.isArray(ed?.records)?ed.records:[];
+        const statusOf=r=>String(r?.['Durum']??'').trim().toLocaleLowerCase('tr-TR');
+        eKarsitTotal=records.length;
+        eKarsitCevapBekliyor=records.filter(r=>statusOf(r)==='cevap bekliyor').length;
+        eKarsitPasifTalepBekliyor=records.filter(r=>statusOf(r)==='gönderilen pasif talebi onay bekliyor').length;
+        eKarsitIptalTalepBekliyor=records.filter(r=>statusOf(r)==='gönderilen iptal talebi onay bekliyor').length;
+        eKarsitPasifeCekilmis=records.filter(r=>statusOf(r)==='pasife çekilmiş').length;
       }
     }catch(e){}
 
@@ -780,7 +793,12 @@ async function renderWelcomePage(){
       ['👤','YMM Bilgileri',ymmCount,'YMM rehberindeki kayıtlar','ymm-rehber'],
       ['✉','Eksiklik Yazıları',tebligatCount,'Tebligat / yazı takip kayıtları','tebligat-yazi-takip'],
       ['⏰','Süresi Gelen Yazılar',yaklasanCount,'Önümüzdeki 5 gün içindeki yazılar','tebligat-yazi-takip'],
-      ['↩','İade Takipleri',iadeCount,'İade takip listesi kayıtları','iade-takip-listesi']
+      ['↩','İade Takipleri',iadeCount,'İade takip listesi kayıtları','iade-takip-listesi'],
+      ['↔','Toplam Karşıt',eKarsitTotal,'e-Karşıt takip kayıtlarının tamamı','e-karsit-takip'],
+      ['↩','Cevap Bekliyor',eKarsitCevapBekliyor,'Cevabı beklenen karşıt incelemeler','e-karsit-takip'],
+      ['⏳','Gönderilen Pasif Talebi Onay Bekliyor',eKarsitPasifTalepBekliyor,'Pasife çekme talebi onay bekleyen kayıtlar','e-karsit-takip'],
+      ['⏳','Gönderilen İptal Talebi Onay Bekliyor',eKarsitIptalTalepBekliyor,'İptal talebi onay bekleyen kayıtlar','e-karsit-takip'],
+      ['⛔','Pasife Çekilmiş',eKarsitPasifeCekilmis,'Pasife çekilmiş karşıt incelemeler','e-karsit-takip']
     ];
     dashboardCards.forEach(([icon,title,count,desc,page])=>{
       const card=el('div',{class:'card',style:'margin:0;cursor:pointer;min-height:132px;transition:transform .15s,box-shadow .15s;',onclick:()=>{
@@ -789,6 +807,7 @@ async function renderWelcomePage(){
         else if(page==='ymm-rehber') renderYmmRehberPage();
         else if(page==='tebligat-yazi-takip') renderTebligatYaziTakipPage();
         else if(page==='iade-takip-listesi') renderIadeTakipListesiPage();
+        else if(page==='e-karsit-takip') renderEKarsitTakipPage();
       }});
       card.onmouseenter=()=>{card.style.transform='translateY(-2px)';card.style.boxShadow='0 6px 18px rgba(0,0,0,.08)';};
       card.onmouseleave=()=>{card.style.transform='';card.style.boxShadow='';};
