@@ -68,11 +68,12 @@
       const fmt=d=>[String(d.getDate()).padStart(2,'0'),String(d.getMonth()+1).padStart(2,'0'),d.getFullYear()].join('.');
       const startDate=new Date(now);
       startDate.setFullYear(startDate.getFullYear()-1);
-      window.postMessage({source:'ekarsit-gib-main',type:'EKARSIT_FETCH_STATUS'},'*');
+      const action=event.data.action==='excel'?'excel':'sync';
+      window.postMessage({source:'ekarsit-gib-main',type:'EKARSIT_FETCH_STATUS',action},'*');
       const result=await getAll(fmt(startDate),fmt(now));
-      window.postMessage({source:'ekarsit-gib-main',type:'EKARSIT_FETCH_RESULT',result},'*');
+      window.postMessage({source:'ekarsit-gib-main',type:'EKARSIT_FETCH_RESULT',action,result},'*');
     } catch(error) {
-      window.postMessage({source:'ekarsit-gib-main',type:'EKARSIT_FETCH_ERROR',message:error?.message||String(error)},'*');
+      window.postMessage({source:'ekarsit-gib-main',type:'EKARSIT_FETCH_ERROR',action:event.data.action==='excel'?'excel':'sync',message:error?.message||String(error)},'*');
     }
   });
 })();
