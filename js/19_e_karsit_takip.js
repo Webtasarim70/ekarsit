@@ -16,7 +16,8 @@ const EKARSIT_TAKIP_HEADERS=[
   'Nezdinde Karşıt İnceleme Yapılan Mükellef VKN/TCKN',
   'Son Düzenleme Yapan Kullanıcı T.C. Kimlik Numarası',
   'Son Düzenleme Yapan Kullanıcı Adı Soyadı/Ünvanı',
-  'İptal/Pasif Açıklama'
+  'İptal/Pasif Açıklama',
+  'Not'
 ];
 
 function eKarsitTakipDefaultData(){
@@ -191,7 +192,7 @@ function eKarsitTakipEditor(host,data,record,onSaved){
   EKARSIT_TAKIP_HEADERS.forEach(h=>{
     const box=el('div');
     box.appendChild(el('label',{style:'display:block;font-weight:600;margin-bottom:4px;'},h));
-    const input=el('input',{class:'input',style:'width:100%;box-sizing:border-box;',placeholder:h});
+    const input=h==='Not'?el('textarea',{class:'input',style:'width:100%;box-sizing:border-box;min-height:90px;resize:vertical;',placeholder:h}):el('input',{class:'input',style:'width:100%;box-sizing:border-box;',placeholder:h});
     if(dateFields.has(h)){input.type='date';input.value=eKarsitTakipDateForInput(record?.[h]);}
     else{input.type='text';input.value=String(record?.[h]??'');}
     if(h==='İşlem ID'&&editing) input.readOnly=true;
@@ -255,7 +256,7 @@ async function renderEKarsitTakipPage(){
 
   const card=el('div',{class:'card'});
   card.appendChild(el('h3',{},'Excel Listesi'));
-  card.appendChild(el('div',{class:'hint info',style:'margin-bottom:10px;'},'Örnek Excel şablonundaki 15 sütun okunur. Aynı İşlem ID daha önce aktarılmışsa mevcut kayıt güncellenir; yeni İşlem ID kayıtları eklenir.'));
+  card.appendChild(el('div',{class:'hint info',style:'margin-bottom:10px;'},'Örnek Excel şablonundaki alanlar okunur. Aynı İşlem ID daha önce aktarılmışsa mevcut kayıt güncellenir; yeni İşlem ID kayıtları eklenir. Not alanı Excel aktarımında mevcut kayıtlar için korunur.'));
   const input=el('input',{type:'file',accept:'.xlsx,.xlsm',style:'display:none;'});
   const importBtn=el('button',{class:'btn btn-primary',onclick:()=>input.click()},'⬆ Excel Yükle');
   const backupBtn=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:async()=>{try{await eKarsitTakipExcelYedekle();}catch(e){alert('Excel yedeği oluşturulamadı: '+e.message);}}},'⬇ Excel’e Aktar');
@@ -266,7 +267,7 @@ async function renderEKarsitTakipPage(){
     try{
       const imported=await eKarsitTakipExcelImport(file);
       const byId=new Map(data.records.map(r=>[String(r['İşlem ID']||''),r]));let added=0,updated=0;
-      imported.records.forEach(r=>{const id=String(r['İşlem ID']||'');if(byId.has(id)){Object.assign(byId.get(id),r);updated++;}else{data.records.unshift(r);byId.set(id,r);added++;}});
+      imported.records.forEach(r=>{const id=String(r['İşlem ID']||'');if(byId.has(id)){const existing=byId.get(id);const notValue=existing['Not']??'';Object.assign(existing,r);existing['Not']=notValue;updated++;}else{data.records.unshift(r);byId.set(id,r);added++;}});
       data.headers=[...EKARSIT_TAKIP_HEADERS];await eKarsitTakipWrite(data);data=await eKarsitTakipRead();
       status.style.display='block';status.className='hint ok';status.textContent='✓ Excel aktarıldı. '+added+' yeni kayıt, '+updated+' güncellenen kayıt.';
       eKarsitTakipRenderTable(tableHost,data,openEditor);
