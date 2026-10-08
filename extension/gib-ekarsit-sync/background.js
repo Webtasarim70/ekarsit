@@ -24,12 +24,29 @@ async function getOrOpenGibTab(){
 
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
   if(message?.type==='EKARSIT_START_GIB_SYNC'){
+    // Uygulamaya hemen yanıt ver; GİB açılması/aktarımı uzun sürebilir.
+    // Aksi halde uygulamadaki kısa timeout, eklenti çalışıyor olsa bile
+    // "eklenti bulunamadı" mesajı gösterebilir.
+    sendResponse({ok:true,message:'GİB senkronizasyonu başlatıldı.'});
     (async()=>{
-      const tab=await getOrOpenGibTab();
-      await chrome.tabs.update(tab.id,{active:true});
-      await chrome.tabs.sendMessage(tab.id,{type:'EKARSIT_TRIGGER_SYNC'});
-      sendResponse({ok:true});
-    })().catch(error=>sendResponse({ok:false,message:error?.message||String(error)}));
+      try{
+        const tab=await getOrOpenGibTab();
+        await chrome.tabs.update(tab.id,{active:true});
+        await chrome.tabs.sendMessage(tab.id,{type:'EKARSIT_TRIGGER_SYNC'});
+      }catch(error){
+        const tabs=await chrome.tabs.query({url:APP_URL+'*'});
+        const appTab=tabs[0];
+        if(appTab?.id){
+          try{
+            await chrome.tabs.sendMessage(appTab.id,{
+              type:'EKARSIT_GIB_SYNC_STATUS',
+              status:'error',
+              message:error?.message||String(error)
+            });
+          }catch(_){}
+        }
+      }
+    })();
     return true;
   }
 
