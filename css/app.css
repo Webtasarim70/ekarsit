@@ -565,3 +565,48 @@ body.theme-contrast .card,body.theme-contrast .field input,body.theme-contrast .
     transform:translateX(-100%);
   }
 }
+
+
+/* Takip tabloları: gelişmiş arama, sütun filtreleri ve sıralama */
+.table-search-tools{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:14px;
+  margin:12px 0;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:color-mix(in srgb,var(--panel) 92%,var(--bg));
+}
+.table-search-tools > .input,
+.table-search-tools > input{
+  width:100%;
+  max-width:none;
+}
+.table-column-filters{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;
+  width:100%;
+}
+.table-column-filters .field{min-width:0;margin:0;}
+.table-column-filters .field label{
+  display:block;
+  margin-bottom:5px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:650;
+}
+.table-column-filters .input{width:100%;min-width:0;}
+.sortable-th{
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
+  transition:filter .15s ease,background .15s ease;
+}
+.sortable-th:hover{filter:brightness(.92);text-decoration:underline;}
+.sortable-th:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;}
+@media(max-width:700px){
+  .table-search-tools{padding:10px;}
+  .table-column-filters{grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;}
+}
