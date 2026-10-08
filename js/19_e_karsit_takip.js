@@ -124,27 +124,34 @@ function eKarsitTakipRenderTable(host,data,onRowClick){
   host.innerHTML='';
   const card=el('div',{class:'card',style:'margin-top:14px;'});
   const titleRow=el('div',{style:'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;'});
-  titleRow.appendChild(el('h3',{},'e-Karşıt Takip Kayıtları ('+data.records.length+')'));
-  const filter=el('input',{class:'input',placeholder:'Tabloda ara…',style:'max-width:280px;'});
-  titleRow.appendChild(filter);card.appendChild(titleRow);
+  titleRow.appendChild(el('h3',{},'e-Karşıt Takip Kayıtları'));
+  const globalSearch=el('input',{class:'input',placeholder:'Gelişmiş arama: ID, YMM, mükellef, durum…',style:'max-width:420px;'});
+  titleRow.appendChild(globalSearch);card.appendChild(titleRow);
+  const filtersWrap=el('div',{class:'table-column-filters',style:'margin-top:10px;'});
+  const filters=data.headers.map(h=>{const box=el('div',{class:'field'});box.appendChild(el('label',{},h));const input=el('input',{class:'input',placeholder:h+' filtrele…'});box.appendChild(input);filtersWrap.appendChild(box);return input;});
+  card.appendChild(filtersWrap);
   const wrap=el('div',{class:'table-scroll',style:'margin-top:10px;max-height:65vh;overflow:auto;'});
-  const table=el('table',{class:'editable-table'});const thead=el('thead');const trh=el('tr');
-  data.headers.forEach(h=>trh.appendChild(el('th',{style:'min-width:170px;white-space:nowrap;'},h)));
-  thead.appendChild(trh);table.appendChild(thead);
-  const tbody=el('tbody');table.appendChild(tbody);wrap.appendChild(table);card.appendChild(wrap);
+  const table=el('table',{class:'editable-table'});const thead=el('thead');const trh=el('tr');let sortIndex=-1,sortDirection=1;
+  data.headers.forEach((h,i)=>{const th=el('th',{class:'sortable-th',style:'min-width:170px;white-space:nowrap;cursor:pointer;',title:'Sıralamak için tıklayın'},h+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});trh.appendChild(th);});
+  thead.appendChild(trh);table.appendChild(thead);const tbody=el('tbody');table.appendChild(tbody);wrap.appendChild(table);card.appendChild(wrap);
   const draw=()=>{
     tbody.innerHTML='';
-    const q=String(filter.value||'').trim().toLocaleLowerCase('tr-TR');
-    const rows=data.records.filter(r=>!q||data.headers.some(h=>String(r[h]??'').toLocaleLowerCase('tr-TR').includes(q)));
+    const q=String(globalSearch.value||'').trim().toLocaleLowerCase('tr-TR');
+    let rows=data.records.filter(r=>{
+      const vals=data.headers.map(h=>String(r[h]??''));
+      return (!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q)))&&filters.every((input,i)=>!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR').includes(input.value.trim().toLocaleLowerCase('tr-TR')));
+    });
+    if(sortIndex>=0)rows.sort((a,b)=>String(a[data.headers[sortIndex]]??'').localeCompare(String(b[data.headers[sortIndex]]??''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
+    titleRow.querySelector('h3').textContent='e-Karşıt Takip Kayıtları ('+rows.length+' / '+data.records.length+')';
     rows.forEach(r=>{
       const tr=el('tr',{style:'cursor:pointer;',title:'Düzenlemek için tıklayın'});
       tr.addEventListener('click',()=>onRowClick?.(r));
       data.headers.forEach(h=>tr.appendChild(el('td',{},String(r[h]??''))));
       tbody.appendChild(tr);
     });
-    if(!rows.length) tbody.appendChild(el('tr',{},[el('td',{colSpan:String(data.headers.length),style:'text-align:center;padding:18px;color:var(--muted);'},q?'Arama sonucunda kayıt bulunamadı.':'Henüz kayıt yok.')]));
+    if(!rows.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:String(data.headers.length),style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
   };
-  filter.addEventListener('input',draw);draw();host.appendChild(card);
+  globalSearch.addEventListener('input',draw);filters.forEach(input=>input.addEventListener('input',draw));draw();host.appendChild(card);
 }
 
 function eKarsitTakipDateForInput(value){
