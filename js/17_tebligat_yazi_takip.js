@@ -200,10 +200,10 @@ async function renderTebligatYaziTakipPage(){
     tools.appendChild(globalSearch);
     const fieldFilters=el('div',{class:'table-column-filters'});
     const filters=columns.map(([label])=>{const box=el('div',{class:'field'});box.appendChild(el('label',{},label+' filtresi'));const input=el('input',{class:'input',placeholder:label+' ara…'});box.appendChild(input);fieldFilters.appendChild(box);return input;});
-    tools.appendChild(fieldFilters);listCard.appendChild(tools);
+    const reset=el('button',{class:'btn btn-secondary',type:'button',style:'align-self:flex-start;',onclick:()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();}},'Filtreleri Temizle');tools.appendChild(fieldFilters);tools.appendChild(reset);listCard.appendChild(tools);
     const table=el('table',{class:'editable-table'});
-    const thead=el('thead');const head=el('tr');let sortIndex=-1,sortDirection=1;
-    columns.forEach(([label],i)=>{const th=el('th',{class:'sortable-th',title:'Sıralamak için tıklayın'},label+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});head.appendChild(th);});
+    const thead=el('thead');const head=el('tr');let sortIndex=-1,sortDirection=1;const sortHeads=[];
+    columns.forEach(([label],i)=>{const th=el('th',{class:'sortable-th',title:'Sıralamak için tıklayın','aria-sort':'none'},label+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});sortHeads.push(th);head.appendChild(th);});
     head.appendChild(el('th',{},'İşlem'));thead.appendChild(head);table.appendChild(thead);
     const body=el('tbody');table.appendChild(body);
     const draw=()=>{
@@ -214,6 +214,7 @@ async function renderTebligatYaziTakipPage(){
         return (!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q)))&&filters.every((input,i)=>!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR').includes(input.value.trim().toLocaleLowerCase('tr-TR')));
       });
       if(sortIndex>=0) rows.sort((a,b)=>String(columns[sortIndex][1](a)||'').localeCompare(String(columns[sortIndex][1](b)||''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
+      sortHeads.forEach((th,i)=>{th.textContent=columns[i][0]+' '+(sortIndex===i?(sortDirection===1?'▲':'▼'):'↕');th.setAttribute('aria-sort',sortIndex===i?(sortDirection===1?'ascending':'descending'):'none');});
       listCard.querySelector('h3').textContent='Kayıtlar — '+rows.length+' / '+data.records.length;
       rows.forEach(rec=>{
         const tr=el('tr');
