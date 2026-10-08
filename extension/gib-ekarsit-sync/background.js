@@ -33,6 +33,18 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
     return true;
   }
 
+  if(message?.type==='EKARSIT_SYNC_STATUS_TO_APP'){
+    (async()=>{
+      try{
+        const tabs=await chrome.tabs.query({url:APP_URL+'*'});
+        const tab=tabs[0];
+        if(tab?.id) await chrome.tabs.sendMessage(tab.id,{type:'EKARSIT_GIB_SYNC_STATUS',status:message.status,message:message.message||''});
+        sendResponse({ok:true});
+      }catch(error){sendResponse({ok:false,message:error?.message||String(error)});}
+    })();
+    return true;
+  }
+
   if(message?.type!=='EKARSIT_SEND_TO_APP') return;
   (async()=>{
     const tabs=await chrome.tabs.query({url:APP_URL+'*'});
