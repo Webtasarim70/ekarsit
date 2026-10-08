@@ -8,7 +8,6 @@
       sendResponse({ok:true});
       return true;
     }
-
     if(message?.type==='EKARSIT_GIB_SYNC_STATUS'){
       window.postMessage({source:'ekarsit-gib-extension',type:'EKARSIT_GIB_SYNC_STATUS',status:message.status,message:message.message||''},'*');
       sendResponse({ok:true});
