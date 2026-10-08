@@ -8,10 +8,19 @@
   Object.assign(button.style,{position:'fixed',right:'18px',bottom:'18px',zIndex:'2147483647',padding:'11px 16px',border:'0',borderRadius:'8px',background:'#1769aa',color:'#fff',font:'600 14px Arial,sans-serif',boxShadow:'0 4px 14px rgba(0,0,0,.25)',cursor:'pointer'});
 
   const reset=()=>{button.textContent='↻ e-Karşıt Takip’e Aktar';button.disabled=false;};
-  button.addEventListener('click',()=>{
+  const start=()=>{
     button.disabled=true;
     button.textContent='GİB kayıtları alınıyor…';
     window.postMessage({source:'ekarsit-extension',type:'EKARSIT_FETCH_GIB'},'*');
+  };
+
+  button.addEventListener('click',start);
+  chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
+    if(message?.type==='EKARSIT_TRIGGER_SYNC'){
+      start();
+      sendResponse({ok:true});
+      return true;
+    }
   });
 
   window.addEventListener('message',event=>{
@@ -19,6 +28,7 @@
     if(event.data.type==='EKARSIT_FETCH_STATUS'){button.textContent='GİB kayıtları alınıyor…';return;}
     if(event.data.type==='EKARSIT_FETCH_ERROR'){
       button.textContent='⚠ '+event.data.message;
+      chrome.runtime.sendMessage({type:'EKARSIT_SYNC_STATUS_TO_APP',status:'error',message:event.data.message});
       setTimeout(reset,5000);
       return;
     }
