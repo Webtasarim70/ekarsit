@@ -372,8 +372,8 @@ async function renderEKarsitTakipPage(){
     }catch(e){status.style.display='block';status.className='hint warn';status.textContent='⚠️ Excel aktarılamadı: '+e.message;}
     input.value='';
   });
-  card.appendChild(syncBtn);card.appendChild(importBtn);card.appendChild(backupBtn);card.appendChild(addBtn);card.appendChild(input);
-  card.appendChild(syncStatus);card.appendChild(status);
+  card.appendChild(importBtn);card.appendChild(backupBtn);card.appendChild(addBtn);card.appendChild(input);
+  card.appendChild(status);
   host.appendChild(card);host.appendChild(editorHost);host.appendChild(tableHost);
   eKarsitTakipRenderTable(tableHost,data,openEditor);
 
