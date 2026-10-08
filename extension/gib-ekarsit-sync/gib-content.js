@@ -13,22 +13,13 @@
     button.textContent='GİB kayıtları alınıyor…';
     window.postMessage({source:'ekarsit-extension',type:'EKARSIT_FETCH_GIB'},'*');
   };
-
   button.addEventListener('click',start);
-  chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
-    if(message?.type==='EKARSIT_TRIGGER_SYNC'){
-      start();
-      sendResponse({ok:true});
-      return true;
-    }
-  });
 
   window.addEventListener('message',event=>{
     if(event.source!==window || event.data?.source!=='ekarsit-gib-main') return;
     if(event.data.type==='EKARSIT_FETCH_STATUS'){button.textContent='GİB kayıtları alınıyor…';return;}
     if(event.data.type==='EKARSIT_FETCH_ERROR'){
       button.textContent='⚠ '+event.data.message;
-      chrome.runtime.sendMessage({type:'EKARSIT_SYNC_STATUS_TO_APP',status:'error',message:event.data.message});
       setTimeout(reset,5000);
       return;
     }
@@ -40,6 +31,14 @@
         button.textContent='✓ '+result.records.length+' kayıt aktarıldı';
         setTimeout(reset,5000);
       });
+    }
+  });
+
+  chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
+    if(message?.type==='EKARSIT_TRIGGER_SYNC'){
+      start();
+      sendResponse({ok:true});
+      return true;
     }
   });
 
