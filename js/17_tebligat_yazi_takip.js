@@ -226,7 +226,7 @@ async function renderTebligatYaziTakipPage(){
       if(!rows.length)body.appendChild(el('tr',{},[el('td',{colSpan:'7',style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
     };
     globalSearch.addEventListener('input',draw);filters.forEach(input=>input.addEventListener('input',draw));
-    draw();const sc=el('div',{class:'table-scroll'});sc.appendChild(table);listCard.appendChild(sc);host.appendChild(listCard);const sc=el('div',{class:'table-scroll'});sc.appendChild(table);listCard.appendChild(sc);host.appendChild(listCard);
+    draw();const sc=el('div',{class:'table-scroll'});sc.appendChild(table);listCard.appendChild(sc);host.appendChild(listCard);
   };
   window.tebligatYaziTakipRerender=render;
   await render();
