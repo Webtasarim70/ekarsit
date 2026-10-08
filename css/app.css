@@ -535,3 +535,33 @@ body.theme-contrast .card,body.theme-contrast .field input,body.theme-contrast .
   #app-header{display:block;}
   .sidebar-toggle{position:fixed;left:0;top:72px;order:initial;}
 }
+
+
+/* Sidebar toggle: headerdan bağımsız, sidebar kenarında sabit konum */
+@media (min-width:901px){
+  #app-header .sidebar-toggle{
+    position:fixed;
+    left:260px;
+    top:72px;
+    z-index:1102;
+    margin:0;
+    order:initial;
+    flex:0 0 38px;
+  }
+  #app.sidebar-collapsed #app-header .sidebar-toggle{left:0;}
+}
+@media (max-width:900px){
+  #app-header .sidebar-toggle{
+    position:fixed;
+    left:0;
+    top:72px;
+    z-index:1102;
+    margin:0;
+    order:initial;
+    transform:none;
+  }
+  #app.sidebar-open #app-header .sidebar-toggle{
+    left:min(310px,86vw);
+    transform:translateX(-100%);
+  }
+}
