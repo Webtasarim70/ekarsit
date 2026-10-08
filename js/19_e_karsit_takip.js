@@ -326,13 +326,45 @@ async function renderEKarsitTakipPage(){
   };
 
   const card=el('div',{class:'card'});
-  card.appendChild(el('h3',{},'Excel Listesi'));
-  card.appendChild(el('div',{class:'hint info',style:'margin-bottom:10px;'},'Örnek Excel şablonundaki alanlar okunur. Aynı İşlem ID daha önce aktarılmışsa mevcut kayıt güncellenir; yeni İşlem ID kayıtları eklenir. Not alanı Excel aktarımında mevcut kayıtlar için korunur.'));
+  card.appendChild(el('h3',{},'GİB Senkronizasyonu ve Excel'));
+  card.appendChild(el('div',{class:'hint info',style:'margin-bottom:10px;'},'Chrome eklentisi GİB e-Karşıt sayfasındaki kayıtları tüm sayfalarıyla alır ve İşlem ID üzerinden bu tabloya ekler veya günceller. Mevcut Not alanları korunur. İlk kullanımda Chrome eklentisini kurup GİB hesabınızla giriş yapın.'));
+  const syncBtn=el('button',{class:'btn btn-primary',type:'button'},'↻ GİB ile Senkronize Et');
+  const syncStatus=el('div',{class:'hint',style:'margin-top:10px;display:none;'});
+  syncBtn.addEventListener('click',()=>{
+    syncBtn.disabled=true;
+    syncBtn.textContent='GİB Senkronizasyonu Başlatılıyor…';
+    syncStatus.style.display='block';
+    syncStatus.className='hint info';
+    syncStatus.textContent='GİB sayfası açılıyor ve kayıtlar alınıyor. Lütfen işlem tamamlanana kadar bekleyin.';
+    window.postMessage({source:'ekarsit-app',type:'EKARSIT_START_GIB_SYNC'},'*');
+  });
   const input=el('input',{type:'file',accept:'.xlsx,.xlsm',style:'display:none;'});
-  const importBtn=el('button',{class:'btn btn-primary',onclick:()=>input.click()},'⬆ Excel Yükle');
+  const importBtn=el('button',{class:'btn btn-primary',style:'margin-left:8px;',onclick:()=>input.click()},'⬆ Excel Yükle');
   const backupBtn=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:async()=>{try{await eKarsitTakipExcelYedekle();}catch(e){alert('Excel yedeği oluşturulamadı: '+e.message);}}},'⬇ Excel’e Aktar');
   const addBtn=el('button',{class:'btn btn-primary',style:'margin-left:8px;',onclick:()=>openEditor(null)},'➕ Elle Kayıt Ekle');
   const status=el('div',{class:'hint info',style:'margin-top:10px;display:none;'});
+  window.addEventListener('message',event=>{
+    if(event.source!==window || event.data?.source!=='ekarsit-gib-extension') return;
+    if(event.data.type==='EKARSIT_GIB_SYNC_STATUS' && event.data.status==='error'){
+      syncStatus.style.display='block';syncStatus.className='hint warn';
+      syncStatus.textContent='⚠ '+(event.data.message||'GİB senkronizasyonu başlatılamadı.');
+      syncBtn.disabled=false;syncBtn.textContent='↻ GİB ile Senkronize Et';
+    }
+  });
+  window.addEventListener('message',event=>{
+    if(event.source!==window || event.data?.source!=='ekarsit-app') return;
+    if(event.data.type==='EKARSIT_GIB_APPLY_RESULT'){
+      const r=event.data.result||{};
+      syncStatus.style.display='block';syncStatus.className='hint ok';
+      syncStatus.textContent='✓ Senkronizasyon tamamlandı. '+(r.received||0)+' GİB kaydı alındı; '+(r.added||0)+' yeni, '+(r.updated||0)+' güncellendi.';
+      syncBtn.disabled=false;syncBtn.textContent='↻ GİB ile Senkronize Et';
+    }else if(event.data.type==='EKARSIT_GIB_APPLY_ERROR'){
+      syncStatus.style.display='block';syncStatus.className='hint warn';
+      syncStatus.textContent='⚠ Kayıtlar alınamadı: '+(event.data.message||'Bilinmeyen hata.');
+      syncBtn.disabled=false;syncBtn.textContent='↻ GİB ile Senkronize Et';
+    }
+  });
+
   input.addEventListener('change',async()=>{
     const file=input.files?.[0];if(!file)return;
     try{
@@ -345,7 +377,8 @@ async function renderEKarsitTakipPage(){
     }catch(e){status.style.display='block';status.className='hint warn';status.textContent='⚠️ Excel aktarılamadı: '+e.message;}
     input.value='';
   });
-  card.appendChild(importBtn);card.appendChild(backupBtn);card.appendChild(addBtn);card.appendChild(input);card.appendChild(status);
+  card.appendChild(syncBtn);card.appendChild(importBtn);card.appendChild(backupBtn);card.appendChild(addBtn);card.appendChild(input);
+  card.appendChild(syncStatus);card.appendChild(status);
   host.appendChild(card);host.appendChild(editorHost);host.appendChild(tableHost);
   eKarsitTakipRenderTable(tableHost,data,openEditor);
 
