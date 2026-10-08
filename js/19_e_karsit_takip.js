@@ -131,7 +131,9 @@ function eKarsitTakipRenderTable(host,data,onRowClick){
   const filters=data.headers.map(h=>{const box=el('div',{class:'field'});box.appendChild(el('label',{},h));const input=el('input',{class:'input',placeholder:h+' filtrele…'});box.appendChild(input);filtersWrap.appendChild(box);return input;});
   card.appendChild(filtersWrap);
   const reset=el('button',{class:'btn btn-secondary',type:'button',style:'margin-top:8px;',onclick:()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();}},'Filtreleri Temizle');card.appendChild(reset);
-   const reset=el('button',{class:'btn btn-secondary',type:'button',style:'margin-top:8px;',onclick:()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();}},'Filtreleri Temizle');card.appendChild(reset);
+  let visibleRows=[];
+  const exportBtn=el('button',{class:'btn btn-primary',type:'button',style:'margin:8px 0 0 8px;',onclick:async()=>{try{const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Görünen e-Karşıt');ws.columns=data.headers.map((h,i)=>({header:h,key:'c'+i,width:Math.min(55,Math.max(14,h.length+2))}));visibleRows.forEach(r=>ws.addRow(data.headers.map(h=>r[h]??'')));ws.getRow(1).font={bold:true};ws.views=[{state:'frozen',ySplit:1}];const buf=await wb.xlsx.writeBuffer();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download='E_KARSIT_TAKIP_FILTRELENMIS.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){alert('Filtrelenmiş tablo Excel’e aktarılamadı: '+e.message);}}},'⬇ Görünen Tabloyu Excel’e Aktar');card.appendChild(exportBtn);
+
   const wrap=el('div',{class:'table-scroll',style:'margin-top:10px;max-height:65vh;overflow:auto;'});
   const table=el('table',{class:'editable-table'});const thead=el('thead');const trh=el('tr');let sortIndex=-1,sortDirection=1;const sortHeads=[];
   data.headers.forEach((h,i)=>{const th=el('th',{class:'sortable-th',style:'min-width:170px;white-space:nowrap;cursor:pointer;',title:'Sıralamak için tıklayın','aria-sort':'none'},h+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});sortHeads.push(th);trh.appendChild(th);});
@@ -144,6 +146,7 @@ function eKarsitTakipRenderTable(host,data,onRowClick){
       return (!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q)))&&filters.every((input,i)=>!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR').includes(input.value.trim().toLocaleLowerCase('tr-TR')));
     });
     if(sortIndex>=0)rows.sort((a,b)=>String(a[data.headers[sortIndex]]??'').localeCompare(String(b[data.headers[sortIndex]]??''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
+    visibleRows=rows.slice();
     sortHeads.forEach((th,i)=>{th.textContent=data.headers[i]+' '+(sortIndex===i?(sortDirection===1?'▲':'▼'):'↕');th.setAttribute('aria-sort',sortIndex===i?(sortDirection===1?'ascending':'descending'):'none');});
     titleRow.querySelector('h3').textContent='e-Karşıt Takip Kayıtları ('+rows.length+' / '+data.records.length+')';
     rows.forEach(r=>{
