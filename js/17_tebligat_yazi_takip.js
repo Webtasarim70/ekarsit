@@ -200,7 +200,7 @@ async function renderTebligatYaziTakipPage(){
     tools.appendChild(globalSearch);
     const fieldFilters=el('div',{class:'table-column-filters'});
     const filters=columns.map(([label])=>{const box=el('div',{class:'field'});box.appendChild(el('label',{},label+' filtresi'));const input=el('input',{class:'input',placeholder:label+' ara…'});box.appendChild(input);fieldFilters.appendChild(box);return input;});
-    const reset=el('button',{class:'btn btn-secondary',type:'button',style:'align-self:flex-start;',onclick:()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();}},'Filtreleri Temizle');tools.appendChild(fieldFilters);tools.appendChild(reset);listCard.appendChild(tools);
+    const reset=el('button',{class:'btn btn-secondary',type:'button',style:'align-self:flex-start;',onclick:()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();}},'Filtreleri Temizle');const exportBtn=el('button',{class:'btn btn-primary',type:'button',style:'align-self:flex-start;',onclick:async()=>{try{const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Görünen Tebligatlar');ws.columns=columns.map(([header],i)=>({header,key:'c'+i,width:Math.min(40,Math.max(14,header.length+2))}));visibleRows.forEach(r=>ws.addRow(columns.map(([,get])=>get(r)??'')));ws.getRow(1).font={bold:true};ws.views=[{state:'frozen',ySplit:1}];const buf=await wb.xlsx.writeBuffer();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download='TEBLIGAT_YAZI_TAKIP_FILTRELENMIS.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){alert('Filtrelenmiş tablo Excel’e aktarılamadı: '+e.message);}}},'⬇ Görünen Tabloyu Excel’e Aktar');tools.appendChild(fieldFilters);tools.appendChild(reset);tools.appendChild(exportBtn);listCard.appendChild(tools);
     const table=el('table',{class:'editable-table'});
     const thead=el('thead');const head=el('tr');let sortIndex=-1,sortDirection=1;const sortHeads=[];
     columns.forEach(([label],i)=>{const th=el('th',{class:'sortable-th',title:'Sıralamak için tıklayın','aria-sort':'none'},label+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});sortHeads.push(th);head.appendChild(th);});
@@ -213,7 +213,7 @@ async function renderTebligatYaziTakipPage(){
         const vals=columns.map(([,get])=>String(get(rec)||''));
         return (!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q)))&&filters.every((input,i)=>!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR').includes(input.value.trim().toLocaleLowerCase('tr-TR')));
       });
-      if(sortIndex>=0) rows.sort((a,b)=>String(columns[sortIndex][1](a)||'').localeCompare(String(columns[sortIndex][1](b)||''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
+      if(sortIndex>=0) rows.sort((a,b)=>String(columns[sortIndex][1](a)||'').localeCompare(String(columns[sortIndex][1](b)||''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);\n      visibleRows=rows.slice();
       sortHeads.forEach((th,i)=>{th.textContent=columns[i][0]+' '+(sortIndex===i?(sortDirection===1?'▲':'▼'):'↕');th.setAttribute('aria-sort',sortIndex===i?(sortDirection===1?'ascending':'descending'):'none');});
       listCard.querySelector('h3').textContent='Kayıtlar — '+rows.length+' / '+data.records.length;
       rows.forEach(rec=>{
