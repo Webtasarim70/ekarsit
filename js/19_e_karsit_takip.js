@@ -128,7 +128,18 @@ function eKarsitTakipRenderTable(host,data,onRowClick){
   const globalSearch=el('input',{class:'input',placeholder:'Gelişmiş arama: ID, YMM, mükellef, durum…',style:'max-width:420px;'});
   titleRow.appendChild(globalSearch);card.appendChild(titleRow);
   const filtersWrap=el('div',{class:'table-column-filters',style:'margin-top:10px;'});
-  const filters=data.headers.map(h=>{const box=el('div',{class:'field'});box.appendChild(el('label',{},h));const input=el('input',{class:'input',placeholder:h+' filtrele…'});box.appendChild(input);filtersWrap.appendChild(box);return input;});
+  const filters=data.headers.map(h=>{
+    const box=el('div',{class:'field'});box.appendChild(el('label',{},h));
+    if(h==='Durum'){
+      const select=el('select',{class:'input'});
+      select.appendChild(el('option',{value:''},'Tüm Durumlar'));
+      const statuses=[...new Set(data.records.map(r=>String(r[h]??'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr',{sensitivity:'base'}));
+      statuses.forEach(status=>select.appendChild(el('option',{value:status},status)));
+      box.appendChild(select);filtersWrap.appendChild(box);return select;
+    }
+    const input=el('input',{class:'input',placeholder:h+' filtrele…'});
+    box.appendChild(input);filtersWrap.appendChild(box);return input;
+  });
   card.appendChild(filtersWrap);
   const reset=el('button',{class:'btn btn-secondary',type:'button',style:'margin-top:8px;',onclick:()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();}},'Filtreleri Temizle');card.appendChild(reset);
   let visibleRows=[];
@@ -143,7 +154,7 @@ function eKarsitTakipRenderTable(host,data,onRowClick){
     const q=String(globalSearch.value||'').trim().toLocaleLowerCase('tr-TR');
     let rows=data.records.filter(r=>{
       const vals=data.headers.map(h=>String(r[h]??''));
-      return (!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q)))&&filters.every((input,i)=>!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR').includes(input.value.trim().toLocaleLowerCase('tr-TR')));
+      return (!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q)))&&filters.every((input,i)=>!input.value.trim()||data.headers[i]==='Durum'?(!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR')===input.value.trim().toLocaleLowerCase('tr-TR')):(!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR').includes(input.value.trim().toLocaleLowerCase('tr-TR'))));
     });
     if(sortIndex>=0)rows.sort((a,b)=>String(a[data.headers[sortIndex]]??'').localeCompare(String(b[data.headers[sortIndex]]??''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
     visibleRows=rows.slice();
@@ -157,7 +168,7 @@ function eKarsitTakipRenderTable(host,data,onRowClick){
     });
     if(!rows.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:String(data.headers.length),style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
   };
-  globalSearch.addEventListener('input',draw);filters.forEach(input=>input.addEventListener('input',draw));draw();host.appendChild(card);
+  globalSearch.addEventListener('input',draw);filters.forEach(input=>input.addEventListener(input.tagName==='SELECT'?'change':'input',draw));draw();host.appendChild(card);
 }
 
 function eKarsitTakipDateForInput(value){
