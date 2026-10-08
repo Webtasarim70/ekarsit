@@ -327,8 +327,20 @@ async function renderEKarsitTakipPage(){
 
   const card=el('div',{class:'card'});
   card.appendChild(el('h3',{},'GİB Senkronizasyonu ve Excel'));
-  card.appendChild(el('div',{class:'hint info',style:'margin-bottom:10px;'},'Chrome eklentisi GİB e-Karşıt sayfasındaki kayıtları tüm sayfalarıyla alır ve İşlem ID üzerinden bu tabloya ekler veya günceller. Mevcut Not alanları korunur. İlk kullanımda Chrome eklentisini kurup GİB hesabınızla giriş yapın.'));
-  const syncBtn=el('button',{class:'btn btn-primary',type:'button'},'↻ GİB ile Senkronize Et');
+  card.appendChild(el('div',{class:'hint info',style:'margin-bottom:10px;'},'Chrome eklentisi GİB e-Karşıt sayfasındaki kayıtları tüm sayfalarıyla alır ve İşlem ID üzerinden bu tabloya ekler veya günceller. Mevcut Not alanları korunur.'));
+  const help=el('details',{style:'margin-bottom:12px;'});
+  help.appendChild(el('summary',{style:'cursor:pointer;font-weight:600;'},'Chrome eklentisi nasıl kullanılır?'));
+  help.appendChild(el('div',{class:'hint',style:'margin-top:8px;'},[
+    '1. Chrome’a e-Karşıt GİB Senkronizasyon eklentisini yükleyin.',
+    '2. GİB e-Karşıt sayfasında hesabınızla giriş yapın.',
+    '3. Bu uygulamada Kullanıcı bölümünden çalışma klasörünüzü seçin.',
+    '4. Bu ekrandaki “Senkronize Et” butonuna basın.',
+    '5. Eklenti GİB sayfasını açar veya mevcut sekmeyi kullanır; kayıtların tüm sayfalarını otomatik olarak alır.',
+    '6. Kayıtlar İşlem ID üzerinden birleştirilir. Yeni kayıtlar eklenir, mevcut kayıtlar güncellenir ve Not alanları korunur.',
+    'Başarılı aktarım sonunda alınan, eklenen ve güncellenen kayıt sayısı burada gösterilir.'
+  ].map((x,i)=>el('div',{style:'margin:4px 0;'},x))));
+  card.appendChild(help);
+  const syncBtn=el('button',{class:'btn btn-primary',type:'button'},'↻ Senkronize Et');
   const syncStatus=el('div',{class:'hint',style:'margin-top:10px;display:none;'});
   syncBtn.addEventListener('click',()=>{
     syncBtn.disabled=true;
@@ -337,6 +349,13 @@ async function renderEKarsitTakipPage(){
     syncStatus.className='hint info';
     syncStatus.textContent='GİB sayfası açılıyor ve kayıtlar alınıyor. Lütfen işlem tamamlanana kadar bekleyin.';
     window.postMessage({source:'ekarsit-app',type:'EKARSIT_START_GIB_SYNC'},'*');
+    setTimeout(()=>{
+      if(syncBtn.disabled){
+        syncBtn.disabled=false;syncBtn.textContent='↻ Senkronize Et';
+        syncStatus.className='hint warn';
+        syncStatus.textContent='⚠ Chrome eklentisi bulunamadı veya yanıt vermedi. Eklentinin yüklü ve etkin olduğunu kontrol edin.';
+      }
+    },7000);
   });
   const input=el('input',{type:'file',accept:'.xlsx,.xlsm',style:'display:none;'});
   const importBtn=el('button',{class:'btn btn-primary',style:'margin-left:8px;',onclick:()=>input.click()},'⬆ Excel Yükle');
@@ -348,7 +367,7 @@ async function renderEKarsitTakipPage(){
     if(event.data.type==='EKARSIT_GIB_SYNC_STATUS' && event.data.status==='error'){
       syncStatus.style.display='block';syncStatus.className='hint warn';
       syncStatus.textContent='⚠ '+(event.data.message||'GİB senkronizasyonu başlatılamadı.');
-      syncBtn.disabled=false;syncBtn.textContent='↻ GİB ile Senkronize Et';
+      syncBtn.disabled=false;syncBtn.textContent='↻ Senkronize Et';
     }
   });
   window.addEventListener('message',event=>{
@@ -357,7 +376,7 @@ async function renderEKarsitTakipPage(){
       const r=event.data.result||{};
       syncStatus.style.display='block';syncStatus.className='hint ok';
       syncStatus.textContent='✓ Senkronizasyon tamamlandı. '+(r.received||0)+' GİB kaydı alındı; '+(r.added||0)+' yeni, '+(r.updated||0)+' güncellendi.';
-      syncBtn.disabled=false;syncBtn.textContent='↻ GİB ile Senkronize Et';
+      syncBtn.disabled=false;syncBtn.textContent='↻ Senkronize Et';
     }else if(event.data.type==='EKARSIT_GIB_APPLY_ERROR'){
       syncStatus.style.display='block';syncStatus.className='hint warn';
       syncStatus.textContent='⚠ Kayıtlar alınamadı: '+(event.data.message||'Bilinmeyen hata.');
