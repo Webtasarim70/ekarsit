@@ -8,11 +8,12 @@
   Object.assign(button.style,{position:'fixed',right:'18px',bottom:'18px',zIndex:'2147483647',padding:'11px 16px',border:'0',borderRadius:'8px',background:'#1769aa',color:'#fff',font:'600 14px Arial,sans-serif',boxShadow:'0 4px 14px rgba(0,0,0,.25)',cursor:'pointer'});
 
   const reset=()=>{button.textContent='↻ e-Karşıt Takip’e Aktar';button.disabled=false;};
-  button.addEventListener('click',()=>{
+  const start=()=>{
     button.disabled=true;
     button.textContent='GİB kayıtları alınıyor…';
     window.postMessage({source:'ekarsit-extension',type:'EKARSIT_FETCH_GIB'},'*');
-  });
+  };
+  button.addEventListener('click',start);
 
   window.addEventListener('message',event=>{
     if(event.source!==window || event.data?.source!=='ekarsit-gib-main') return;
@@ -30,6 +31,14 @@
         button.textContent='✓ '+result.records.length+' kayıt aktarıldı';
         setTimeout(reset,5000);
       });
+    }
+  });
+
+  chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
+    if(message?.type==='EKARSIT_TRIGGER_SYNC'){
+      start();
+      sendResponse({ok:true});
+      return true;
     }
   });
 
