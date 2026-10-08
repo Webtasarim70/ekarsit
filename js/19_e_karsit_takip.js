@@ -130,6 +130,7 @@ function eKarsitTakipRenderTable(host,data,onRowClick){
   const filtersWrap=el('div',{class:'table-column-filters',style:'margin-top:10px;'});
   const filters=data.headers.map(h=>{const box=el('div',{class:'field'});box.appendChild(el('label',{},h));const input=el('input',{class:'input',placeholder:h+' filtrele…'});box.appendChild(input);filtersWrap.appendChild(box);return input;});
   card.appendChild(filtersWrap);
+   const reset=el('button',{class:'btn btn-secondary',type:'button',style:'margin-top:8px;',onclick:()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();}},'Filtreleri Temizle');card.appendChild(reset);
   const wrap=el('div',{class:'table-scroll',style:'margin-top:10px;max-height:65vh;overflow:auto;'});
   const table=el('table',{class:'editable-table'});const thead=el('thead');const trh=el('tr');let sortIndex=-1,sortDirection=1;
   data.headers.forEach((h,i)=>{const th=el('th',{class:'sortable-th',style:'min-width:170px;white-space:nowrap;cursor:pointer;',title:'Sıralamak için tıklayın'},h+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});trh.appendChild(th);});
