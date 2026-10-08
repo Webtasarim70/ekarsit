@@ -62,6 +62,14 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
     return true;
   }
 
+  if(message?.type==='EKARSIT_DOWNLOAD_XLSX'){
+    chrome.downloads.download({url:message.dataUrl,filename:message.filename||'E_KARSIT_TAKIP.xlsx',saveAs:true},downloadId=>{
+      if(chrome.runtime.lastError) sendResponse({ok:false,message:chrome.runtime.lastError.message});
+      else sendResponse({ok:true,downloadId});
+    });
+    return true;
+  }
+
   if(message?.type!=='EKARSIT_SEND_TO_APP') return;
   (async()=>{
     const tabs=await chrome.tabs.query({url:APP_URL+'*'});

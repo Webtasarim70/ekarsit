@@ -336,51 +336,28 @@ async function renderEKarsitTakipPage(){
     '2. GitHub deposundaki extension/gib-ekarsit-sync klasörünü seçin.',
     '3. GİB e-Karşıt sayfasında hesabınızla giriş yapın.',
     '4. Bu uygulamada Kullanıcı bölümünden çalışma klasörünüzü seçin.',
-    '5. Bu ekrandaki “Senkronize Et” butonuna basın.',
-    '6. Eklenti GİB sayfasını açar veya mevcut sekmeyi kullanır; kayıtların tüm sayfalarını otomatik olarak alır.',
+    '5. GİB e-Karşıt sayfasında eklentinin “e-Karşıt Takip’e Aktar” butonuna basın.',
+    '6. Eklenti GİB kayıtlarının tüm sayfalarını otomatik olarak alır ve bu uygulamadaki takip kayıtlarına aktarır.',
     '7. Kayıtlar İşlem ID üzerinden birleştirilir. Yeni kayıtlar eklenir, mevcut kayıtlar güncellenir ve Not alanları korunur.',
-    'Başarılı aktarım sonunda alınan, eklenen ve güncellenen kayıt sayısı burada gösterilir.'
+    'Başarılı aktarım sonunda alınan, eklenen ve güncellenen kayıt sayısı bu sayfadaki tabloda görünür.'
   ];
   steps.forEach(x=>helpBody.appendChild(el('div',{style:'margin:4px 0;'},x)));
   const repoLink=el('a',{href:'https://github.com/Webtasarim70/ekarsit/tree/main/extension',target:'_blank',rel:'noopener noreferrer',style:'display:inline-block;margin-top:6px;font-weight:600;'},'GitHub → e-Karşıt Chrome eklentisi');
   helpBody.appendChild(repoLink);help.appendChild(helpBody);card.appendChild(help);
-  const syncBtn=el('button',{class:'btn btn-primary',type:'button'},'↻ Senkronize Et');
-  const syncStatus=el('div',{class:'hint',style:'margin-top:10px;display:none;'});
-  let syncTimer=null;
-  syncBtn.addEventListener('click',()=>{
-    syncBtn.disabled=true;syncBtn.textContent='GİB Senkronizasyonu Başlatılıyor…';
-    syncStatus.style.display='block';syncStatus.className='hint info';
-    syncStatus.textContent='GİB sayfası açılıyor ve kayıtlar alınıyor. Lütfen işlem tamamlanana kadar bekleyin.';
-    window.postMessage({source:'ekarsit-app',type:'EKARSIT_START_GIB_SYNC'},'*');
-    clearTimeout(syncTimer);
-    syncTimer=setTimeout(()=>{if(syncBtn.disabled){syncBtn.disabled=false;syncBtn.textContent='↻ Senkronize Et';syncStatus.className='hint warn';syncStatus.textContent='⚠ Chrome eklentisi bulunamadı veya yanıt vermedi. Eklentinin yüklü ve etkin olduğunu kontrol edin.';}},7000);
-  });
   const input=el('input',{type:'file',accept:'.xlsx,.xlsm',style:'display:none;'});
   const importBtn=el('button',{class:'btn btn-primary',style:'margin-left:8px;',onclick:()=>input.click()},'⬆ Excel Yükle');
   const backupBtn=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:async()=>{try{await eKarsitTakipExcelYedekle();}catch(e){alert('Excel yedeği oluşturulamadı: '+e.message);}}},'⬇ Excel’e Aktar');
   const addBtn=el('button',{class:'btn btn-primary',style:'margin-left:8px;',onclick:()=>openEditor(null)},'➕ Elle Kayıt Ekle');
   const status=el('div',{class:'hint info',style:'margin-top:10px;display:none;'});
   window.addEventListener('message',event=>{
-    if(event.source!==window || event.data?.source!=='ekarsit-gib-extension') return;
-    if(event.data.type==='EKARSIT_GIB_SYNC_STATUS' && event.data.status==='error'){
-      syncStatus.style.display='block';syncStatus.className='hint warn';
-      syncStatus.textContent='⚠ '+(event.data.message||'GİB senkronizasyonu başlatılamadı.');
-      syncBtn.disabled=false;syncBtn.textContent='↻ Senkronize Et';
-    }
-  });
-  window.addEventListener('message',event=>{
     if(event.source!==window || event.data?.source!=='ekarsit-app') return;
     if(event.data.type==='EKARSIT_GIB_APPLY_RESULT'){
-      clearTimeout(syncTimer);
       const r=event.data.result||{};
-      syncStatus.style.display='block';syncStatus.className='hint ok';
-      syncStatus.textContent='✓ Senkronizasyon tamamlandı. '+(r.received||0)+' GİB kaydı alındı; '+(r.added||0)+' yeni, '+(r.updated||0)+' güncellendi.';
-      syncBtn.disabled=false;syncBtn.textContent='↻ Senkronize Et';
+      status.style.display='block';status.className='hint ok';
+      status.textContent='✓ GİB aktarımı tamamlandı. '+(r.received||0)+' kayıt alındı; '+(r.added||0)+' yeni, '+(r.updated||0)+' güncellendi.';
     }else if(event.data.type==='EKARSIT_GIB_APPLY_ERROR'){
-      clearTimeout(syncTimer);
-      syncStatus.style.display='block';syncStatus.className='hint warn';
-      syncStatus.textContent='⚠ Kayıtlar alınamadı: '+(event.data.message||'Bilinmeyen hata.');
-      syncBtn.disabled=false;syncBtn.textContent='↻ Senkronize Et';
+      status.style.display='block';status.className='hint warn';
+      status.textContent='⚠ Kayıtlar alınamadı: '+(event.data.message||'Bilinmeyen hata.');
     }
   });
   input.addEventListener('change',async()=>{
@@ -395,8 +372,8 @@ async function renderEKarsitTakipPage(){
     }catch(e){status.style.display='block';status.className='hint warn';status.textContent='⚠️ Excel aktarılamadı: '+e.message;}
     input.value='';
   });
-  card.appendChild(syncBtn);card.appendChild(importBtn);card.appendChild(backupBtn);card.appendChild(addBtn);card.appendChild(input);
-  card.appendChild(syncStatus);card.appendChild(status);
+  card.appendChild(importBtn);card.appendChild(backupBtn);card.appendChild(addBtn);card.appendChild(input);
+  card.appendChild(status);
   host.appendChild(card);host.appendChild(editorHost);host.appendChild(tableHost);
   eKarsitTakipRenderTable(tableHost,data,openEditor);
 
