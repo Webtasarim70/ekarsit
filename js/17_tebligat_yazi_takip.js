@@ -117,6 +117,17 @@ async function tebligatExcelYedekle(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='TEBLIGAT_YAZI_TAKIP_YEDEK.xlsx'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 
+function tebligatYaziTakipIsDueSoon(rec){
+  const raw=String(rec?.sonTarih||'').trim();
+  const date=typeof tebligatDateInput==='function'?tebligatDateInput(raw):raw;
+  if(!date) return false;
+  const due=new Date(date+'T00:00:00');
+  if(Number.isNaN(due.getTime())) return false;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const end=new Date(today); end.setDate(end.getDate()+5);
+  return due>=today&&due<=end;
+}
+
 let tebligatEditingId=null;
 async function renderTebligatYaziTakipPage(){
   currentPage='tebligat-yazi-takip'; archiveViewParsed=null; currentStep=-1;
@@ -209,9 +220,11 @@ async function renderTebligatYaziTakipPage(){
     const draw=()=>{
       body.innerHTML='';
       const q=String(globalSearch.value||'').trim().toLocaleLowerCase('tr-TR');
+      const dashboardFilter=window.dashboardTableFilter;
       const rows=data.records.filter(rec=>{
         const vals=columns.map(([,get])=>String(get(rec)||''));
-        return (!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q)))&&filters.every((input,i)=>!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR').includes(input.value.trim().toLocaleLowerCase('tr-TR')));
+        const matchesDashboard=!dashboardFilter||dashboardFilter.mode!=='due-soon'||tebligatYaziTakipIsDueSoon(rec);
+        return matchesDashboard&&(!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q)))&&filters.every((input,i)=>!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR').includes(input.value.trim().toLocaleLowerCase('tr-TR')));
       });
       if(sortIndex>=0) rows.sort((a,b)=>String(columns[sortIndex][1](a)||'').localeCompare(String(columns[sortIndex][1](b)||''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
       visibleRows=rows.slice();
