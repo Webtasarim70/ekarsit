@@ -5,14 +5,14 @@
 ## Sıradaki işler
 
 ### Dashboard ve bildirimler
-- [ ] **Süresi gelen yazılar bildirimini durum bilgisine göre güncelle**
+- [x] **Süresi gelen yazılar bildirimini durum bilgisine göre güncelle**
   - [x] Durumu “Cevaplandı” olan yazılar “Süresi Gelen Yazılar” dashboard filtresinde yer almasın.
   - [x] Sidebar bildirim rozeti, durumu “Cevaplandı” olan yazıları saymasın.
   - [x] Test: Kullanıcı, cevaplandı durumu için dashboard bildirimi ve sidebar rozetini doğruladı.
 - [x] **Dashboard “Pasife Çekilmiş” kutucuğu** tıklanınca e-Karşıt tablosunu “Pasife Çekilmiş” durumuyla filtreleyerek açsın.
   - [ ] Test: Karttan açılan tabloda yalnızca “Pasife Çekilmiş” kayıtların gösterildiğini ve sidebar ile yeniden girişte filtrenin kalıcı olmadığını doğrula.
 - [x] **Dashboard arşiv dosyaları bildirimi:** Sayacın tüm Excel dosyalarını firma arşivi olarak sayması düzeltildi; yalnızca `ARSIV_...` adlı arşiv çalışma kitapları sayılıyor.
-  - [ ] Test: Dashboard'daki sayı, kullanıcı klasöründeki `ARSIV_...` dosyalarının sayısıyla aynı mı kontrol et.
+  - [x] Test: Kullanıcı, dashboard sayısını kullanıcı klasöründeki arşiv dosyalarıyla karşılaştırıp olumlu sonuç bildirdi.
 
 ### GİB ve tarayıcı eklentisi
 - [ ] **Eksiklik yazısını GİB e-Tebligat sayfasından alma:** Chrome eklentisiyle eksiklik yazısını yakalama/aktarma akışını araştır ve uygula.
