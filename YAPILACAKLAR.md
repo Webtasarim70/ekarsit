@@ -6,8 +6,9 @@
 
 ### Dashboard ve bildirimler
 - [ ] **Süresi gelen yazılar bildirimini durum bilgisine göre güncelle**
-  - [ ] Durumu “Cevaplandı” olan yazılar “Süresi Gelen Yazılar” bildiriminde yer almasın.
-  - [ ] Sidebar bildirim rozeti, durumu “Cevaplandı” olan yazıları saymasın.
+  - [x] Durumu “Cevaplandı” olan yazılar “Süresi Gelen Yazılar” dashboard filtresinde yer almasın.
+  - [x] Sidebar bildirim rozeti, durumu “Cevaplandı” olan yazıları saymasın.
+  - [ ] Test: Durumu “Cevaplandı” olan, son tarihi yaklaşan bir kaydın dashboard listesinde ve sidebar rozetinde sayılmadığını doğrula.
 - [ ] **Dashboard “Pasife Çekilmiş” kutucuğu** tıklanınca tabloyu ilgili kayıtlarla filtreleyerek açsın.
 - [ ] **Dashboard arşiv dosyaları bildirimi:** Firma arşivleri sayısındaki tutarsızlığı araştır ve düzelt.
 
