@@ -122,6 +122,7 @@ async function tebligatExcelYedekle(){
 }
 
 function tebligatYaziTakipIsDueSoon(rec){
+  if(typeof tebligatYaziTakipIsAnswered==='function' && tebligatYaziTakipIsAnswered(rec)) return false;
   const raw=String(rec?.sonTarih||'').trim();
   const date=typeof tebligatDateInput==='function'?tebligatDateInput(raw):raw;
   if(!date) return false;
