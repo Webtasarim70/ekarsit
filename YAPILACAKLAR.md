@@ -8,8 +8,9 @@
 - [ ] **Süresi gelen yazılar bildirimini durum bilgisine göre güncelle**
   - [x] Durumu “Cevaplandı” olan yazılar “Süresi Gelen Yazılar” dashboard filtresinde yer almasın.
   - [x] Sidebar bildirim rozeti, durumu “Cevaplandı” olan yazıları saymasın.
-  - [ ] Test: Durumu “Cevaplandı” olan, son tarihi yaklaşan bir kaydın dashboard listesinde ve sidebar rozetinde sayılmadığını doğrula.
-- [ ] **Dashboard “Pasife Çekilmiş” kutucuğu** tıklanınca tabloyu ilgili kayıtlarla filtreleyerek açsın.
+  - [x] Test: Kullanıcı, cevaplandı durumu için dashboard bildirimi ve sidebar rozetini doğruladı.
+- [x] **Dashboard “Pasife Çekilmiş” kutucuğu** tıklanınca e-Karşıt tablosunu “Pasife Çekilmiş” durumuyla filtreleyerek açsın.
+  - [ ] Test: Karttan açılan tabloda yalnızca “Pasife Çekilmiş” kayıtların gösterildiğini ve sidebar ile yeniden girişte filtrenin kalıcı olmadığını doğrula.
 - [ ] **Dashboard arşiv dosyaları bildirimi:** Firma arşivleri sayısındaki tutarsızlığı araştır ve düzelt.
 
 ### GİB ve tarayıcı eklentisi
