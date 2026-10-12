@@ -791,17 +791,18 @@ async function renderWelcomePage(){
       ['📁','Arşiv Dosyaları',archiveCount,'Kullanıcı klasöründeki firma arşivleri','archive-upload'],
       ['🏢','Firma Bilgileri',firmCount,'Arşivinizde kayıtlı firmalar','user-info'],
       ['👤','YMM Bilgileri',ymmCount,'YMM rehberindeki kayıtlar','ymm-rehber'],
-      ['✉','Eksiklik Yazıları',tebligatCount,'Tebligat / yazı takip kayıtları','tebligat-yazi-takip'],
-      ['⏰','Süresi Gelen Yazılar',yaklasanCount,'Önümüzdeki 5 gün içindeki yazılar','tebligat-yazi-takip'],
+      ['✉','Eksiklik Yazıları',tebligatCount,'Tebligat / yazı takip kayıtları','tebligat-yazi-takip',null],
+      ['⏰','Süresi Gelen Yazılar',yaklasanCount,'Önümüzdeki 5 gün içindeki yazılar','tebligat-yazi-takip',{mode:'due-soon'}],
       ['↩','İade Takipleri',iadeCount,'İade takip listesi kayıtları','iade-takip-listesi'],
       ['↔','Toplam Karşıt',eKarsitTotal,'e-Karşıt takip kayıtlarının tamamı','e-karsit-takip'],
-      ['↩','Cevap Bekliyor',eKarsitCevapBekliyor,'Cevabı beklenen karşıt incelemeler','e-karsit-takip'],
-      ['⏳','Gönderilen Pasif Talebi Onay Bekliyor',eKarsitPasifTalepBekliyor,'Pasife çekme talebi onay bekleyen kayıtlar','e-karsit-takip'],
-      ['⏳','Gönderilen İptal Talebi Onay Bekliyor',eKarsitIptalTalepBekliyor,'İptal talebi onay bekleyen kayıtlar','e-karsit-takip'],
+      ['↩','Cevap Bekliyor',eKarsitCevapBekliyor,'Cevabı beklenen karşıt incelemeler','e-karsit-takip',{field:'Durum',value:'Cevap Bekliyor'}],
+      ['⏳','Gönderilen Pasif Talebi Onay Bekliyor',eKarsitPasifTalepBekliyor,'Pasife çekme talebi onay bekleyen kayıtlar','e-karsit-takip',{field:'Durum',value:'Gönderilen Pasif Talebi Onay Bekliyor'}],
+      ['⏳','Gönderilen İptal Talebi Onay Bekliyor',eKarsitIptalTalepBekliyor,'İptal talebi onay bekleyen kayıtlar','e-karsit-takip',{field:'Durum',value:'Gönderilen İptal Talebi Onay Bekliyor'}],
       ['⛔','Pasife Çekilmiş',eKarsitPasifeCekilmis,'Pasife çekilmiş karşıt incelemeler','e-karsit-takip']
     ];
-    dashboardCards.forEach(([icon,title,count,desc,page])=>{
+    dashboardCards.forEach(([icon,title,count,desc,page,filter])=>{
       const card=el('div',{class:'card',style:'margin:0;cursor:pointer;min-height:132px;transition:transform .15s,box-shadow .15s;',onclick:()=>{
+        window.dashboardTableFilter=filter||null;
         if(page==='archive-upload') renderArchiveUploadPage();
         else if(page==='user-info') renderUserInfoPage();
         else if(page==='ymm-rehber') renderYmmRehberPage();
