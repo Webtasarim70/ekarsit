@@ -8,6 +8,9 @@
 - [ ] **Dashboard bildirimlerini kişiselleştirme:** Kullanıcı bildirim kartlarının yerini değiştirebilsin ve istemediği bildirimleri kapatabilsin.
 - [ ] **Sidebar menüsünü kişiselleştirme:** Kullanıcı bağlantıları pasif hâle getirip görünmez yapabilsin ve menü öğelerinin sırasını değiştirebilsin.
 
+### e-Karşıt Takip Kayıtları
+- [ ] **Hazır kaydedilmiş filtreler:** e-Karşıt Takip Kayıtları tablosuna, sık kullanılan filtreleri kaydedip daha sonra tek seçimle uygulama fonksiyonu ekle.
+
 ### Dashboard ve bildirimler
 - [x] **Süresi gelen yazılar bildirimini durum bilgisine göre güncelle**
   - [x] Durumu “Cevaplandı” olan yazılar “Süresi Gelen Yazılar” dashboard filtresinde yer almasın.
