@@ -121,7 +121,7 @@ async function eKarsitTakipExcelYedekle(){
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
-function eKarsitTakipRenderTable(host,data,onRowClick){
+function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
   host.innerHTML='';
   const card=el('div',{class:'card',style:'margin-top:14px;'});
   const titleRow=el('div',{style:'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;'});
@@ -136,6 +136,7 @@ function eKarsitTakipRenderTable(host,data,onRowClick){
       select.appendChild(el('option',{value:''},'Tüm Durumlar'));
       const statuses=[...new Set(data.records.map(r=>String(r[h]??'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr',{sensitivity:'base'}));
       statuses.forEach(status=>select.appendChild(el('option',{value:status},status)));
+      if(pageDashboardFilter?.field===h) select.value=pageDashboardFilter.value||'';
       box.appendChild(select);filtersWrap.appendChild(box);return select;
     }
     const input=el('input',{class:'input',placeholder:h+' filtrele…'});
@@ -298,6 +299,8 @@ function eKarsitTakipEditor(host,data,record,onSaved){
 }
 
 async function renderEKarsitTakipPage(){
+  const pageDashboardFilter=window.dashboardTableFilter||null;
+  window.dashboardTableFilter=null;
   currentPage='e-karsit-takip'; archiveViewParsed=null; currentStep=-1;
   const content=document.getElementById('step-content');
   content.innerHTML='';
@@ -321,7 +324,7 @@ async function renderEKarsitTakipPage(){
     eKarsitTakipEditor(editorHost,data,record,async(saved,fresh)=>{
       editorHost.innerHTML='';
       if(saved) data=fresh||await eKarsitTakipRead();
-      eKarsitTakipRenderTable(tableHost,data,openEditor);
+      eKarsitTakipRenderTable(tableHost,data,openEditor,pageDashboardFilter);
     });
   };
 
@@ -368,14 +371,14 @@ async function renderEKarsitTakipPage(){
       imported.records.forEach(r=>{const id=String(r['İşlem ID']||'');if(byId.has(id)){const existing=byId.get(id);const notValue=existing['Not']??'';Object.assign(existing,r);existing['Not']=notValue;updated++;}else{data.records.unshift(r);byId.set(id,r);added++;}});
       data.headers=[...EKARSIT_TAKIP_HEADERS];await eKarsitTakipWrite(data);data=await eKarsitTakipRead();
       status.style.display='block';status.className='hint ok';status.textContent='✓ Excel aktarıldı. '+added+' yeni kayıt, '+updated+' güncellenen kayıt.';
-      eKarsitTakipRenderTable(tableHost,data,openEditor);
+      eKarsitTakipRenderTable(tableHost,data,openEditor,pageDashboardFilter);
     }catch(e){status.style.display='block';status.className='hint warn';status.textContent='⚠️ Excel aktarılamadı: '+e.message;}
     input.value='';
   });
   card.appendChild(importBtn);card.appendChild(backupBtn);card.appendChild(addBtn);card.appendChild(input);
   card.appendChild(status);
   host.appendChild(card);host.appendChild(editorHost);host.appendChild(tableHost);
-  eKarsitTakipRenderTable(tableHost,data,openEditor);
+  eKarsitTakipRenderTable(tableHost,data,openEditor,pageDashboardFilter);
 
   document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;
   document.getElementById('footer-msg').textContent='e-Karşıt Takip';renderNav();

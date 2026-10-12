@@ -781,7 +781,7 @@ async function renderWelcomePage(){
     const info=userCurrentInfo();
     const adSoyad=String(info?.kullanici?.adSoyad||'').trim()||'Kullanıcı';
     const firmCount=Array.isArray(userStore.firms)?userStore.firms.length:0;
-    const archiveCount=(Array.isArray(userStore.files)?userStore.files:[]).filter(x=>/\.(xlsx|xlsm)$/i.test(String(x?.name||'')) && !/^~\\$/i.test(String(x?.name||''))).length;
+    const archiveCount=(Array.isArray(userStore.files)?userStore.files:[]).filter(x=>/^ARSIV_.+\.(xlsx|xlsm)$/i.test(String(x?.name||'')) && !/^~\\$/i.test(String(x?.name||''))).length;
 
     content.appendChild(el('h2',{class:'step-title'},'Hoş Geldiniz, '+adSoyad));
     content.appendChild(el('p',{class:'step-desc'},'Çalışma paneliniz hazır. Aşağıdaki kutulardan ilgili bölüme hızlıca geçebilirsiniz.'));
@@ -791,17 +791,18 @@ async function renderWelcomePage(){
       ['📁','Arşiv Dosyaları',archiveCount,'Kullanıcı klasöründeki firma arşivleri','archive-upload'],
       ['🏢','Firma Bilgileri',firmCount,'Arşivinizde kayıtlı firmalar','user-info'],
       ['👤','YMM Bilgileri',ymmCount,'YMM rehberindeki kayıtlar','ymm-rehber'],
-      ['✉','Eksiklik Yazıları',tebligatCount,'Tebligat / yazı takip kayıtları','tebligat-yazi-takip'],
-      ['⏰','Süresi Gelen Yazılar',yaklasanCount,'Önümüzdeki 5 gün içindeki yazılar','tebligat-yazi-takip'],
+      ['✉','Eksiklik Yazıları',tebligatCount,'Tebligat / yazı takip kayıtları','tebligat-yazi-takip',null],
+      ['⏰','Süresi Gelen Yazılar',yaklasanCount,'Önümüzdeki 5 gün içindeki yazılar','tebligat-yazi-takip',{mode:'due-soon'}],
       ['↩','İade Takipleri',iadeCount,'İade takip listesi kayıtları','iade-takip-listesi'],
       ['↔','Toplam Karşıt',eKarsitTotal,'e-Karşıt takip kayıtlarının tamamı','e-karsit-takip'],
-      ['↩','Cevap Bekliyor',eKarsitCevapBekliyor,'Cevabı beklenen karşıt incelemeler','e-karsit-takip'],
-      ['⏳','Gönderilen Pasif Talebi Onay Bekliyor',eKarsitPasifTalepBekliyor,'Pasife çekme talebi onay bekleyen kayıtlar','e-karsit-takip'],
-      ['⏳','Gönderilen İptal Talebi Onay Bekliyor',eKarsitIptalTalepBekliyor,'İptal talebi onay bekleyen kayıtlar','e-karsit-takip'],
-      ['⛔','Pasife Çekilmiş',eKarsitPasifeCekilmis,'Pasife çekilmiş karşıt incelemeler','e-karsit-takip']
+      ['↩','Cevap Bekliyor',eKarsitCevapBekliyor,'Cevabı beklenen karşıt incelemeler','e-karsit-takip',{field:'Durum',value:'Cevap Bekliyor'}],
+      ['⏳','Gönderilen Pasif Talebi Onay Bekliyor',eKarsitPasifTalepBekliyor,'Pasife çekme talebi onay bekleyen kayıtlar','e-karsit-takip',{field:'Durum',value:'Gönderilen Pasif Talebi Onay Bekliyor'}],
+      ['⏳','Gönderilen İptal Talebi Onay Bekliyor',eKarsitIptalTalepBekliyor,'İptal talebi onay bekleyen kayıtlar','e-karsit-takip',{field:'Durum',value:'Gönderilen İptal Talebi Onay Bekliyor'}],
+      ['⛔','Pasife Çekilmiş',eKarsitPasifeCekilmis,'Pasife çekilmiş karşıt incelemeler','e-karsit-takip',{field:'Durum',value:'Pasife Çekilmiş'}]
     ];
-    dashboardCards.forEach(([icon,title,count,desc,page])=>{
+    dashboardCards.forEach(([icon,title,count,desc,page,filter])=>{
       const card=el('div',{class:'card',style:'margin:0;cursor:pointer;min-height:132px;transition:transform .15s,box-shadow .15s;',onclick:()=>{
+        window.dashboardTableFilter=filter||null;
         if(page==='archive-upload') renderArchiveUploadPage();
         else if(page==='user-info') renderUserInfoPage();
         else if(page==='ymm-rehber') renderYmmRehberPage();
