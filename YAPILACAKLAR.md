@@ -15,7 +15,9 @@
   - [x] Test: Kullanıcı, dashboard sayısını kullanıcı klasöründeki arşiv dosyalarıyla karşılaştırıp olumlu sonuç bildirdi.
 
 ### GİB ve tarayıcı eklentisi
-- [ ] **Eksiklik yazısını GİB e-Tebligat sayfasından alma:** Chrome eklentisiyle eksiklik yazısını yakalama/aktarma akışını araştır ve uygula.
+- [ ] **GİB Tebligat Takip modülü:** Ayrı menü, yerel JSON kayıt dosyası, tablo/arama/Excel dışa aktarımı ve e-Tebligat sayfasından eklentiyle çok sayfalı aktarım eklendi.
+  - [ ] Test: Eklentiyi yeniden yükle; GİB e-Tebligat listesinden aktar; tüm sayfaların geldiğini, toplam kayıt sayısını ve ikinci aktarımda mükerrer kayıt oluşmadığını doğrula.
+- [ ] **Eksiklik yazısını GİB e-Tebligat sayfasından alma:** PDF belgesini alma/ilişkilendirme akışını ayrıca araştır ve uygula.
 - [ ] **GİB e-Karşıt aktarımı:** Daha önce “Pasife Çekilmiş” durumunda olup sonradan onaylanan kayıtların durumlarını doğru şekilde güncelle.
 - [ ] **“GİB İadem Nerede” menüsünü yakalama** akışını ekle.
 - [ ] **YMM Yazıları menüsünü** tamamlama.
