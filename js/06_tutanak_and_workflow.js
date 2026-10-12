@@ -798,7 +798,7 @@ async function renderWelcomePage(){
       ['↩','Cevap Bekliyor',eKarsitCevapBekliyor,'Cevabı beklenen karşıt incelemeler','e-karsit-takip',{field:'Durum',value:'Cevap Bekliyor'}],
       ['⏳','Gönderilen Pasif Talebi Onay Bekliyor',eKarsitPasifTalepBekliyor,'Pasife çekme talebi onay bekleyen kayıtlar','e-karsit-takip',{field:'Durum',value:'Gönderilen Pasif Talebi Onay Bekliyor'}],
       ['⏳','Gönderilen İptal Talebi Onay Bekliyor',eKarsitIptalTalepBekliyor,'İptal talebi onay bekleyen kayıtlar','e-karsit-takip',{field:'Durum',value:'Gönderilen İptal Talebi Onay Bekliyor'}],
-      ['⛔','Pasife Çekilmiş',eKarsitPasifeCekilmis,'Pasife çekilmiş karşıt incelemeler','e-karsit-takip']
+      ['⛔','Pasife Çekilmiş',eKarsitPasifeCekilmis,'Pasife çekilmiş karşıt incelemeler','e-karsit-takip',{field:'Durum',value:'Pasife Çekilmiş'}]
     ];
     dashboardCards.forEach(([icon,title,count,desc,page,filter])=>{
       const card=el('div',{class:'card',style:'margin:0;cursor:pointer;min-height:132px;transition:transform .15s,box-shadow .15s;',onclick:()=>{
