@@ -5,6 +5,7 @@
 ## Sıradaki işler
 
 - [ ] **Dashboard bildirim filtrelerini test et**
+  - [x] Dashboard filtresinin başka sayfalara taşınıp tabloyu kalıcı olarak daraltması düzeltildi; filtre artık yalnızca dashboard kartından açılan sayfa görünümüne uygulanıyor.
   - [ ] “Süresi Gelen Yazılar” kartı yalnızca son tarihi bugün ile sonraki 5 gün arasında olan kayıtları açıyor mu?
   - [ ] “Cevap Bekliyor” ve pasif/iptal onay talepleri ilgili durum filtresi seçili olarak açılıyor mu?
   - [ ] Filtre uygulanmış tablodan başka bir dashboard kartına geçince eski filtre temizleniyor mu?
