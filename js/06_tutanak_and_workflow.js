@@ -781,7 +781,7 @@ async function renderWelcomePage(){
     const info=userCurrentInfo();
     const adSoyad=String(info?.kullanici?.adSoyad||'').trim()||'Kullanıcı';
     const firmCount=Array.isArray(userStore.firms)?userStore.firms.length:0;
-    const archiveCount=(Array.isArray(userStore.files)?userStore.files:[]).filter(x=>/\.(xlsx|xlsm)$/i.test(String(x?.name||'')) && !/^~\\$/i.test(String(x?.name||''))).length;
+    const archiveCount=(Array.isArray(userStore.files)?userStore.files:[]).filter(x=>/^ARSIV_.+\.(xlsx|xlsm)$/i.test(String(x?.name||'')) && !/^~\\$/i.test(String(x?.name||''))).length;
 
     content.appendChild(el('h2',{class:'step-title'},'Hoş Geldiniz, '+adSoyad));
     content.appendChild(el('p',{class:'step-desc'},'Çalışma paneliniz hazır. Aşağıdaki kutulardan ilgili bölüme hızlıca geçebilirsiniz.'));
