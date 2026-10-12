@@ -9,6 +9,7 @@
   ],
   "host_permissions": [
     "https://eymm.gib.gov.tr/*",
+    "https://dijital.gib.gov.tr/*",
     "https://webtasarim70.github.io/ekarsit/*"
   ],
   "background": {
@@ -31,6 +32,25 @@
       ],
       "js": [
         "gib-content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://dijital.gib.gov.tr/*"
+      ],
+      "js": [
+        "gib-tebligat-main.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://dijital.gib.gov.tr/portal/e-tebligat*"
+      ],
+      "js": [
+        "gib-tebligat-content.js"
       ],
       "run_at": "document_idle"
     },
