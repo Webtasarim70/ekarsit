@@ -130,6 +130,8 @@ function tebligatYaziTakipIsDueSoon(rec){
 
 let tebligatEditingId=null;
 async function renderTebligatYaziTakipPage(){
+  const pageDashboardFilter=window.dashboardTableFilter||null;
+  window.dashboardTableFilter=null;
   currentPage='tebligat-yazi-takip'; archiveViewParsed=null; currentStep=-1;
   const content=document.getElementById('step-content'); content.innerHTML='';
   content.appendChild(el('h2',{class:'step-title'},'Tebligat Yazı Takip'));
@@ -220,7 +222,7 @@ async function renderTebligatYaziTakipPage(){
     const draw=()=>{
       body.innerHTML='';
       const q=String(globalSearch.value||'').trim().toLocaleLowerCase('tr-TR');
-      const dashboardFilter=window.dashboardTableFilter;
+      const dashboardFilter=pageDashboardFilter;
       const rows=data.records.filter(rec=>{
         const vals=columns.map(([,get])=>String(get(rec)||''));
         const matchesDashboard=!dashboardFilter||dashboardFilter.mode!=='due-soon'||tebligatYaziTakipIsDueSoon(rec);
