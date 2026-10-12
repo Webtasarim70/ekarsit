@@ -19,8 +19,15 @@
     }catch(_){}
     return oldFetch.apply(this,arguments);
   };
+  const oldOpen=XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open=function(method,url){this.__ekarsitTebligatUrl=String(url||'');return oldOpen.apply(this,arguments);};
   const oldSet=XMLHttpRequest.prototype.setRequestHeader;
   XMLHttpRequest.prototype.setRequestHeader=function(name,value){if(String(name).toLowerCase()==='authorization')remember(value);return oldSet.apply(this,arguments);};
+  const oldSend=XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send=function(body){
+    try{if(String(this.__ekarsitTebligatUrl||'').includes(endpointPart)&&typeof body==='string'){listRequestBody=JSON.parse(body);}}catch(_){}
+    return oldSend.apply(this,arguments);
+  };
   async function getPage(pageNo,pageSize){
     if(!authHeader)throw new Error('GİB oturum bilgisi yakalanamadı. e-Tebligat sayfasını yenileyip tekrar deneyin.');
     if(!listRequestBody)throw new Error('e-Tebligat liste isteği henüz yakalanmadı. Sayfayı yenileyin ve tablo yüklenince tekrar deneyin.');
