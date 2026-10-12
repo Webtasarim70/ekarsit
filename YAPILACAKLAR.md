@@ -16,11 +16,13 @@
 
 ### GİB ve tarayıcı eklentisi
 - [ ] **GİB Tebligat Takip modülü:** Ayrı menü, yerel JSON kayıt dosyası, tablo/arama/Excel dışa aktarımı ve e-Tebligat sayfasından eklentiyle çok sayfalı aktarım eklendi.
-  - [ ] Test: Eklentiyi yeniden yükle; GİB e-Tebligat listesinden aktar; tüm sayfaların geldiğini, toplam kayıt sayısını ve ikinci aktarımda mükerrer kayıt oluşmadığını doğrula.
+  - [x] Test: 67 kaydın tamamı tabloda görünüyor; ikinci aktarımda mükerrer kayıt oluşmuyor; Excel çıktısı açılıyor ve tarihler doğru. Kullanıcı tarafından doğrulandı.
 - [ ] **Eksiklik yazısını GİB e-Tebligat sayfasından alma:** PDF belgesini alma/ilişkilendirme akışını ayrıca araştır ve uygula.
 - [ ] **GİB e-Karşıt aktarımı:** Daha önce “Pasife Çekilmiş” durumunda olup sonradan onaylanan kayıtların durumlarını doğru şekilde güncelle.
 - [ ] **“GİB İadem Nerede” menüsünü yakalama** akışını ekle.
 - [ ] **YMM Yazıları menüsünü** tamamlama.
+- [ ] **e-Karşıt Takip modülünü mükellefe uyarlama:** Takip ekranı ve iş akışlarını mükellef bazında çalışacak şekilde düzenle.
+- [ ] **GİB sayfasındaki eklenti butonlarını kaldırma:** Eklentinin GİB sayfasına enjekte ettiği butonlar yerine, işlemleri uygulamanın kendi sayfası içerisinden başlatılabilecek butonlar oluştur.
 
 ### Firma arşivi
 - [ ] **Firma arşiv düzenleme:** Düzenleme bölümünde girilen bilgileri kaydetme fonksiyonunu tamamla.
