@@ -32,13 +32,13 @@
     return response.json();
   }
   async function getAll(){
-    const first=await getPage(1,100);
+    const pageSize=10;
+    const first=await getPage(1,pageSize);
     const data=first?.data||{};
     const total=Number(data.count||first?.pageDetail?.total||0);
     const firstRows=Array.isArray(data.tebligatDtoList)?data.tebligatDtoList:[];
-    const pageSize=100;
     const records=[...firstRows];
-    const totalPages=Math.max(1,Math.ceil(total/pageSize));
+    const totalPages=Math.max(1,Number(first?.pageDetail?.totalPage||Math.ceil(total/pageSize)));
     for(let p=2;p<=totalPages;p++){
       const next=await getPage(p,pageSize);
       const rows=next?.data?.tebligatDtoList;
