@@ -136,7 +136,7 @@ function eKarsitTakipRenderTable(host,data,onRowClick){
       select.appendChild(el('option',{value:''},'Tüm Durumlar'));
       const statuses=[...new Set(data.records.map(r=>String(r[h]??'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr',{sensitivity:'base'}));
       statuses.forEach(status=>select.appendChild(el('option',{value:status},status)));
-      if(window.dashboardTableFilter?.field===h) select.value=window.dashboardTableFilter.value||'';
+      if(pageDashboardFilter?.field===h) select.value=pageDashboardFilter.value||'';
       box.appendChild(select);filtersWrap.appendChild(box);return select;
     }
     const input=el('input',{class:'input',placeholder:h+' filtrele…'});
@@ -299,6 +299,8 @@ function eKarsitTakipEditor(host,data,record,onSaved){
 }
 
 async function renderEKarsitTakipPage(){
+  const pageDashboardFilter=window.dashboardTableFilter||null;
+  window.dashboardTableFilter=null;
   currentPage='e-karsit-takip'; archiveViewParsed=null; currentStep=-1;
   const content=document.getElementById('step-content');
   content.innerHTML='';
