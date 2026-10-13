@@ -59,7 +59,17 @@
   async function gibJsonPost(path,data){
     if(!authHeader)throw new Error('GİB oturumu bulunamadı. GİB e-Tebligat sekmesini yenileyip yeniden deneyin.');
     const response=await fetch(path,{method:'POST',headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','Authorization':authHeader,'page-name':'e-tebligat','ui-client':'fe'},credentials:'include',body:JSON.stringify({data})});
-    if(!response.ok)throw new Error('GİB belge servisi '+response.status+' '+response.statusText);return response.json();
+    if(!response.ok){
+      let detail='';
+      try{
+        const body=await response.clone().json();
+        const messages=Array.isArray(body?.messages)?body.messages:[];
+        detail=String(messages.find(x=>x?.message)?.message||body?.message||body?.error||'').trim();
+      }catch(_){}
+      const endpoint=path.split('/').pop()||'belge servisi';
+      throw new Error('GİB '+endpoint+' '+response.status+' '+response.statusText+(detail?': '+detail:''));
+    }
+    return response.json();
   }
   function gibFindObject(root,predicate,depth=0){
     if(!root||typeof root!=='object'||depth>5)return null;if(predicate(root))return root;
@@ -72,15 +82,26 @@
     const ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId});
     const belge=gibFindObject(ekler,x=>x.adi&&x.id&&x.secureId&&String(x.uzanti||'').toLowerCase()==='pdf')||gibFindObject(ekler,x=>x.tebligBelge?.adi)?.tebligBelge;
     if(!belge)throw new Error('GİB yanıtında PDF belge bulunamadı.');
-    const belgePayload={...belge},tarafId=record?.tarafId||record?.mukellefId||record?.taraf?.id,tarafSecureId=record?.tarafSecureId||record?.mukellefSecureId||record?.taraf?.secureId;
-    if(tarafId)belgePayload.tarafId=tarafId;if(tarafSecureId)belgePayload.tarafSecureId=tarafSecureId;
+    const tarafId=record?.tarafId||record?.mukellefId||record?.taraf?.id||record?.tarafBilgileri?.id;
+    const tarafSecureId=record?.tarafSecureId||record?.mukellefSecureId||record?.taraf?.secureId||record?.tarafBilgileri?.secureId;
+    if(!tarafId||!tarafSecureId)throw new Error('Bu tebligat kaydında tarafId/tarafSecureId bilgileri bulunamadı. GİB e-Tebligat listesini yeniden aktarın; bilgiler hâlâ yoksa GİB liste yanıtındaki taraf alanları için ek uyarlama gerekiyor.');
+    const belgePayload={
+      belgeAdi:belge.adi||belge.belgeAdi,
+      belgeTip:String(belge.belgeTip??'0'),
+      id:belge.id,
+      secureId:belge.secureId,
+      tarafId,
+      tarafSecureId,
+      uzanti:String(belge.uzanti||'pdf').toLowerCase()
+    };
+    if(!belgePayload.belgeAdi||!belgePayload.id||!belgePayload.secureId)throw new Error('GİB belge yanıtında belgeAdi/id/secureId alanları eksik.');
     const getir=await gibJsonPost('/apigateway/etebligat/etebligat/belge-getir',belgePayload);
     const reportLink=gibFindObject(getir,x=>typeof x.reportLink==='string')?.reportLink;if(!reportLink)throw new Error('GİB belge yanıtında PDF indirme bağlantısı bulunamadı.');
     const url=new URL(reportLink,location.origin);if(url.origin!==location.origin)throw new Error('Güvenlik nedeniyle GİB dışındaki indirme adresi kabul edilmedi.');
     const response=await fetch(url.href,{headers:{'Accept':'application/pdf, application/octet-stream, */*','Authorization':authHeader},credentials:'include'});
     if(!response.ok)throw new Error('PDF indirilemedi: '+response.status+' '+response.statusText);
     const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length<5||String.fromCharCode(...bytes.subarray(0,5))!=='%PDF-')throw new Error('GİB yanıtı geçerli bir PDF değil; oturum süresi dolmuş olabilir.');
-    return {base64:toBase64(bytes),filename:String(belge.adi||'tebligat.pdf').replace(/[\\/:*?"<>|]/g,'_'),mimeType:'application/pdf'};
+    return {base64:toBase64(bytes),filename:String(belge.adi||belge.belgeAdi||'tebligat.pdf').replace(/[\\/:*?"<>|]/g,'_'),mimeType:'application/pdf'};
   }
   window.addEventListener('message',async event=>{
     if(event.source!==window||event.data?.source!=='ekarsit-extension')return;
