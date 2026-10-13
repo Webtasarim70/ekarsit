@@ -73,8 +73,13 @@
       try{
         const body=await response.clone().json();
         const messages=Array.isArray(body?.messages)?body.messages:[];
-        detail=String(messages.find(x=>x?.message)?.message||body?.message||body?.error||'').trim();
-      }catch(_){}
+        const messageText=messages.map(x=>x?.message||x?.description||x?.code).filter(Boolean).join('; ');
+        const errors=body?.errors&&typeof body.errors==='object'?Object.entries(body.errors).map(([key,value])=>key+': '+(Array.isArray(value)?value.join(', '):String(value))).join('; '):'';
+        detail=String(messageText||body?.message||body?.detail||body?.errorDescription||body?.error||errors||'').trim();
+        if(!detail&&body&&typeof body==='object')detail=JSON.stringify(body).slice(0,500);
+      }catch(_){
+        try{detail=(await response.clone().text()).slice(0,300).replace(/\s+/g,' ').trim();}catch(_){}
+      }
       const endpoint=path.split('/').pop()||'belge servisi';
       throw new Error('GİB '+endpoint+' '+response.status+' '+response.statusText+(detail?': '+detail:''));
     }
