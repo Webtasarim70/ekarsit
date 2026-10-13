@@ -62,6 +62,22 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
     return true;
   }
 
+  if(message?.type==='GIB_TEBLIGAT_DOWNLOAD_PDF'){
+    (async()=>{
+      const tabs=await chrome.tabs.query({url:'https://dijital.gib.gov.tr/portal/e-tebligat*'}),tab=tabs.find(t=>t.id);
+      if(!tab?.id)throw new Error('GİB e-Tebligat sekmesi bulunamadı. Önce GİB’de e-Tebligat listesini açın.');
+      await chrome.tabs.sendMessage(tab.id,{type:'GIB_TEBLIGAT_DOWNLOAD_PDF',requestId:message.requestId,record:message.record});
+      sendResponse({ok:true});
+    })().catch(error=>sendResponse({ok:false,message:error?.message||String(error)}));return true;
+  }
+  if(message?.type==='GIB_TEBLIGAT_PDF_RESULT'){
+    (async()=>{
+      const tabs=await chrome.tabs.query({url:APP_URL+'*'}),tab=tabs.find(t=>t.id);
+      if(!tab?.id)throw new Error('e-Karşıt uygulama sekmesi bulunamadı.');
+      await chrome.tabs.sendMessage(tab.id,{type:'GIB_TEBLIGAT_PDF_RESULT',requestId:message.requestId,ok:message.ok,pdf:message.pdf,message:message.message});
+      sendResponse({ok:true});
+    })().catch(error=>sendResponse({ok:false,message:error?.message||String(error)}));return true;
+  }
   if(message?.type==='GIB_TEBLIGAT_SEND_TO_APP'){
     (async()=>{
       const tabs=await chrome.tabs.query({url:APP_URL+'*'});
