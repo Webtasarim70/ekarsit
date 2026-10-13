@@ -5,19 +5,32 @@
   let listRequestBody = null;
   const endpointPart='/apigateway/etebligat/etebligat/tebligat-listele';
   const remember=v=>{const x=String(v||'').trim();if(/^Bearer\s+\S+$/i.test(x))authHeader=x;};
+  const ekListeEndpointPart='/apigateway/etebligat/etebligat/belge-ek-listele';
+  const observedTebligSecureIds=new Map();
+  const rememberEkListeBody=(body)=>{
+    try{
+      const data=typeof body==='string'?JSON.parse(body):body;
+      const id=String(data?.tebligId||data?.data?.tebligId||'').trim();
+      const secure=String(data?.tebligSecureId||data?.data?.tebligSecureId||'').trim();
+      if(id&&secure)observedTebligSecureIds.set(id,secure);
+    }catch(_){}
+  };
   const oldFetch=window.fetch;
   window.fetch=async function(input,init){
+    let url='',body=init?.body;
     try{
-      const url=input instanceof Request?input.url:String(input||'');
+      url=input instanceof Request?input.url:String(input||'');
       const headers=new Headers(init?.headers||(input instanceof Request?input.headers:undefined));
       remember(headers.get('authorization'));
-      if(url.includes(endpointPart)){
-        let body=init?.body;
-        if(body==null&&input instanceof Request){try{body=await input.clone().text();}catch(_){}}
-        if(typeof body==='string'){try{listRequestBody=JSON.parse(body);}catch(_){}}
-      }
+      if(body==null&&input instanceof Request){try{body=await input.clone().text();}catch(_){}}
+      if(url.includes(endpointPart)&&typeof body==='string'){try{listRequestBody=JSON.parse(body);}catch(_){}}
+      if(url.includes(ekListeEndpointPart))rememberEkListeBody(body);
     }catch(_){}
-    return oldFetch.apply(this,arguments);
+    const response=await oldFetch.apply(this,arguments);
+    if(url.includes(ekListeEndpointPart)&&response.ok){
+      try{const requestData=typeof body==='string'?JSON.parse(body):body;const id=String(requestData?.tebligId||requestData?.data?.tebligId||'').trim();const secure=String(requestData?.tebligSecureId||requestData?.data?.tebligSecureId||'').trim();if(id&&secure)observedTebligSecureIds.set(id,secure);}catch(_){}
+    }
+    return response;
   };
   const oldOpen=XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open=function(method,url){this.__ekarsitTebligatUrl=String(url||'');return oldOpen.apply(this,arguments);};
@@ -25,7 +38,21 @@
   XMLHttpRequest.prototype.setRequestHeader=function(name,value){if(String(name).toLowerCase()==='authorization')remember(value);return oldSet.apply(this,arguments);};
   const oldSend=XMLHttpRequest.prototype.send;
   XMLHttpRequest.prototype.send=function(body){
-    try{if(String(this.__ekarsitTebligatUrl||'').includes(endpointPart)&&typeof body==='string'){listRequestBody=JSON.parse(body);}}catch(_){}
+    try{
+      const url=String(this.__ekarsitTebligatUrl||'');
+      if(url.includes(endpointPart)&&typeof body==='string')listRequestBody=JSON.parse(body);
+      if(url.includes(ekListeEndpointPart)){
+        rememberEkListeBody(body);
+        let data;try{data=typeof body==='string'?JSON.parse(body):body;}catch(_){}
+        this.addEventListener('load',function(){
+          if(this.status>=200&&this.status<300){
+            const id=String(data?.tebligId||data?.data?.tebligId||'').trim();
+            const secure=String(data?.tebligSecureId||data?.data?.tebligSecureId||'').trim();
+            if(id&&secure)observedTebligSecureIds.set(id,secure);
+          }
+        });
+      }
+    }catch(_){}
     return oldSend.apply(this,arguments);
   };
   async function getPage(pageNo,pageSize){
@@ -93,9 +120,11 @@
   async function getTebligatPdf(record){
     // GİB'in başarılı ağ isteğinde belge-ek-listele kök gövde kullanıyor.
     // id/secureId alanlarına geri düşmek, tebligat kimliği yerine belge kimliğini gönderebilir.
-    const tebligId=record?.tebligId;
-    const tebligSecureId=record?.tebligSecureId;
-    if(!tebligId||!tebligSecureId)throw new Error('Aktarılan kayıtta tebligId veya tebligSecureId eksik. GİB listesini yeniden aktarın; belge id/secureId alanları tebligat kimliği yerine kullanılamaz.');
+    const tebligId=String(record?.tebligId||'').trim();
+    // GİB arayüzünün başarıyla kullandığı kimlik, aktarılmış listedeki eski/başka secureId'den daha güvenilirdir.
+    // Kullanıcı ilgili tebligatta "Zarf İçeriğini Gör" açtıysa fetch/XHR köprüsü bu değeri yakalar.
+    const tebligSecureId=String(observedTebligSecureIds.get(tebligId)||record?.tebligSecureId||record?.secureId||'').trim();
+    if(!tebligId||!tebligSecureId)throw new Error('Aktarılan kayıtta tebligId veya tebligSecureId eksik. GİB listesini yeniden aktarın.');
     const ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},false);
     const belge=gibFindObject(ekler,x=>x.adi&&x.id&&x.secureId&&String(x.uzanti||'').toLowerCase()==='pdf')||gibFindObject(ekler,x=>x.tebligBelge?.adi)?.tebligBelge;
     if(!belge)throw new Error('GİB yanıtında PDF belge bulunamadı.');
