@@ -15,7 +15,7 @@
 ### e-Karşıt Takip Kayıtları
 - [x] **Hazır kaydedilmiş filtreler:** e-Karşıt Takip Kayıtları tablosuna arama ve sütun filtrelerini adlandırarak kaydetme, yeniden uygulama ve silme fonksiyonları eklendi. Kayıtlar seçili kullanıcı klasörü adına göre tarayıcıda saklanır.
   - [x] Test: Kullanıcı, sayfa yenilendiğinde ve kullanıcı çıkış-giriş yaptığında kayıtlı filtrenin kullanılabildiğini doğruladı.
-  - [ ] Test: Aynı adla kaydetme mevcut filtreyi güncelliyor mu ve kayıtlı filtre silinebiliyor mu?
+  - [x] Test: Aynı adla kaydetmenin mevcut filtreyi güncellediği ve kayıtlı filtrenin silinebildiği kullanıcı tarafından doğrulandı.
 
 ### Dashboard ve bildirimler
 - [x] **Süresi gelen yazılar bildirimini durum bilgisine göre güncelle**
