@@ -24,7 +24,6 @@
       remember(headers.get('authorization'));
       if(body==null&&input instanceof Request){try{body=await input.clone().text();}catch(_){}}
       if(url.includes(endpointPart)&&typeof body==='string'){try{listRequestBody=JSON.parse(body);}catch(_){}}
-      if(url.includes(ekListeEndpointPart))rememberEkListeBody(body);
     }catch(_){}
     const response=await oldFetch.apply(this,arguments);
     if(url.includes(ekListeEndpointPart)&&response.ok){
@@ -42,7 +41,6 @@
       const url=String(this.__ekarsitTebligatUrl||'');
       if(url.includes(endpointPart)&&typeof body==='string')listRequestBody=JSON.parse(body);
       if(url.includes(ekListeEndpointPart)){
-        rememberEkListeBody(body);
         let data;try{data=typeof body==='string'?JSON.parse(body):body;}catch(_){}
         this.addEventListener('load',function(){
           if(this.status>=200&&this.status<300){
