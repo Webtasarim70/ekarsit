@@ -112,7 +112,21 @@
     const url=new URL(reportLink,location.origin);if(url.origin!==location.origin)throw new Error('Güvenlik nedeniyle GİB dışındaki indirme adresi kabul edilmedi.');
     const response=await fetch(url.href,{headers:{'Accept':'application/pdf, application/octet-stream, */*','Authorization':authHeader},credentials:'include'});
     if(!response.ok)throw new Error('PDF indirilemedi: '+response.status+' '+response.statusText);
-    const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length<5||String.fromCharCode(...bytes.subarray(0,5))!=='%PDF-')throw new Error('GİB yanıtı geçerli bir PDF değil; oturum süresi dolmuş olabilir.');
+    const contentType=String(response.headers.get('content-type')||'belirsiz');
+    const bytes=new Uint8Array(await response.arrayBuffer());
+    if(bytes.length<5||String.fromCharCode(...bytes.subarray(0,5))!=='%PDF-'){
+      const preview=new TextDecoder().decode(bytes.subarray(0,1200)).trim();
+      let reason='PDF imzası yok';
+      if(response.redirected||/text\\/html/i.test(contentType)||/^<!doctype html|^<html/i.test(preview))reason='HTML sayfası döndü (oturum/giriş veya yönlendirme olabilir)';
+      else if(/json/i.test(contentType)||/^[{[]/.test(preview)){
+        try{
+          const parsed=JSON.parse(preview);
+          const msg=Array.isArray(parsed?.messages)?parsed.messages.map(x=>x?.message).filter(Boolean).join('; '):'';
+          reason='JSON yanıtı döndü'+(msg?': '+String(msg).slice(0,180):'');
+        }catch(_){reason='JSON veya metin yanıtı döndü';}
+      }
+      throw new Error('GİB PDF indirme yanıtı PDF değil ('+reason+'). HTTP '+response.status+'; Content-Type: '+contentType+'; yönlendirme: '+(response.redirected?'evet':'hayır')+'. GİB sekmesini yenileyip yeniden deneyin.');
+    }
     return {base64:toBase64(bytes),filename:String(belge.adi||belge.belgeAdi||'tebligat.pdf').replace(/[\\/:*?"<>|]/g,'_'),mimeType:'application/pdf'};
   }
   window.addEventListener('message',async event=>{
