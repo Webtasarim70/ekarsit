@@ -55,8 +55,41 @@
     records.forEach(r=>{const key=String(r?.tebligId||r?.tebligSecureId||r?.belgeNo||'').trim();if(key)map.set(key,r);});
     return {records:[...map.values()],total,fetchedPages:totalPages};
   }
+
+  async function gibJsonPost(path,data){
+    if(!authHeader)throw new Error('GİB oturumu bulunamadı. GİB e-Tebligat sekmesini yenileyip yeniden deneyin.');
+    const response=await fetch(path,{method:'POST',headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','Authorization':authHeader,'page-name':'e-tebligat','ui-client':'fe'},credentials:'include',body:JSON.stringify({data})});
+    if(!response.ok)throw new Error('GİB belge servisi '+response.status+' '+response.statusText);return response.json();
+  }
+  function gibFindObject(root,predicate,depth=0){
+    if(!root||typeof root!=='object'||depth>5)return null;if(predicate(root))return root;
+    for(const value of Object.values(root)){if(value&&typeof value==='object'){const found=gibFindObject(value,predicate,depth+1);if(found)return found;}}return null;
+  }
+  function toBase64(bytes){let binary='';const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));return btoa(binary);}
+  async function getTebligatPdf(record){
+    const tebligId=record?.tebligId||record?.id,tebligSecureId=record?.tebligSecureId||record?.secureId;
+    if(!tebligId||!tebligSecureId)throw new Error('Bu kayıtta GİB belge kimlikleri yok. Listeyi GİB üzerinden yeniden aktarın.');
+    const ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId});
+    const belge=gibFindObject(ekler,x=>x.adi&&x.id&&x.secureId&&String(x.uzanti||'').toLowerCase()==='pdf')||gibFindObject(ekler,x=>x.tebligBelge?.adi)?.tebligBelge;
+    if(!belge)throw new Error('GİB yanıtında PDF belge bulunamadı.');
+    const belgePayload={...belge},tarafId=record?.tarafId||record?.mukellefId||record?.taraf?.id,tarafSecureId=record?.tarafSecureId||record?.mukellefSecureId||record?.taraf?.secureId;
+    if(tarafId)belgePayload.tarafId=tarafId;if(tarafSecureId)belgePayload.tarafSecureId=tarafSecureId;
+    const getir=await gibJsonPost('/apigateway/etebligat/etebligat/belge-getir',belgePayload);
+    const reportLink=gibFindObject(getir,x=>typeof x.reportLink==='string')?.reportLink;if(!reportLink)throw new Error('GİB belge yanıtında PDF indirme bağlantısı bulunamadı.');
+    const url=new URL(reportLink,location.origin);if(url.origin!==location.origin)throw new Error('Güvenlik nedeniyle GİB dışındaki indirme adresi kabul edilmedi.');
+    const response=await fetch(url.href,{headers:{'Accept':'application/pdf, application/octet-stream, */*','Authorization':authHeader},credentials:'include'});
+    if(!response.ok)throw new Error('PDF indirilemedi: '+response.status+' '+response.statusText);
+    const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length<5||String.fromCharCode(...bytes.subarray(0,5))!=='%PDF-')throw new Error('GİB yanıtı geçerli bir PDF değil; oturum süresi dolmuş olabilir.');
+    return {base64:toBase64(bytes),filename:String(belge.adi||'tebligat.pdf').replace(/[\\/:*?"<>|]/g,'_'),mimeType:'application/pdf'};
+  }
   window.addEventListener('message',async event=>{
-    if(event.source!==window||event.data?.source!=='ekarsit-extension'||event.data.type!=='GIB_TEBLIGAT_FETCH')return;
+    if(event.source!==window||event.data?.source!=='ekarsit-extension')return;
+    if(event.data.type==='GIB_TEBLIGAT_DOWNLOAD_PDF'){
+      const requestId=String(event.data.requestId||'');
+      try{const pdf=await getTebligatPdf(event.data.record||{});window.postMessage({source:'ekarsit-tebligat-main',type:'PDF_RESULT',requestId,ok:true,pdf},'*');}
+      catch(e){window.postMessage({source:'ekarsit-tebligat-main',type:'PDF_RESULT',requestId,ok:false,message:e?.message||String(e)},'*');}return;
+    }
+    if(event.data.type!=='GIB_TEBLIGAT_FETCH')return;
     window.postMessage({source:'ekarsit-tebligat-main',type:'STATUS'},'*');
     try{const payload=await getAll();window.postMessage({source:'ekarsit-tebligat-main',type:'RESULT',payload},'*');}
     catch(e){window.postMessage({source:'ekarsit-tebligat-main',type:'ERROR',message:e?.message||String(e)},'*');}
