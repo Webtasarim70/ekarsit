@@ -79,7 +79,19 @@
   async function getTebligatPdf(record){
     const tebligId=record?.tebligId||record?.id,tebligSecureId=record?.tebligSecureId||record?.secureId;
     if(!tebligId||!tebligSecureId)throw new Error('Bu kayıtta GİB belge kimlikleri yok. Listeyi GİB üzerinden yeniden aktarın.');
-    const ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},false);
+    let ekler;
+    try{
+      // GİB'in bu uç noktası bazı oturumlarda kök nesne, bazılarında {data:{...}} gövdesi bekleyebiliyor.
+      // 400 dönerse diğer biçimi dene; erişim/oturum hatalarını tekrar denemeyle gizleme.
+      ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},false);
+    }catch(firstError){
+      if(!/400\\s+Bad Request/i.test(String(firstError?.message||firstError)))throw firstError;
+      try{
+        ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},true);
+      }catch(secondError){
+        throw new Error('GİB belge-ek-listele her iki istek gövdesini de reddetti. Kök gövde: '+String(firstError?.message||firstError)+'; data gövdesi: '+String(secondError?.message||secondError));
+      }
+    }
     const belge=gibFindObject(ekler,x=>x.adi&&x.id&&x.secureId&&String(x.uzanti||'').toLowerCase()==='pdf')||gibFindObject(ekler,x=>x.tebligBelge?.adi)?.tebligBelge;
     if(!belge)throw new Error('GİB yanıtında PDF belge bulunamadı.');
     const tarafId=record?.tarafId||record?.mukellefId||record?.taraf?.id||record?.tarafBilgileri?.id;
