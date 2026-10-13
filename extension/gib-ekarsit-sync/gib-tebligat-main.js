@@ -85,7 +85,7 @@
       // 400 dönerse diğer biçimi dene; erişim/oturum hatalarını tekrar denemeyle gizleme.
       ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},false);
     }catch(firstError){
-      if(!/\\b400\\b/.test(String(firstError?.message||firstError)))throw firstError;
+      if(!String(firstError?.message||firstError).includes('400'))throw firstError;
       try{
         ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},true);
       }catch(secondError){
