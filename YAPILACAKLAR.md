@@ -51,7 +51,7 @@
 - [ ] **Dashboard bildirim filtrelerini test et**
   - [x] Dashboard filtresinin başka sayfalara taşınıp tabloyu kalıcı olarak daraltması düzeltildi; filtre artık yalnızca dashboard kartından açılan sayfa görünümüne uygulanıyor.
   - [x] Test: Kullanıcı, “Süresi Gelen Yazılar” kartının yalnızca son tarihi bugün ile sonraki 5 gün arasında olan kayıtları gösterdiğini doğruladı.
-  - [ ] “Cevap Bekliyor” ve pasif/iptal onay talepleri ilgili durum filtresi seçili olarak açılıyor mu?
+  - [x] Test: Kullanıcı, “Cevap Bekliyor” ve pasif/iptal onay taleplerinin ilgili durum filtresi seçili olarak açıldığını doğruladı.
   - [ ] Filtre uygulanmış tablodan başka bir dashboard kartına geçince eski filtre temizleniyor mu?
 - [ ] **GİB Chrome/Edge eklentisinin son sürümünü doğrula**
   - [ ] Eklentiyi tarayıcıda yeniden yükle.
