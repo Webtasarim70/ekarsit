@@ -66,7 +66,23 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
     (async()=>{
       const tabs=await chrome.tabs.query({url:'https://dijital.gib.gov.tr/portal/e-tebligat*'}),tab=tabs.find(t=>t.id);
       if(!tab?.id)throw new Error('GİB e-Tebligat sekmesi bulunamadı. Önce GİB’de e-Tebligat listesini açın.');
-      await chrome.tabs.sendMessage(tab.id,{type:'GIB_TEBLIGAT_DOWNLOAD_PDF',requestId:message.requestId,record:message.record});
+      try {
+        await chrome.tabs.sendMessage(tab.id,{type:'GIB_TEBLIGAT_DOWNLOAD_PDF',requestId:message.requestId,record:message.record});
+      } catch (firstError) {
+        // Sekme eklenti yenilenmeden önce açılmışsa content script henüz yüklenmemiş olabilir.
+        if (!/Receiving end does not exist|Could not establish connection/i.test(firstError?.message||'')) throw firstError;
+        await chrome.scripting.executeScript({
+          target:{tabId:tab.id},
+          world:'MAIN',
+          files:['gib-tebligat-main.js']
+        });
+        await chrome.scripting.executeScript({
+          target:{tabId:tab.id},
+          world:'ISOLATED',
+          files:['gib-tebligat-content.js']
+        });
+        await chrome.tabs.sendMessage(tab.id,{type:'GIB_TEBLIGAT_DOWNLOAD_PDF',requestId:message.requestId,record:message.record});
+      }
       sendResponse({ok:true});
     })().catch(error=>sendResponse({ok:false,message:error?.message||String(error)}));return true;
   }
