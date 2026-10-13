@@ -66,21 +66,14 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
     (async()=>{
       const tabs=await chrome.tabs.query({url:'https://dijital.gib.gov.tr/portal/e-tebligat*'}),tab=tabs.find(t=>t.id);
       if(!tab?.id)throw new Error('GİB e-Tebligat sekmesi bulunamadı. Önce GİB’de e-Tebligat listesini açın.');
-      try {
+      // Uzantı yenilendikten sonra açık kalan sekmede MAIN-world köprüsü eksik olabilir.
+      // Her istekte ana-world betiğini çalıştırmak kuruluysa no-op, eksikse kurar.
+      await chrome.scripting.executeScript({target:{tabId:tab.id},world:'MAIN',files:['gib-tebligat-main.js']});
+      try{
         await chrome.tabs.sendMessage(tab.id,{type:'GIB_TEBLIGAT_DOWNLOAD_PDF',requestId:message.requestId,record:message.record});
-      } catch (firstError) {
-        // Sekme eklenti yenilenmeden önce açılmışsa content script henüz yüklenmemiş olabilir.
-        if (!/Receiving end does not exist|Could not establish connection/i.test(firstError?.message||'')) throw firstError;
-        await chrome.scripting.executeScript({
-          target:{tabId:tab.id},
-          world:'MAIN',
-          files:['gib-tebligat-main.js']
-        });
-        await chrome.scripting.executeScript({
-          target:{tabId:tab.id},
-          world:'ISOLATED',
-          files:['gib-tebligat-content.js']
-        });
+      }catch(firstError){
+        if(!/Receiving end does not exist|Could not establish connection/i.test(firstError?.message||''))throw firstError;
+        await chrome.scripting.executeScript({target:{tabId:tab.id},world:'ISOLATED',files:['gib-tebligat-content.js']});
         await chrome.tabs.sendMessage(tab.id,{type:'GIB_TEBLIGAT_DOWNLOAD_PDF',requestId:message.requestId,record:message.record});
       }
       sendResponse({ok:true});
