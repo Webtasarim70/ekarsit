@@ -72,8 +72,8 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
   }
   if(message?.type==='GIB_TEBLIGAT_PDF_RESULT'){
     (async()=>{
-      const tabs=await chrome.tabs.query({url:APP_URL+'*'}),tab=tabs.find(t=>t.id);
-      if(!tab?.id)throw new Error('e-Karşıt uygulama sekmesi bulunamadı.');
+      const allTabs=await chrome.tabs.query({}),tab=allTabs.find(t=>t.id&&/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(t.url||''))||allTabs.find(t=>t.id&&(t.url||'').startsWith(APP_URL));
+      if(!tab?.id)throw new Error('e-Karşıt localhost veya canlı uygulama sekmesi bulunamadı.');
       await chrome.tabs.sendMessage(tab.id,{type:'GIB_TEBLIGAT_PDF_RESULT',requestId:message.requestId,ok:message.ok,pdf:message.pdf,message:message.message});
       sendResponse({ok:true});
     })().catch(error=>sendResponse({ok:false,message:error?.message||String(error)}));return true;
