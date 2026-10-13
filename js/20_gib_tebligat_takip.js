@@ -3,7 +3,7 @@ const GIB_TEBLIGAT_FILE='GIB_TEBLIGAT_TAKIP.json';
 function gibTebligatDefault(){return {schemaVersion:1,records:[],total:0,lastSync:null};}
 async function gibTebligatRead(){
   if(!userStore?.directoryHandle)return gibTebligatDefault();
-  try{const h=await userStore.directoryHandle.getFileHandle(GIB_TEBLIGAT_FILE);const d=JSON.parse(await(await h.getFile()).text());return {schemaVersion:1,records:Array.isArray(d.records)?d.records:[],total:Number(d.total||0),lastSync:d.lastSync||null};}
+  try{const h=await userStore.directoryHandle.getFileHandle(GIB_TEBLIGAT_FILE);const d=JSON.parse(await(await h.getFile()).text());const records=Array.isArray(d.records)?d.records:[];let migrated=false;records.forEach(r=>GIB_TEBLIGAT_DATE_FIELDS?.forEach(field=>{if(r[field]!==undefined&&r[field]!==null&&r[field]!==''){const formatted=gibTebligatDate(r[field]);if(formatted!==r[field]){r[field]=formatted;migrated=true;}}}));const normalized={schemaVersion:1,records,total:Number(d.total||0),lastSync:d.lastSync||null};if(migrated){const w=await h.createWritable();await w.write(JSON.stringify(normalized,null,2));await w.close();}return normalized;}
   catch(e){if(e?.name==='NotFoundError')return gibTebligatDefault();throw e;}
 }
 async function gibTebligatWrite(d){
