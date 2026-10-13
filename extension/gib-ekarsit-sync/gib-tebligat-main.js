@@ -56,9 +56,18 @@
     return {records:[...map.values()],total,fetchedPages:totalPages};
   }
 
+  async function fetchWithTimeout(url,options={},timeoutMs=30000){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),timeoutMs);
+    try{return await fetch(url,{...options,signal:controller.signal});}
+    catch(error){
+      if(error?.name==='AbortError')throw new Error('GİB isteği '+Math.round(timeoutMs/1000)+' saniyede yanıt vermedi; bağlantı zaman aşımına uğradı.');
+      throw error;
+    }finally{clearTimeout(timer);}
+  }
   async function gibJsonPost(path,data,wrapData=true){
     if(!authHeader)throw new Error('GİB oturumu bulunamadı. GİB e-Tebligat sekmesini yenileyip yeniden deneyin.');
-    const response=await fetch(path,{method:'POST',headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','Authorization':authHeader,'page-name':'e-tebligat','ui-client':'fe'},credentials:'include',body:JSON.stringify(wrapData?{data}:data)});
+    const response=await fetchWithTimeout(path,{method:'POST',headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','Authorization':authHeader,'page-name':'e-tebligat','ui-client':'fe'},credentials:'include',body:JSON.stringify(wrapData?{data}:data)},30000);
     if(!response.ok){
       let detail='';
       try{
@@ -110,7 +119,7 @@
     const getir=await gibJsonPost('/apigateway/etebligat/etebligat/belge-getir',belgePayload);
     const reportLink=gibFindObject(getir,x=>typeof x.reportLink==='string')?.reportLink;if(!reportLink)throw new Error('GİB belge yanıtında PDF indirme bağlantısı bulunamadı.');
     const url=new URL(reportLink,location.origin);if(url.origin!==location.origin)throw new Error('Güvenlik nedeniyle GİB dışındaki indirme adresi kabul edilmedi.');
-    const response=await fetch(url.href,{headers:{'Accept':'application/pdf, application/octet-stream, */*','Authorization':authHeader},credentials:'include'});
+    const response=await fetchWithTimeout(url.href,{headers:{'Accept':'application/pdf, application/octet-stream, */*','Authorization':authHeader},credentials:'include'},45000);
     if(!response.ok)throw new Error('PDF indirilemedi: '+response.status+' '+response.statusText);
     const contentType=String(response.headers.get('content-type')||'belirsiz');
     const bytes=new Uint8Array(await response.arrayBuffer());
