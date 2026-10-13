@@ -5,8 +5,8 @@
 ## Sıradaki işler
 
 ### Sayfa ve GitHub açıklamaları
-- [ ] **Sayfa başlığı ve açıklamasını güncelle:** Uygulamanın HTML sayfa başlığını (`title`) ve açıklama meta bilgisini güncelle.
-- [ ] **GitHub açıklamalarını güncelle:** Depo açıklamasını ve ilgili GitHub tanıtım metinlerini güncel proje kapsamına göre düzenle.
+- [x] **Sayfa başlığı ve açıklamasını güncelle:** HTML `title` ve meta açıklaması güncellendi.
+- [ ] **GitHub açıklamalarını güncelle:** Depo açıklamasını GitHub üzerindeki kısa tanıtım alanında güncelle. README proje kapsamı ve kullanım bağlantısıyla yenilendi.
 
 ### Kullanıcı kişiselleştirme ayarları
 - [ ] **Dashboard bildirimlerini kişiselleştirme:** Kullanıcı bildirim kartlarının yerini değiştirebilsin ve istemediği bildirimleri kapatabilsin.
