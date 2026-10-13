@@ -53,10 +53,10 @@
   - [x] Test: Kullanıcı, “Süresi Gelen Yazılar” kartının yalnızca son tarihi bugün ile sonraki 5 gün arasında olan kayıtları gösterdiğini doğruladı.
   - [x] Test: Kullanıcı, “Cevap Bekliyor” ve pasif/iptal onay taleplerinin ilgili durum filtresi seçili olarak açıldığını doğruladı.
   - [x] Test: Kullanıcı, filtre uygulanmış tablodan başka bir dashboard kartına geçildiğinde eski filtrenin temizlenip yeni kartın filtresinin doğru uygulandığını doğruladı.
-- [ ] **GİB Chrome/Edge eklentisinin son sürümünü doğrula**
-  - [ ] Eklentiyi tarayıcıda yeniden yükle.
-  - [ ] “e-Karşıt Takip’e Aktar” ve “Excel’e Aktar” işlemlerini ayrı ayrı dene; birbirini tetiklemediklerini doğrula.
-  - [ ] Excel dışa aktarımının kaydetme penceresini açtığını ve dosyanın açılabildiğini doğrula.
+- [x] **GİB Chrome/Edge eklentisinin son sürümünü doğrula**
+  - [x] Eklenti yeniden yüklenerek test edildi.
+  - [x] “e-Karşıt Takip’e Aktar” ve “Excel’e Aktar” işlemleri ayrı ayrı denendi; kullanıcı ikisinin de sorunsuz çalıştığını doğruladı.
+  - [x] Excel dışa aktarımı ve dosyanın açılması kullanıcı tarafından doğrulandı.
 - [ ] **e-Karşıt kayıt birleştirmesini kontrol et**
   - [ ] Aynı İşlem ID tekrar aktarılınca kayıt güncelleniyor mu?
   - [ ] Var olan “Not” alanı GİB aktarımı veya Excel içe aktarımı sırasında korunuyor mu?
