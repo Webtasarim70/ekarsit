@@ -59,7 +59,7 @@
   - [x] Excel dışa aktarımı ve dosyanın açılması kullanıcı tarafından doğrulandı.
 - [ ] **e-Karşıt kayıt birleştirmesini kontrol et**
   - [x] Test: Aynı İşlem ID tekrar GİB üzerinden aktarılınca mevcut kayıt güncelleniyor ve mükerrer kayıt oluşmuyor.
-  - [ ] Test: Var olan “Not” alanı GİB aktarımı veya Excel içe aktarımı sırasında korunuyor mu?
+  - [x] Test: Aynı İşlem ID tekrar GİB üzerinden aktarıldığında mevcut “Not” alanının korunduğu kullanıcı tarafından doğrulandı.
   - [ ] Test: Yeni kayıt ve güncellenen kayıt sayıları doğru raporlanıyor mu?
 - [ ] **Değişiklikler sonrası genel kontrol**
   - [ ] İlgili JavaScript dosyalarında sözdizimi kontrolü yap.
