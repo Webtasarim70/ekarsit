@@ -91,21 +91,12 @@
   }
   function toBase64(bytes){let binary='';const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));return btoa(binary);}
   async function getTebligatPdf(record){
-    const tebligId=record?.tebligId||record?.id,tebligSecureId=record?.tebligSecureId||record?.secureId;
-    if(!tebligId||!tebligSecureId)throw new Error('Bu kayıtta GİB belge kimlikleri yok. Listeyi GİB üzerinden yeniden aktarın.');
-    let ekler;
-    try{
-      // GİB'in bu uç noktası bazı oturumlarda kök nesne, bazılarında {data:{...}} gövdesi bekleyebiliyor.
-      // 400 dönerse diğer biçimi dene; erişim/oturum hatalarını tekrar denemeyle gizleme.
-      ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},false);
-    }catch(firstError){
-      if(!/\b(?:400|422)\b/.test(String(firstError?.message||firstError)))throw firstError;
-      try{
-        ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},true);
-      }catch(secondError){
-        throw new Error('GİB belge-ek-listele her iki istek gövdesini de reddetti. Kök gövde: '+String(firstError?.message||firstError)+'; data gövdesi: '+String(secondError?.message||secondError));
-      }
-    }
+    // GİB'in başarılı ağ isteğinde belge-ek-listele kök gövde kullanıyor.
+    // id/secureId alanlarına geri düşmek, tebligat kimliği yerine belge kimliğini gönderebilir.
+    const tebligId=record?.tebligId;
+    const tebligSecureId=record?.tebligSecureId;
+    if(!tebligId||!tebligSecureId)throw new Error('Aktarılan kayıtta tebligId veya tebligSecureId eksik. GİB listesini yeniden aktarın; belge id/secureId alanları tebligat kimliği yerine kullanılamaz.');
+    const ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},false);
     const belge=gibFindObject(ekler,x=>x.adi&&x.id&&x.secureId&&String(x.uzanti||'').toLowerCase()==='pdf')||gibFindObject(ekler,x=>x.tebligBelge?.adi)?.tebligBelge;
     if(!belge)throw new Error('GİB yanıtında PDF belge bulunamadı.');
     const tarafId=record?.tarafId||record?.mukellefId||record?.taraf?.id||record?.tarafBilgileri?.id;
