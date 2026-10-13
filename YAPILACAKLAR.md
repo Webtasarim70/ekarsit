@@ -60,8 +60,8 @@
 - [ ] **e-Karşıt kayıt birleştirmesini kontrol et**
   - [x] Test: Aynı İşlem ID tekrar GİB üzerinden aktarılınca mevcut kayıt güncelleniyor ve mükerrer kayıt oluşmuyor.
   - [x] Test: Aynı İşlem ID tekrar GİB üzerinden aktarıldığında mevcut “Not” alanının korunduğu kullanıcı tarafından doğrulandı.
-  - [ ] Test: Yeni kayıt ve güncellenen kayıt sayıları doğru raporlanıyor mu?
-    - [ ] Not: Kullanıcı şu an yeni kayıt oluşturamadığı için yeni kayıt sayısının doğrulanması bekliyor; mevcut kayıtların tekrar aktarımındaki sayaçlar ayrıca kontrol edilebilir.
+  - [x] Test: Mevcut kayıtların tekrar aktarımında sayaçlar doğrulandı; 114 kayıt alındı, 0 yeni ve 114 güncellenen olarak raporlandı.
+  - [ ] Test: Yeni kayıt sayısının doğru raporlanmasını doğrula (yeni kayıt oluşturulamadığı için beklemede).
 - [ ] **Değişiklikler sonrası genel kontrol**
   - [ ] İlgili JavaScript dosyalarında sözdizimi kontrolü yap.
   - [ ] Filtreler, Excel içe/dışa aktarma ve kayıt düzenleme akışlarında geriye dönük hata olmadığını kontrol et.
