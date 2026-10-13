@@ -47,6 +47,10 @@ async function gibTebligatMerge(payload){
     const key=gibTebligatKey(r);if(!key)return;
     const prev=map.get(key);
     const next={...(prev||{}),...r,_key:key,_firstSeen:prev?prev._firstSeen:(new Date().toISOString()),_lastSeen:new Date().toISOString()};
+    // Bazı GİB liste yanıtlarında güvenli kimlik secureId adıyla gelebilir.
+    // Yeni aktarımda gelen güncel değeri eski kayıttaki tebligSecureId'nin üzerinde tut.
+    const incomingSecureId=String(r?.tebligSecureId||r?.secureId||'').trim();
+    if(incomingSecureId)next.tebligSecureId=incomingSecureId;
     if(prev)updated++;else added++;
     map.set(key,next);
   });
