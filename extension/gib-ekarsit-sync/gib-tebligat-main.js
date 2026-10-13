@@ -98,7 +98,7 @@
       try{
         const body=await response.clone().json();
         const messages=Array.isArray(body?.messages)?body.messages:[];
-        const messageText=messages.map(x=>x?.message||x?.description||x?.code).filter(Boolean).join('; ');
+        const messageText=messages.map(x=>x?.text||x?.message||x?.description||x?.code).filter(Boolean).join('; ');
         const errors=body?.errors&&typeof body.errors==='object'?Object.entries(body.errors).map(([key,value])=>key+': '+(Array.isArray(value)?value.join(', '):String(value))).join('; '):'';
         detail=String(messageText||body?.message||body?.detail||body?.errorDescription||body?.error||errors||'').trim();
         if(!detail&&body&&typeof body==='object')detail=JSON.stringify(body).slice(0,500);
@@ -119,10 +119,11 @@
     // GİB'in başarılı ağ isteğinde belge-ek-listele kök gövde kullanıyor.
     // id/secureId alanlarına geri düşmek, tebligat kimliği yerine belge kimliğini gönderebilir.
     const tebligId=String(record?.tebligId||'').trim();
-    // GİB arayüzünün başarıyla kullandığı kimlik, aktarılmış listedeki eski/başka secureId'den daha güvenilirdir.
-    // Kullanıcı ilgili tebligatta "Zarf İçeriğini Gör" açtıysa fetch/XHR köprüsü bu değeri yakalar.
-    const tebligSecureId=String(observedTebligSecureIds.get(tebligId)||record?.tebligSecureId||record?.secureId||'').trim();
-    if(!tebligId||!tebligSecureId)throw new Error('Aktarılan kayıtta tebligId veya tebligSecureId eksik. GİB listesini yeniden aktarın.');
+    // GİB arayüzünün belge-ek-listele isteğinde kullandığı güvenli kimlik esas alınır.
+    // Listedeki kayıt alanları eski/başka bir zarfın secureId'si olabildiği için bunlara geri düşülmez.
+    const tebligSecureId=String(observedTebligSecureIds.get(tebligId)||'').trim();
+    if(!tebligId)throw new Error('Tebligat kimliği (tebligId) kayıtta bulunamadı. GİB listesini yeniden aktarın.');
+    if(!tebligSecureId)throw new Error('Bu tebligat için GİB arayüzünün kullandığı güncel güvenli kimlik yakalanmadı. GİB sekmesini yenileyin, ilgili kayıtta “Zarf İçeriğini Gör” bölümünü açıp “Belge Görüntüle” işlemini bir kez yapın; ardından PDF Kaydet’i yeniden deneyin.');
     const ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},false);
     const belge=gibFindObject(ekler,x=>x.adi&&x.id&&x.secureId&&String(x.uzanti||'').toLowerCase()==='pdf')||gibFindObject(ekler,x=>x.tebligBelge?.adi)?.tebligBelge;
     if(!belge)throw new Error('GİB yanıtında PDF belge bulunamadı.');
@@ -153,7 +154,7 @@
       else if(/json/i.test(contentType)||/^[{[]/.test(preview)){
         try{
           const parsed=JSON.parse(preview);
-          const msg=Array.isArray(parsed?.messages)?parsed.messages.map(x=>x?.message).filter(Boolean).join('; '):'';
+          const msg=Array.isArray(parsed?.messages)?parsed.messages.map(x=>x?.text||x?.message||x?.description||x?.code).filter(Boolean).join('; '):'';
           reason='JSON yanıtı döndü'+(msg?': '+String(msg).slice(0,180):'');
         }catch(_){reason='JSON veya metin yanıtı döndü';}
       }
