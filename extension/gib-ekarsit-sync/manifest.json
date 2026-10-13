@@ -5,12 +5,15 @@
   "description": "GİB e-Karşıt gönderilen kayıtlarını tüm sayfalarıyla alıp e-Karşıt Takip uygulamasına aktarır.",
   "permissions": [
     "tabs",
-    "downloads"
+    "downloads",
+    "scripting"
   ],
   "host_permissions": [
     "https://eymm.gib.gov.tr/*",
     "https://dijital.gib.gov.tr/*",
-    "https://webtasarim70.github.io/ekarsit/*"
+    "https://webtasarim70.github.io/ekarsit/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -56,7 +59,9 @@
     },
     {
       "matches": [
-        "https://webtasarim70.github.io/ekarsit/*"
+        "https://webtasarim70.github.io/ekarsit/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
       ],
       "js": [
         "app-content.js"

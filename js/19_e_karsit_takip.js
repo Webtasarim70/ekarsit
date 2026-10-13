@@ -121,6 +121,20 @@ async function eKarsitTakipExcelYedekle(){
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
+function eKarsitTakipSavedFiltersKey(){
+  const folder=String(userStore?.directoryHandle?.name||'varsayilan');
+  return 'ekarsit-saved-filters-v1:'+folder;
+}
+function eKarsitTakipLoadSavedFilters(){
+  try{
+    const value=JSON.parse(localStorage.getItem(eKarsitTakipSavedFiltersKey())||'[]');
+    return Array.isArray(value)?value:[];
+  }catch(e){return [];}
+}
+function eKarsitTakipStoreSavedFilters(items){
+  try{localStorage.setItem(eKarsitTakipSavedFiltersKey(),JSON.stringify(items));return true;}
+  catch(e){alert('Filtreler kaydedilemedi. Tarayıcı depolama alanını kontrol edin.');return false;}
+}
 function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
   host.innerHTML='';
   const card=el('div',{class:'card',style:'margin-top:14px;'});
@@ -128,6 +142,18 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
   titleRow.appendChild(el('h3',{},'e-Karşıt Takip Kayıtları'));
   const globalSearch=el('input',{class:'input',placeholder:'Gelişmiş arama: ID, YMM, mükellef, durum…',style:'max-width:420px;'});
   titleRow.appendChild(globalSearch);card.appendChild(titleRow);
+
+  const presets=el('div',{style:'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;'});
+  const presetSelect=el('select',{class:'input',style:'max-width:280px;'});
+  const presetName=el('input',{class:'input',placeholder:'Filtreye ad verin',style:'max-width:220px;'});
+  const savePresetBtn=el('button',{class:'btn btn-primary',type:'button'},'Filtreyi Kaydet');
+  const applyPresetBtn=el('button',{class:'btn btn-secondary',type:'button'},'Filtreyi Uygula');
+  const deletePresetBtn=el('button',{class:'btn btn-secondary',type:'button'},'Kaydı Sil');
+  presets.appendChild(presetSelect);presets.appendChild(applyPresetBtn);presets.appendChild(presetName);presets.appendChild(savePresetBtn);presets.appendChild(deletePresetBtn);
+  card.appendChild(presets);
+  const presetHelp=el('div',{class:'hint',style:'margin-top:5px;'},'Mevcut arama ve sütun filtrelerini isim vererek kaydedebilir, daha sonra tek seçimle yeniden uygulayabilirsiniz. Kayıtlar bu tarayıcıda, seçili kullanıcı klasörüne göre saklanır.');
+  card.appendChild(presetHelp);
+
   const filtersWrap=el('div',{class:'table-column-filters',style:'margin-top:10px;'});
   const filters=data.headers.map(h=>{
     const box=el('div',{class:'field'});box.appendChild(el('label',{},h));
@@ -143,20 +169,43 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
     box.appendChild(input);filtersWrap.appendChild(box);return input;
   });
   card.appendChild(filtersWrap);
-  const reset=el('button',{class:'btn btn-secondary',type:'button',style:'margin-top:8px;',onclick:()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();}},'Filtreleri Temizle');card.appendChild(reset);
   let visibleRows=[];
-  const exportBtn=el('button',{class:'btn btn-primary',type:'button',style:'margin:8px 0 0 8px;',onclick:async()=>{try{const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Görünen e-Karşıt');ws.columns=data.headers.map((h,i)=>({header:h,key:'c'+i,width:Math.min(55,Math.max(14,h.length+2))}));visibleRows.forEach(r=>ws.addRow(data.headers.map(h=>r[h]??'')));ws.getRow(1).font={bold:true};ws.views=[{state:'frozen',ySplit:1}];const buf=await wb.xlsx.writeBuffer();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download='E_KARSIT_TAKIP_FILTRELENMIS.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){alert('Filtrelenmiş tablo Excel’e aktarılamadı: '+e.message);}}},'⬇ Görünen Tabloyu Excel’e Aktar');card.appendChild(exportBtn);
+  let sortIndex=-1,sortDirection=1;
+  const reset=el('button',{class:'btn btn-secondary',type:'button',style:'margin-top:8px;'},'Filtreleri Temizle');
+  reset.addEventListener('click',()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();});
+  card.appendChild(reset);
+  const exportBtn=el('button',{class:'btn btn-primary',type:'button',style:'margin:8px 0 0 8px;'},'⬇ Görünen Tabloyu Excel’e Aktar');
+  exportBtn.addEventListener('click',async()=>{try{const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Görünen e-Karşıt');ws.columns=data.headers.map((h,i)=>({header:h,key:'c'+i,width:Math.min(55,Math.max(14,h.length+2))}));visibleRows.forEach(r=>ws.addRow(data.headers.map(h=>r[h]??'')));ws.getRow(1).font={bold:true};ws.views=[{state:'frozen',ySplit:1}];const buf=await wb.xlsx.writeBuffer();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download='E_KARSIT_TAKIP_FILTRELENMIS.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){alert('Filtrelenmiş tablo Excel’e aktarılamadı: '+e.message);}});
+  card.appendChild(exportBtn);
 
   const wrap=el('div',{class:'table-scroll',style:'margin-top:10px;max-height:65vh;overflow:auto;'});
-  const table=el('table',{class:'editable-table'});const thead=el('thead');const trh=el('tr');let sortIndex=-1,sortDirection=1;const sortHeads=[];
+  const table=el('table',{class:'editable-table'});const thead=el('thead');const trh=el('tr');const sortHeads=[];
   data.headers.forEach((h,i)=>{const th=el('th',{class:'sortable-th',style:'min-width:170px;white-space:nowrap;cursor:pointer;',title:'Sıralamak için tıklayın','aria-sort':'none'},h+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});sortHeads.push(th);trh.appendChild(th);});
   thead.appendChild(trh);table.appendChild(thead);const tbody=el('tbody');table.appendChild(tbody);wrap.appendChild(table);card.appendChild(wrap);
+
+  const refreshPresetOptions=(selectedId='')=>{
+    const saved=eKarsitTakipLoadSavedFilters();
+    presetSelect.innerHTML='';
+    presetSelect.appendChild(el('option',{value:''},'Kayıtlı filtre seçin…'));
+    saved.forEach(item=>presetSelect.appendChild(el('option',{value:item.id},item.name)));
+    presetSelect.value=selectedId;
+    deletePresetBtn.disabled=!presetSelect.value;
+    applyPresetBtn.disabled=!presetSelect.value;
+  };
   const draw=()=>{
     tbody.innerHTML='';
     const q=String(globalSearch.value||'').trim().toLocaleLowerCase('tr-TR');
     let rows=data.records.filter(r=>{
       const vals=data.headers.map(h=>String(r[h]??''));
-      return (!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q)))&&filters.every((input,i)=>!input.value.trim()||data.headers[i]==='Durum'?(!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR')===input.value.trim().toLocaleLowerCase('tr-TR')):(!input.value.trim()||vals[i].toLocaleLowerCase('tr-TR').includes(input.value.trim().toLocaleLowerCase('tr-TR'))));
+      const searchMatches=!q||vals.some(v=>v.toLocaleLowerCase('tr-TR').includes(q));
+      const columnMatches=filters.every((input,i)=>{
+        const wanted=String(input.value||'').trim();
+        if(!wanted)return true;
+        const actual=vals[i].toLocaleLowerCase('tr-TR');
+        const target=wanted.toLocaleLowerCase('tr-TR');
+        return data.headers[i]==='Durum'?actual===target:actual.includes(target);
+      });
+      return searchMatches&&columnMatches;
     });
     if(sortIndex>=0)rows.sort((a,b)=>String(a[data.headers[sortIndex]]??'').localeCompare(String(b[data.headers[sortIndex]]??''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
     visibleRows=rows.slice();
@@ -170,9 +219,33 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
     });
     if(!rows.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:String(data.headers.length),style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
   };
-  globalSearch.addEventListener('input',draw);filters.forEach(input=>input.addEventListener(input.tagName==='SELECT'?'change':'input',draw));draw();host.appendChild(card);
+  savePresetBtn.addEventListener('click',()=>{
+    const name=String(presetName.value||'').trim();
+    if(!name){alert('Kaydedilmiş filtre için bir ad girin.');presetName.focus();return;}
+    const saved=eKarsitTakipLoadSavedFilters();
+    const existing=saved.find(x=>String(x.name).toLocaleLowerCase('tr-TR')===name.toLocaleLowerCase('tr-TR'));
+    const item={id:existing?.id||('filter-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)),name,search:globalSearch.value||'',filters:filters.map(x=>x.value||'')};
+    const next=existing?saved.map(x=>x.id===existing.id?item:x):[...saved,item];
+    if(eKarsitTakipStoreSavedFilters(next)){refreshPresetOptions(item.id);presetName.value='';presetHelp.textContent='✓ “'+name+'” filtresi kaydedildi.';}
+  });
+  applyPresetBtn.addEventListener('click',()=>{
+    const item=eKarsitTakipLoadSavedFilters().find(x=>x.id===presetSelect.value);
+    if(!item)return;
+    globalSearch.value=item.search||'';
+    filters.forEach((input,i)=>input.value=item.filters?.[i]||'');
+    sortIndex=-1;sortDirection=1;draw();
+  });
+  deletePresetBtn.addEventListener('click',()=>{
+    const item=eKarsitTakipLoadSavedFilters().find(x=>x.id===presetSelect.value);
+    if(!item)return;
+    if(!confirm('“'+item.name+'” kayıtlı filtresi silinsin mi?'))return;
+    const next=eKarsitTakipLoadSavedFilters().filter(x=>x.id!==item.id);
+    if(eKarsitTakipStoreSavedFilters(next)){refreshPresetOptions();presetHelp.textContent='Kayıtlı filtre silindi.';}
+  });
+  presetSelect.addEventListener('change',()=>{deletePresetBtn.disabled=!presetSelect.value;applyPresetBtn.disabled=!presetSelect.value;});
+  globalSearch.addEventListener('input',draw);filters.forEach(input=>input.addEventListener(input.tagName==='SELECT'?'change':'input',draw));
+  refreshPresetOptions();draw();host.appendChild(card);
 }
-
 function eKarsitTakipGibNormalizeRecord(source){
   const r=source||{};
   const record={};

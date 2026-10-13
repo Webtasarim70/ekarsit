@@ -21,4 +21,4 @@ Kullanıcı adı ve parola istenmez. Oturum bilgisi kalıcı olarak saklanmaz. A
 4. Eklenti, sayfadaki liste isteğinin yapısını kullanarak tüm API sayfalarını alır ve kayıtları e-Karşıt uygulamasına gönderir.
 5. Uygulamada **Kullanıcı → GİB Tebligat Takip** menüsünü açın. Kayıtlar kullanıcı klasöründeki `GIB_TEBLIGAT_TAKIP.json` dosyasında tutulur; yeniden aktarımlar tebligat kimliği üzerinden birleştirilir.
 
-İlk sürüm tablo alanlarını ve Excel dışa aktarımını içerir. PDF belge indirme/önizleme bu akışa henüz dahil değildir. Test sırasında API sayfalamasının GİB yanıtıyla uyumlu olduğunu ve tekrar aktarımın mükerrer kayıt oluşturmadığını doğrulayın.
+PDF indirme ve açma işlemleri eklenti ve uygulama akışından kaldırılmıştır. Test sırasında API sayfalamasının GİB yanıtıyla uyumlu olduğunu ve tekrar aktarımın mükerrer kayıt oluşturmadığını doğrulayın.

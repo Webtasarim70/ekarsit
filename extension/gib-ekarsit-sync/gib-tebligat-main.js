@@ -7,15 +7,13 @@
   const remember=v=>{const x=String(v||'').trim();if(/^Bearer\s+\S+$/i.test(x))authHeader=x;};
   const oldFetch=window.fetch;
   window.fetch=async function(input,init){
+    let url='',body=init?.body;
     try{
-      const url=input instanceof Request?input.url:String(input||'');
+      url=input instanceof Request?input.url:String(input||'');
       const headers=new Headers(init?.headers||(input instanceof Request?input.headers:undefined));
       remember(headers.get('authorization'));
-      if(url.includes(endpointPart)){
-        let body=init?.body;
-        if(body==null&&input instanceof Request){try{body=await input.clone().text();}catch(_){}}
-        if(typeof body==='string'){try{listRequestBody=JSON.parse(body);}catch(_){}}
-      }
+      if(body==null&&input instanceof Request){try{body=await input.clone().text();}catch(_){}}
+      if(url.includes(endpointPart)&&typeof body==='string'){try{listRequestBody=JSON.parse(body);}catch(_){}}
     }catch(_){}
     return oldFetch.apply(this,arguments);
   };
@@ -25,7 +23,10 @@
   XMLHttpRequest.prototype.setRequestHeader=function(name,value){if(String(name).toLowerCase()==='authorization')remember(value);return oldSet.apply(this,arguments);};
   const oldSend=XMLHttpRequest.prototype.send;
   XMLHttpRequest.prototype.send=function(body){
-    try{if(String(this.__ekarsitTebligatUrl||'').includes(endpointPart)&&typeof body==='string'){listRequestBody=JSON.parse(body);}}catch(_){}
+    try{
+      const url=String(this.__ekarsitTebligatUrl||'');
+      if(url.includes(endpointPart)&&typeof body==='string')listRequestBody=JSON.parse(body);
+    }catch(_){}
     return oldSend.apply(this,arguments);
   };
   async function getPage(pageNo,pageSize){
@@ -55,8 +56,10 @@
     records.forEach(r=>{const key=String(r?.tebligId||r?.tebligSecureId||r?.belgeNo||'').trim();if(key)map.set(key,r);});
     return {records:[...map.values()],total,fetchedPages:totalPages};
   }
+
   window.addEventListener('message',async event=>{
-    if(event.source!==window||event.data?.source!=='ekarsit-extension'||event.data.type!=='GIB_TEBLIGAT_FETCH')return;
+    if(event.source!==window||event.data?.source!=='ekarsit-extension')return;
+    if(event.data.type!=='GIB_TEBLIGAT_FETCH')return;
     window.postMessage({source:'ekarsit-tebligat-main',type:'STATUS'},'*');
     try{const payload=await getAll();window.postMessage({source:'ekarsit-tebligat-main',type:'RESULT',payload},'*');}
     catch(e){window.postMessage({source:'ekarsit-tebligat-main',type:'ERROR',message:e?.message||String(e)},'*');}

@@ -1,10 +1,23 @@
-# ekarsit
+# e-Karşıt — KDV İade ve Karşıt İnceleme Takip Sistemi
 
-KDV Karşıt İnceleme Arşiv Sihirbazı
+KDV iade ve karşıt inceleme süreçlerinde kullanılan evrakları, mükellef bilgilerini, arşiv kayıtlarını ve e-Karşıt takip verilerini tek bir tarayıcı tabanlı uygulamada düzenlemeye yardımcı olur.
 
-Gelen karşıt inceleme tutanaklarının hatasız doldurulmasını yardım etmeyi, aynı bilgileri tekrar tekrar girmemek için arşiv dosyası tutmayı amaçlar.
+## Neler yapar?
 
-KDV karşıt inceleme süreçlerinde kullanılan evrak ve arşiv kayıtlarının daha düzenli, hızlı ve kontrollü şekilde yönetilmesini amaçlayan, tarayıcı üzerinde çalışan bağımsız bir uygulamadır. Karşıt inceleme tutanağından dönem ve mükellef bilgilerini tespit eder; arşiv kayıtları, KDV, muhtasar, defter, üretici ve tedarikçi verilerini ilgili tablolara aktarır.
+- Karşıt inceleme tutanakları ve ilgili evraklarla çalışma
+- Mükellef, dönem ve arşiv bilgilerini düzenleme
+- KDV, muhtasar, e-Defter, e-Fatura ve XML kaynaklı verilerle ilgili iş akışları
+- e-Karşıt kayıtlarını takip etme, arama ve filtreleme
+- GİB e-Tebligat kayıtlarını takip etme
+- Tablolardaki verileri Excel'e aktarma
 
-Uygulama tamamen HTML/JavaScript tabanlıdır ve kullanıcı verilerini tarayıcı ortamında işler. Projeyi doğrudan indirip çalıştırabilir veya canlı sürümünü kullanabilirsiniz.
+## Kullanım
 
+Canlı uygulama: https://webtasarim70.github.io/ekarsit/
+
+Uygulama HTML, CSS ve JavaScript ile hazırlanmıştır. Temel veri işleme işlemleri kullanıcının tarayıcısında gerçekleştirilir. GİB entegrasyonu gibi belirli iş akışları için tarayıcı eklentisi ve ilgili GİB oturumunun açık olması gerekebilir.
+
+## Proje notları
+
+- Geliştirmeler öncelikle `develop` dalında yürütülür.
+- Canlı yayın için değişiklikler `main` dalına aktarılır.

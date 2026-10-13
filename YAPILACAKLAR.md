@@ -4,23 +4,38 @@
 
 ## Sıradaki işler
 
+### Sayfa ve GitHub açıklamaları
+- [x] **Sayfa başlığı ve açıklamasını güncelle:** HTML `title` ve meta açıklaması güncellendi.
+- [ ] **GitHub açıklamalarını güncelle:** Depo açıklamasını GitHub üzerindeki kısa tanıtım alanında güncelle. README proje kapsamı ve kullanım bağlantısıyla yenilendi.
+
+### Kullanıcı kişiselleştirme ayarları
+- [ ] **Dashboard bildirimlerini kişiselleştirme:** Kullanıcı bildirim kartlarının yerini değiştirebilsin ve istemediği bildirimleri kapatabilsin.
+- [ ] **Sidebar menüsünü kişiselleştirme:** Kullanıcı bağlantıları pasif hâle getirip görünmez yapabilsin ve menü öğelerinin sırasını değiştirebilsin.
+
+### e-Karşıt Takip Kayıtları
+- [x] **Hazır kaydedilmiş filtreler:** e-Karşıt Takip Kayıtları tablosuna arama ve sütun filtrelerini adlandırarak kaydetme, yeniden uygulama ve silme fonksiyonları eklendi. Kayıtlar seçili kullanıcı klasörü adına göre tarayıcıda saklanır.
+  - [x] Test: Kullanıcı, sayfa yenilendiğinde ve kullanıcı çıkış-giriş yaptığında kayıtlı filtrenin kullanılabildiğini doğruladı.
+  - [x] Test: Aynı adla kaydetmenin mevcut filtreyi güncellediği ve kayıtlı filtrenin silinebildiği kullanıcı tarafından doğrulandı.
+
 ### Dashboard ve bildirimler
 - [x] **Süresi gelen yazılar bildirimini durum bilgisine göre güncelle**
   - [x] Durumu “Cevaplandı” olan yazılar “Süresi Gelen Yazılar” dashboard filtresinde yer almasın.
   - [x] Sidebar bildirim rozeti, durumu “Cevaplandı” olan yazıları saymasın.
   - [x] Test: Kullanıcı, cevaplandı durumu için dashboard bildirimi ve sidebar rozetini doğruladı.
 - [x] **Dashboard “Pasife Çekilmiş” kutucuğu** tıklanınca e-Karşıt tablosunu “Pasife Çekilmiş” durumuyla filtreleyerek açsın.
-  - [ ] Test: Karttan açılan tabloda yalnızca “Pasife Çekilmiş” kayıtların gösterildiğini ve sidebar ile yeniden girişte filtrenin kalıcı olmadığını doğrula.
+  - [x] Test: Kullanıcı, karttan açılan tabloda yalnızca “Pasife Çekilmiş” kayıtların gösterildiğini; sayfalar arası geçişte ve yenileme/yeniden giriş sonrasında filtrenin kalıcı olmadığını doğruladı.
 - [x] **Dashboard arşiv dosyaları bildirimi:** Sayacın tüm Excel dosyalarını firma arşivi olarak sayması düzeltildi; yalnızca `ARSIV_...` adlı arşiv çalışma kitapları sayılıyor.
   - [x] Test: Kullanıcı, dashboard sayısını kullanıcı klasöründeki arşiv dosyalarıyla karşılaştırıp olumlu sonuç bildirdi.
 
 ### GİB ve tarayıcı eklentisi
 - [ ] **GİB Tebligat Takip modülü:** Ayrı menü, yerel JSON kayıt dosyası, tablo/arama/Excel dışa aktarımı ve e-Tebligat sayfasından eklentiyle çok sayfalı aktarım eklendi.
-  - [ ] Test: Eklentiyi yeniden yükle; GİB e-Tebligat listesinden aktar; tüm sayfaların geldiğini, toplam kayıt sayısını ve ikinci aktarımda mükerrer kayıt oluşmadığını doğrula.
-- [ ] **Eksiklik yazısını GİB e-Tebligat sayfasından alma:** PDF belgesini alma/ilişkilendirme akışını ayrıca araştır ve uygula.
+  - [x] Test: 67 kaydın tamamı tabloda görünüyor; ikinci aktarımda mükerrer kayıt oluşmuyor; Excel çıktısı açılıyor ve tarihler doğru. Kullanıcı tarafından doğrulandı.
+- [ ] **Eksiklik yazısını GİB e-Tebligat sayfasından alma:** İsteğe bağlı “PDF Kaydet” ve kayıtlı PDF’yi açma akışı eklendi; gerçek GİB oturumuyla uçtan uca test bekliyor.
 - [ ] **GİB e-Karşıt aktarımı:** Daha önce “Pasife Çekilmiş” durumunda olup sonradan onaylanan kayıtların durumlarını doğru şekilde güncelle.
 - [ ] **“GİB İadem Nerede” menüsünü yakalama** akışını ekle.
 - [ ] **YMM Yazıları menüsünü** tamamlama.
+- [ ] **e-Karşıt Takip modülünü mükellefe uyarlama:** Takip ekranı ve iş akışlarını mükellef bazında çalışacak şekilde düzenle.
+- [ ] **GİB sayfasındaki eklenti butonlarını kaldırma:** Eklentinin GİB sayfasına enjekte ettiği butonlar yerine, işlemleri uygulamanın kendi sayfası içerisinden başlatılabilecek butonlar oluştur.
 
 ### Firma arşivi
 - [ ] **Firma arşiv düzenleme:** Düzenleme bölümünde girilen bilgileri kaydetme fonksiyonunu tamamla.
@@ -35,17 +50,18 @@
 ### Önceden planlanan kontroller
 - [ ] **Dashboard bildirim filtrelerini test et**
   - [x] Dashboard filtresinin başka sayfalara taşınıp tabloyu kalıcı olarak daraltması düzeltildi; filtre artık yalnızca dashboard kartından açılan sayfa görünümüne uygulanıyor.
-  - [ ] “Süresi Gelen Yazılar” kartı yalnızca son tarihi bugün ile sonraki 5 gün arasında olan kayıtları açıyor mu?
-  - [ ] “Cevap Bekliyor” ve pasif/iptal onay talepleri ilgili durum filtresi seçili olarak açılıyor mu?
-  - [ ] Filtre uygulanmış tablodan başka bir dashboard kartına geçince eski filtre temizleniyor mu?
-- [ ] **GİB Chrome/Edge eklentisinin son sürümünü doğrula**
-  - [ ] Eklentiyi tarayıcıda yeniden yükle.
-  - [ ] “e-Karşıt Takip’e Aktar” ve “Excel’e Aktar” işlemlerini ayrı ayrı dene; birbirini tetiklemediklerini doğrula.
-  - [ ] Excel dışa aktarımının kaydetme penceresini açtığını ve dosyanın açılabildiğini doğrula.
+  - [x] Test: Kullanıcı, “Süresi Gelen Yazılar” kartının yalnızca son tarihi bugün ile sonraki 5 gün arasında olan kayıtları gösterdiğini doğruladı.
+  - [x] Test: Kullanıcı, “Cevap Bekliyor” ve pasif/iptal onay taleplerinin ilgili durum filtresi seçili olarak açıldığını doğruladı.
+  - [x] Test: Kullanıcı, filtre uygulanmış tablodan başka bir dashboard kartına geçildiğinde eski filtrenin temizlenip yeni kartın filtresinin doğru uygulandığını doğruladı.
+- [x] **GİB Chrome/Edge eklentisinin son sürümünü doğrula**
+  - [x] Eklenti yeniden yüklenerek test edildi.
+  - [x] “e-Karşıt Takip’e Aktar” ve “Excel’e Aktar” işlemleri ayrı ayrı denendi; kullanıcı ikisinin de sorunsuz çalıştığını doğruladı.
+  - [x] Excel dışa aktarımı ve dosyanın açılması kullanıcı tarafından doğrulandı.
 - [ ] **e-Karşıt kayıt birleştirmesini kontrol et**
-  - [ ] Aynı İşlem ID tekrar aktarılınca kayıt güncelleniyor mu?
-  - [ ] Var olan “Not” alanı GİB aktarımı veya Excel içe aktarımı sırasında korunuyor mu?
-  - [ ] Yeni kayıt ve güncellenen kayıt sayıları doğru raporlanıyor mu?
+  - [x] Test: Aynı İşlem ID tekrar GİB üzerinden aktarılınca mevcut kayıt güncelleniyor ve mükerrer kayıt oluşmuyor.
+  - [x] Test: Aynı İşlem ID tekrar GİB üzerinden aktarıldığında mevcut “Not” alanının korunduğu kullanıcı tarafından doğrulandı.
+  - [x] Test: Mevcut kayıtların tekrar aktarımında sayaçlar doğrulandı; 114 kayıt alındı, 0 yeni ve 114 güncellenen olarak raporlandı.
+  - [ ] Test: Yeni kayıt sayısının doğru raporlanmasını doğrula (yeni kayıt oluşturulamadığı için beklemede).
 - [ ] **Değişiklikler sonrası genel kontrol**
   - [ ] İlgili JavaScript dosyalarında sözdizimi kontrolü yap.
   - [ ] Filtreler, Excel içe/dışa aktarma ve kayıt düzenleme akışlarında geriye dönük hata olmadığını kontrol et.

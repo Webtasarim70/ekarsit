@@ -139,8 +139,8 @@ async function renderTebligatYaziTakipPage(){
   window.dashboardTableFilter=null;
   currentPage='tebligat-yazi-takip'; archiveViewParsed=null; currentStep=-1;
   const content=document.getElementById('step-content'); content.innerHTML='';
-  content.appendChild(el('h2',{class:'step-title'},'Tebligat Yazı Takip'));
-  content.appendChild(el('p',{class:'step-desc'},'Tebligat ve yazı kayıtlarını kullanıcı klasörünüzde ayrı bir dosyada saklayabilir, düzenleyebilir ve silebilirsiniz.'));
+  content.appendChild(el('h2',{class:'step-title'},'Eksiklik / Cevap Yazısı Takip'));
+  content.appendChild(el('p',{class:'step-desc'},'Eksiklik bildirimleri ve cevap yazılarına ilişkin kayıtlarınızı takip edin. Kayıtlar kullanıcı klasörünüzde ayrı bir dosyada saklanır; buradan ekleyebilir, düzenleyebilir ve silebilirsiniz.'));
   const host=el('div'); content.appendChild(host);
 
   const render=async()=>{
@@ -207,7 +207,17 @@ async function renderTebligatYaziTakipPage(){
       }catch(e){status.innerHTML='';status.appendChild(el('div',{class:'hint warn'},'⚠️ Kayıt kaydedilemedi: '+e.message));}
     }},editing?'💾 Değişiklikleri Kaydet':'＋ Kaydı Ekle');
     if(editing) formCard.appendChild(el('button',{class:'btn btn-secondary',style:'margin:12px 0 0 8px;',onclick:async()=>{tebligatEditingId=null;await render();}},'İptal'));
-    formCard.appendChild(grid);formCard.appendChild(saveBtn);formCard.appendChild(status);host.appendChild(formCard);
+    formCard.appendChild(grid);formCard.appendChild(saveBtn);formCard.appendChild(status);
+    // Yeni kayıt alanını başlığa tıklanınca açılıp kapanan bölüme dönüştür.
+    const formPanel=el('div');
+    while(formCard.children.length>1)formPanel.appendChild(formCard.children[1]);
+    formCard.appendChild(formPanel);
+    const formHeading=formCard.querySelector('h3');
+    formHeading.style.cursor='pointer';formHeading.title='Açmak/kapatmak için tıklayın';
+    formHeading.setAttribute('aria-expanded','true');
+    formHeading.addEventListener('click',()=>{const open=formPanel.style.display==='none';formPanel.style.display=open?'':'none';formHeading.setAttribute('aria-expanded',String(open));formHeading.textContent=(open?'▾ ':'▸ ')+(tebligatEditingId?'Tebligat / Yazı Kaydını Düzenle':'Yeni Tebligat / Yazı Kaydı');});
+    formHeading.textContent='▾ '+(editing?'Tebligat / Yazı Kaydını Düzenle':'Yeni Tebligat / Yazı Kaydı');
+    host.appendChild(formCard);
 
     const listCard=el('div',{class:'card',style:'margin-top:14px;'});
     listCard.appendChild(el('h3',{},'Kayıtlar — '+data.records.length));
@@ -218,7 +228,14 @@ async function renderTebligatYaziTakipPage(){
     tools.appendChild(globalSearch);
     const fieldFilters=el('div',{class:'table-column-filters'});
     const filters=columns.map(([label])=>{const box=el('div',{class:'field'});box.appendChild(el('label',{},label+' filtresi'));const input=el('input',{class:'input',placeholder:label+' ara…'});box.appendChild(input);fieldFilters.appendChild(box);return input;});
-    const reset=el('button',{class:'btn btn-secondary',type:'button',style:'align-self:flex-start;',onclick:()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();}},'Filtreleri Temizle');const exportBtn=el('button',{class:'btn btn-primary',type:'button',style:'align-self:flex-start;',onclick:async()=>{try{const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Görünen Tebligatlar');ws.columns=columns.map(([header],i)=>({header,key:'c'+i,width:Math.min(40,Math.max(14,header.length+2))}));visibleRows.forEach(r=>ws.addRow(columns.map(([,get])=>get(r)??'')));ws.getRow(1).font={bold:true};ws.views=[{state:'frozen',ySplit:1}];const buf=await wb.xlsx.writeBuffer();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download='TEBLIGAT_YAZI_TAKIP_FILTRELENMIS.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){alert('Filtrelenmiş tablo Excel’e aktarılamadı: '+e.message);}}},'⬇ Görünen Tabloyu Excel’e Aktar');tools.appendChild(fieldFilters);tools.appendChild(reset);tools.appendChild(exportBtn);listCard.appendChild(tools);
+    const reset=el('button',{class:'btn btn-secondary',type:'button',style:'align-self:flex-start;',onclick:()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();}},'Filtreleri Temizle');const exportBtn=el('button',{class:'btn btn-primary',type:'button',style:'align-self:flex-start;',onclick:async()=>{try{const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Görünen Tebligatlar');ws.columns=columns.map(([header],i)=>({header,key:'c'+i,width:Math.min(40,Math.max(14,header.length+2))}));visibleRows.forEach(r=>ws.addRow(columns.map(([,get])=>get(r)??'')));ws.getRow(1).font={bold:true};ws.views=[{state:'frozen',ySplit:1}];const buf=await wb.xlsx.writeBuffer();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download='TEBLIGAT_YAZI_TAKIP_FILTRELENMIS.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){alert('Filtrelenmiş tablo Excel’e aktarılamadı: '+e.message);}}},'⬇ Görünen Tabloyu Excel’e Aktar');tools.appendChild(fieldFilters);tools.appendChild(reset);tools.appendChild(exportBtn);
+    const filterPanel=el('div');
+    filterPanel.appendChild(globalSearch);filterPanel.appendChild(fieldFilters);filterPanel.appendChild(reset);filterPanel.appendChild(exportBtn);
+    tools.innerHTML='';
+    const filterHeading=el('h4',{style:'margin:0 0 10px;cursor:pointer;'},'▾ Filtreleme ve Arama');
+    filterHeading.title='Filtreleri açmak/kapatmak için tıklayın';filterHeading.setAttribute('aria-expanded','true');
+    filterHeading.addEventListener('click',()=>{const open=filterPanel.style.display==='none';filterPanel.style.display=open?'':'none';filterHeading.textContent=(open?'▾ ':'▸ ')+'Filtreleme ve Arama';filterHeading.setAttribute('aria-expanded',String(open));});
+    tools.appendChild(filterHeading);tools.appendChild(filterPanel);listCard.appendChild(tools);
     const table=el('table',{class:'editable-table'});
     const thead=el('thead');const head=el('tr');let sortIndex=-1,sortDirection=1;const sortHeads=[];
     columns.forEach(([label],i)=>{const th=el('th',{class:'sortable-th',title:'Sıralamak için tıklayın','aria-sort':'none'},label+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});sortHeads.push(th);head.appendChild(th);});
