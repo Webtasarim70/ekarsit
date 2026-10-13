@@ -5,7 +5,8 @@
   "description": "GİB e-Karşıt gönderilen kayıtlarını tüm sayfalarıyla alıp e-Karşıt Takip uygulamasına aktarır.",
   "permissions": [
     "tabs",
-    "downloads"
+    "downloads",
+    "scripting"
   ],
   "host_permissions": [
     "https://eymm.gib.gov.tr/*",
