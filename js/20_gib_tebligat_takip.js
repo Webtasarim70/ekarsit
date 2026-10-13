@@ -33,7 +33,10 @@ window.addEventListener('message',async e=>{
 });
 async function gibTebligatOpenPdf(record){
   if(!userStore?.directoryHandle)throw new Error('Önce kullanıcı klasörünü bağlayın.');if(!record?._pdfFilename)throw new Error('Bu tebligat için kayıtlı PDF bilgisi bulunamadı.');
-  const handle=await userStore.directoryHandle.getFileHandle(record._pdfFilename),file=await handle.getFile(),url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  const tab=window.open('about:blank','_blank');
+  const handle=await userStore.directoryHandle.getFileHandle(record._pdfFilename),file=await handle.getFile(),url=URL.createObjectURL(file);
+  if(tab){tab.location.href=url;}else{const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.click();}
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 function gibTebligatKey(r){return String(r?.tebligId||r?.tebligSecureId||r?.belgeNo||'').trim();}
 function gibTebligatDate(v){return String(v||'').trim();}
