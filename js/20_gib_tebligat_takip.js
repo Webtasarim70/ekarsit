@@ -11,7 +11,25 @@ async function gibTebligatWrite(d){
   const h=await userStore.directoryHandle.getFileHandle(GIB_TEBLIGAT_FILE,{create:true});const w=await h.createWritable();await w.write(JSON.stringify(d,null,2));await w.close();await userScanCurrentFolder();
 }
 function gibTebligatKey(r){return String(r?.tebligId||r?.tebligSecureId||r?.belgeNo||'').trim();}
-function gibTebligatDate(v){return String(v||'').trim();}
+function gibTebligatDate(v){
+  if(v===null||v===undefined||v==='')return '';
+  const raw=String(v).trim();if(!raw)return '';
+  const m=raw.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  let d;
+  if(m)d=new Date(Number(m[3]),Number(m[2])-1,Number(m[1]),Number(m[4]||0),Number(m[5]||0),Number(m[6]||0));
+  else if(/^\d{10,13}$/.test(raw))d=new Date(Number(raw.length===10?Number(raw)*1000:raw));
+  else d=new Date(raw);
+  if(Number.isNaN(d.getTime()))return raw;
+  const pad=n=>String(n).padStart(2,'0');
+  return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+}
+function gibTebligatDateValue(v){
+  const raw=String(v||'').trim();
+  const m=raw.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if(m)return new Date(Number(m[3]),Number(m[2])-1,Number(m[1]),Number(m[4]||0),Number(m[5]||0),Number(m[6]||0)).getTime();
+  const d=new Date(raw);return Number.isNaN(d.getTime())?null:d.getTime();
+}
+const GIB_TEBLIGAT_DATE_FIELDS=['gonderimZamani','tebligZamani','mukellefOkumaZamani'];
 async function gibTebligatMerge(payload){
   const old=await gibTebligatRead(), map=new Map(old.records.map(r=>[gibTebligatKey(r),r]));
   let added=0,updated=0;
@@ -19,6 +37,7 @@ async function gibTebligatMerge(payload){
     const key=gibTebligatKey(r);if(!key)return;
     const prev=map.get(key);
     const next={...(prev||{}),...r,_key:key,_firstSeen:prev?prev._firstSeen:(new Date().toISOString()),_lastSeen:new Date().toISOString()};
+    GIB_TEBLIGAT_DATE_FIELDS.forEach(field=>{if(next[field]!==undefined&&next[field]!==null&&next[field]!=='')next[field]=gibTebligatDate(next[field]);});
     // Bazı GİB liste yanıtlarında güvenli kimlik secureId adıyla gelebilir.
     // Yeni aktarımda gelen güncel değeri eski kayıttaki tebligSecureId'nin üzerinde tut.
     const incomingSecureId=String(r?.tebligSecureId||r?.secureId||'').trim();
@@ -26,7 +45,7 @@ async function gibTebligatMerge(payload){
     if(prev)updated++;else added++;
     map.set(key,next);
   });
-  const d={schemaVersion:1,records:[...map.values()].sort((a,b)=>String(b.gonderimZamani||'').localeCompare(String(a.gonderimZamani||''))),total:Number(payload?.total||map.size),lastSync:new Date().toISOString()};
+  const d={schemaVersion:1,records:[...map.values()].sort((a,b)=>(gibTebligatDateValue(b.gonderimZamani)||0)-(gibTebligatDateValue(a.gonderimZamani)||0)),total:Number(payload?.total||map.size),lastSync:new Date().toISOString()};
   await gibTebligatWrite(d);return {added,updated,total:d.records.length,reportedTotal:d.total};
 }
 window.addEventListener('message',async e=>{
@@ -57,10 +76,11 @@ async function renderGibTebligatTakipPage(){
     const clearBtn=el('button',{class:'btn btn-secondary'},'Seçimi Temizle');
     const hideBtn=el('button',{class:'btn btn-secondary'},'Seçilenleri Gizle');
     const hiddenBtn=el('button',{class:'btn btn-secondary'},'Gizlenen Kayıtları Göster');
+    const clearDataBtn=el('button',{class:'btn btn-secondary',style:'border-color:#b42318;color:#b42318;'},'Tablodaki Tüm Veriyi Temizle');
     const exportBtn=el('button',{class:'btn btn-secondary',onclick:async()=>{
       try{const q=String(search.value||'').toLocaleLowerCase('tr-TR');const exportRows=rows.filter(r=>cols.some(([,k])=>String(r[k]||'').toLocaleLowerCase('tr-TR').includes(q)));const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('GİB Tebligat');const exportCols=[['Gönderen Kurum','kurumAciklama'],['Alt Birim','altKurum'],['Belge Türü','belgeTuruAciklama'],['Belge No','belgeNo'],['Gönderme Tarihi','gonderimZamani'],['Tebliğ Tarihi','tebligZamani'],['Mükellef Okuma Tarihi','mukellefOkumaZamani']];ws.columns=exportCols.map(([header,key])=>({header,key,width:Math.max(18,header.length+3)}));exportRows.forEach(r=>ws.addRow(Object.fromEntries(exportCols.map(([,k])=>[k,r[k]||'']))));ws.getRow(1).font={bold:true};ws.views=[{state:'frozen',ySplit:1}];const buf=await wb.xlsx.writeBuffer(),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf]));a.download='GIB_TEBLIGAT_TAKIP.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){alert('Excel oluşturulamadı: '+e.message);}
     }},'Görünen Kayıtları Excel’e Aktar');
-    bar.append(search,selectAllBtn,clearBtn,hideBtn,hiddenBtn,exportBtn);card.appendChild(bar);
+    bar.append(search,selectAllBtn,clearBtn,hideBtn,hiddenBtn,exportBtn,clearDataBtn);card.appendChild(bar);
     const table=el('table',{class:'editable-table',style:'min-width:1080px;width:100%;table-layout:auto;'}),thead=el('thead'),trh=el('tr');
     const selectTh=el('th',{style:'width:44px;text-align:center;'});const headCheck=el('input',{type:'checkbox','aria-label':'Görünen kayıtların tümünü seç'});selectTh.appendChild(headCheck);trh.appendChild(selectTh);
     const headerNodes=[];
@@ -70,7 +90,7 @@ async function renderGibTebligatTakipPage(){
       const q=String(search.value||'').toLocaleLowerCase('tr-TR');
       let result=rows.filter(r=>cols.some(([,k])=>String(r[k]||'').toLocaleLowerCase('tr-TR').includes(q)));
       result=result.filter(r=>showHiddenOnly?Boolean(r._hidden):!r._hidden);
-      if(sortKey)result.sort((a,b)=>{const av=String(a[sortKey]||''),bv=String(b[sortKey]||'');const ad=Date.parse(av),bd=Date.parse(bv);let cmp=!Number.isNaN(ad)&&!Number.isNaN(bd)?ad-bd:av.localeCompare(bv,'tr',{numeric:true,sensitivity:'base'});return cmp*sortDir;});
+      if(sortKey)result.sort((a,b)=>{const av=String(a[sortKey]||''),bv=String(b[sortKey]||'');const ad=GIB_TEBLIGAT_DATE_FIELDS.includes(sortKey)?gibTebligatDateValue(av):null;const bd=GIB_TEBLIGAT_DATE_FIELDS.includes(sortKey)?gibTebligatDateValue(bv):null;let cmp=ad!==null&&bd!==null?ad-bd:av.localeCompare(bv,'tr',{numeric:true,sensitivity:'base'});return cmp*sortDir;});
       return result;
     };
     const draw=()=>{
@@ -91,6 +111,11 @@ async function renderGibTebligatTakipPage(){
     headCheck.addEventListener('change',()=>{visibleRows().forEach(r=>{const key=gibTebligatKey(r);if(headCheck.checked)selected.add(key);else selected.delete(key);});draw();});
     selectAllBtn.addEventListener('click',()=>{visibleRows().forEach(r=>selected.add(gibTebligatKey(r)));draw();});
     clearBtn.addEventListener('click',()=>{selected.clear();draw();});
+    clearDataBtn.addEventListener('click',async()=>{
+      if(!window.confirm('DİKKAT: GİB Tebligat Takip tablosundaki tüm kayıtlar kalıcı olarak temizlenecek. Bu işlem geri alınamaz. Devam etmek istiyor musunuz?'))return;
+      try{const empty={schemaVersion:1,records:[],total:0,lastSync:new Date().toISOString()};await gibTebligatWrite(empty);d=empty;rows=[];selected.clear();showHiddenOnly=false;search.value='';draw();const heading=card.querySelector('h3');if(heading)heading.textContent='Tebligat Kayıtları — 0';}
+      catch(e){alert('Tablo verileri temizlenemedi: '+e.message);}
+    });
     hideBtn.addEventListener('click',async()=>{
       const keys=new Set(selected);if(!keys.size)return;
       const updated={...d,records:d.records.map(r=>keys.has(gibTebligatKey(r))?{...r,_hidden:true}:r),total:d.total,lastSync:d.lastSync};
@@ -99,7 +124,7 @@ async function renderGibTebligatTakipPage(){
     });
     hiddenBtn.addEventListener('click',()=>{showHiddenOnly=!showHiddenOnly;draw();});
     search.addEventListener('input',draw);draw();
-    const scroll=el('div',{class:'table-scroll',style:'border:1px solid var(--border);border-radius:6px;'});scroll.appendChild(table);card.appendChild(el('div',{class:'hint info',style:'margin:8px 0;'},'Sütun başlığına tıklayarak sıralayın. Gizleme yalnızca bu modülün görünümünü etkiler; kayıtlar JSON dosyasında korunur. Tabloyu yatay kaydırabilirsiniz.'));card.appendChild(scroll);host.appendChild(card);
+    const scroll=el('div',{class:'table-scroll',style:'border:1px solid var(--border);border-radius:6px;'});scroll.appendChild(table);card.appendChild(el('div',{class:'hint info',style:'margin:8px 0;'},'Sütun başlığına tıklayarak sıralayın. Tarihler GG/AA/YYYY SS:DD:SS biçiminde saklanır ve tarih sırasıyla sıralanır. Gizleme kayıtları silmez; tüm veriyi temizleme işlemi onay ister. Tabloyu yatay kaydırabilirsiniz.'));card.appendChild(scroll);host.appendChild(card);
   };
   await render();
   document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('btn-next').textContent='GİB Tebligat Takip';document.getElementById('footer-msg').textContent='GİB Tebligat Takip';renderNav();
