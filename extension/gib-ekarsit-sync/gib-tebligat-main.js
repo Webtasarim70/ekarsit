@@ -125,19 +125,16 @@
   async function getTebligatPdf(record){
     const tebligId=String(record?.tebligId||'').trim();
     if(!tebligId)throw new Error('Tebligat kimliği (tebligId) kayıtta bulunamadı. GİB listesini yeniden aktarın.');
-    // Önce kayıtlı listedeki taraf kimlikleriyle zarf-detay-sorgula çağrılır.
-    // Bu yanıt, ilgili tebligata ait güncel tebligSecureId ve taraf kimliklerinin kaynağıdır.
-    let detail=observedZarfDetails.get(tebligId)||null;
+    // GİB arayüzü ilgili zarf açılırken zarf-detay-sorgula yanıtını yakalar.
+    // Liste kaydındaki taraf kimlikleriyle aynı servisi yeniden çağırmak 422 yetki hatasına yol açabildiğinden
+    // PDF akışında yeni bir sorgu göndermek yerine yalnızca aynı tebligata ait yakalanmış yanıtı kullan.
+    const detail=observedZarfDetails.get(tebligId)||null;
     const listedTarafId=record?.tarafId||record?.mukellefId||record?.taraf?.id||record?.tarafBilgileri?.id;
     const listedTarafSecureId=record?.tarafSecureId||record?.mukellefSecureId||record?.taraf?.secureId||record?.tarafBilgileri?.secureId;
-    if(listedTarafId&&listedTarafSecureId){
-      const detailResponse=await gibJsonPost('/apigateway/etebligat/etebligat/zarf-detay-sorgula',{tarafId:listedTarafId,tarafSecureId:listedTarafSecureId},false);
-      const candidate=detailResponse?.data||detailResponse;
-      if(String(candidate?.tebligId||'').trim()===tebligId&&candidate?.tebligSecureId){
-        detail=candidate;observedZarfDetails.set(tebligId,candidate);
-      }
+    if(!detail?.tebligSecureId){
+      throw new Error('Bu tebligatın güncel zarf detayı GİB arayüzünden alınamadı. GİB sekmesinde ilgili tebligat için “İşlem Yap” → “Zarf İçeriğini Gör” adımlarını uygulayın, detay sayfası yüklendikten sonra PDF Kaydet’i yeniden deneyin.');
     }
-    const tebligSecureId=String(detail?.tebligSecureId||observedTebligSecureIds.get(tebligId)||'').trim();
+    const tebligSecureId=String(detail.tebligSecureId||observedTebligSecureIds.get(tebligId)||'').trim();
     if(!tebligSecureId)throw new Error('GİB zarf-detay-sorgula yanıtından bu tebligata ait güncel tebligSecureId alınamadı. GİB’de ilgili zarfın detayını açıp yeniden deneyin.');
     const ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},false);
     const belge=gibFindObject(ekler,x=>x.adi&&x.id&&x.secureId&&String(x.uzanti||'').toLowerCase()==='pdf')||gibFindObject(ekler,x=>x.tebligBelge?.adi)?.tebligBelge;
