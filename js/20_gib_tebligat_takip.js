@@ -53,14 +53,13 @@ async function renderGibTebligatTakipPage(){
       try{const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('GİB Tebligat');const cols=[['Gönderen Kurum','kurumAciklama'],['Alt Birim','altKurum'],['Belge Türü','belgeTuruAciklama'],['Belge No','belgeNo'],['Gönderme Tarihi','gonderimZamani'],['Tebliğ Tarihi','tebligZamani'],['Mükellef Okuma Tarihi','mukellefOkumaZamani']];ws.columns=cols.map(([header,key])=>({header,key,width:Math.max(18,header.length+3)}));rows.forEach(r=>ws.addRow(Object.fromEntries(cols.map(([,k])=>[k,r[k]||'']))));ws.getRow(1).font={bold:true};ws.views=[{state:'frozen',ySplit:1}];const buf=await wb.xlsx.writeBuffer(),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf]));a.download='GIB_TEBLIGAT_TAKIP.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){alert('Excel oluşturulamadı: '+e.message);}
     }},'Görünen Kayıtları Excel’e Aktar');
     bar.append(search,exportBtn);card.appendChild(bar);
-    let visibleRows=d.records.slice();
     const table=el('table',{class:'editable-table',style:'min-width:1000px;width:100%;table-layout:auto;'}),thead=el('thead'),trh=el('tr');
     const cols=[['Gönderen Kurum','kurumAciklama'],['Alt Birim','altKurum'],['Belge Türü','belgeTuruAciklama'],['Belge No','belgeNo'],['Gönderme Tarihi','gonderimZamani'],['Tebliğ Tarihi','tebligZamani'],['Mükellef Okuma Tarihi','mukellefOkumaZamani']];
     cols.forEach(([h])=>trh.appendChild(el('th',{},h)));thead.appendChild(trh);table.appendChild(thead);const tbody=el('tbody');table.appendChild(tbody);
     let rows=d.records.slice();
-    const draw=()=>{const q=String(search.value||'').toLocaleLowerCase('tr-TR');const shown=rows.filter(r=>cols.some(([,k])=>String(r[k]||'').toLocaleLowerCase('tr-TR').includes(q)));visibleRows=shown;tbody.innerHTML='';shown.forEach(r=>{
+    const draw=()=>{const q=String(search.value||'').toLocaleLowerCase('tr-TR');const shown=rows.filter(r=>cols.some(([,k])=>String(r[k]||'').toLocaleLowerCase('tr-TR').includes(q)));tbody.innerHTML='';shown.forEach(r=>{
       const tr=el('tr');cols.forEach(([,k])=>tr.appendChild(el('td',{},r[k]||'—')));tbody.appendChild(tr);
-    });if(!shown.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:8,style:'text-align:center;padding:16px;'},'Kayıt bulunamadı.')]));};
+    });if(!shown.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:7,style:'text-align:center;padding:16px;'},'Kayıt bulunamadı.')]));};
     search.addEventListener('input',draw);draw();const scroll=el('div',{class:'table-scroll',style:'border:1px solid var(--border);border-radius:6px;'});scroll.appendChild(table);card.appendChild(el('div',{class:'hint info',style:'margin:8px 0;'},'Tablo geniş olabilir. Tüm sütunları görmek için tabloyu yatay kaydırabilirsiniz.'));card.appendChild(scroll);host.appendChild(card);
   };
   await render();
