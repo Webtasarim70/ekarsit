@@ -78,17 +78,17 @@ async function renderGibTebligatTakipPage(){
     }},'Görünen Kayıtları Excel’e Aktar');
     bar.append(search,exportBtn);card.appendChild(bar);
     let visibleRows=d.records.slice();
-    const table=el('table',{class:'editable-table'}),thead=el('thead'),trh=el('tr');
+    const table=el('table',{class:'editable-table',style:'min-width:1180px;width:100%;table-layout:auto;'}),thead=el('thead'),trh=el('tr');
     const cols=[['Gönderen Kurum','kurumAciklama'],['Alt Birim','altKurum'],['Belge Türü','belgeTuruAciklama'],['Belge No','belgeNo'],['Gönderme Tarihi','gonderimZamani'],['Tebliğ Tarihi','tebligZamani'],['Mükellef Okuma Tarihi','mukellefOkumaZamani']];
-    cols.forEach(([h])=>trh.appendChild(el('th',{},h)));trh.appendChild(el('th',{},'PDF'));thead.appendChild(trh);table.appendChild(thead);const tbody=el('tbody');table.appendChild(tbody);
+    cols.forEach(([h])=>trh.appendChild(el('th',{},h)));trh.appendChild(el('th',{style:'min-width:150px;width:150px;'},'PDF işlemi'));thead.appendChild(trh);table.appendChild(thead);const tbody=el('tbody');table.appendChild(tbody);
     let rows=d.records.slice();
     const draw=()=>{const q=String(search.value||'').toLocaleLowerCase('tr-TR');const shown=rows.filter(r=>cols.some(([,k])=>String(r[k]||'').toLocaleLowerCase('tr-TR').includes(q)));visibleRows=shown;tbody.innerHTML='';shown.forEach(r=>{
-      const tr=el('tr');cols.forEach(([,k])=>tr.appendChild(el('td',{},r[k]||'—')));const cell=el('td',{style:'white-space:nowrap;'});
-      if(r._pdfSaved&&r._pdfFilename){cell.appendChild(el('span',{title:'PDF kayıtlı',style:'margin-right:6px;'},'📄'));cell.appendChild(el('button',{class:'btn btn-secondary',onclick:async()=>{try{await gibTebligatOpenPdf(r);}catch(e){alert('PDF açılamadı: '+e.message);}}},'PDF’yi Aç'));}
-      else{cell.appendChild(el('button',{class:'btn btn-primary',onclick:async ev=>{const btn=ev?.currentTarget;try{if(!userStore?.directoryHandle)throw new Error('Önce Kullanıcı bölümünden kayıt klasörünü bağlayın.');if(btn){btn.disabled=true;btn.textContent='PDF alınıyor…';}const result=await gibTebligatRequestPdf(r);alert('PDF kullanıcı klasörüne kaydedildi: '+result.filename);}catch(e){alert('PDF kaydedilemedi: '+e.message);}finally{if(btn){btn.disabled=false;btn.textContent='PDF Kaydet';}}}},'PDF Kaydet'));}
+      const tr=el('tr');cols.forEach(([,k])=>tr.appendChild(el('td',{},r[k]||'—')));const cell=el('td',{style:'white-space:nowrap;min-width:150px;width:150px;padding:6px;'});
+      if(r._pdfSaved&&r._pdfFilename){cell.appendChild(el('span',{title:'PDF kayıtlı',style:'display:inline-block;margin-right:5px;'},'📄'));cell.appendChild(el('button',{class:'btn btn-secondary',style:'display:inline-block;white-space:nowrap;padding:7px 10px;',onclick:async()=>{try{await gibTebligatOpenPdf(r);}catch(e){alert('PDF açılamadı: '+e.message);}}},'PDF’yi Aç'));}
+      else{cell.appendChild(el('button',{class:'btn btn-primary',style:'display:inline-block;white-space:nowrap;padding:7px 10px;min-width:112px;',onclick:async ev=>{const btn=ev?.currentTarget;try{if(!userStore?.directoryHandle)throw new Error('Önce Kullanıcı bölümünden kayıt klasörünü bağlayın.');if(btn){btn.disabled=true;btn.textContent='PDF alınıyor…';}const result=await gibTebligatRequestPdf(r);alert('PDF kullanıcı klasörüne kaydedildi: '+result.filename);}catch(e){alert('PDF kaydedilemedi: '+e.message);}finally{if(btn){btn.disabled=false;btn.textContent='PDF Kaydet';}}}},'PDF Kaydet'));}
       tbody.appendChild(tr);
     });if(!shown.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:8,style:'text-align:center;padding:16px;'},'Kayıt bulunamadı.')]));};
-    search.addEventListener('input',draw);draw();const scroll=el('div',{class:'table-scroll'});scroll.appendChild(table);card.appendChild(scroll);host.appendChild(card);
+    search.addEventListener('input',draw);draw();const scroll=el('div',{class:'table-scroll',style:'border:1px solid var(--border);border-radius:6px;'});scroll.appendChild(table);card.appendChild(el('div',{class:'hint info',style:'margin:8px 0;'},'Tablo geniştir. Sağdaki PDF işlemi sütununu görmek için tabloyu yatay kaydırın. Her satırda PDF Kaydet veya kayıtlıysa PDF’yi Aç düğmesi bulunur.'));card.appendChild(scroll);host.appendChild(card);
   };
   await render();
   document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;document.getElementById('btn-next').textContent='GİB Tebligat Takip';document.getElementById('footer-msg').textContent='GİB Tebligat Takip';renderNav();
