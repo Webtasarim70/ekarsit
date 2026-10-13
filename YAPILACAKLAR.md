@@ -23,7 +23,7 @@
   - [x] Sidebar bildirim rozeti, durumu “Cevaplandı” olan yazıları saymasın.
   - [x] Test: Kullanıcı, cevaplandı durumu için dashboard bildirimi ve sidebar rozetini doğruladı.
 - [x] **Dashboard “Pasife Çekilmiş” kutucuğu** tıklanınca e-Karşıt tablosunu “Pasife Çekilmiş” durumuyla filtreleyerek açsın.
-  - [ ] Test: Karttan açılan tabloda yalnızca “Pasife Çekilmiş” kayıtların gösterildiğini ve sidebar ile yeniden girişte filtrenin kalıcı olmadığını doğrula.
+  - [x] Test: Kullanıcı, karttan açılan tabloda yalnızca “Pasife Çekilmiş” kayıtların gösterildiğini; sayfalar arası geçişte ve yenileme/yeniden giriş sonrasında filtrenin kalıcı olmadığını doğruladı.
 - [x] **Dashboard arşiv dosyaları bildirimi:** Sayacın tüm Excel dosyalarını firma arşivi olarak sayması düzeltildi; yalnızca `ARSIV_...` adlı arşiv çalışma kitapları sayılıyor.
   - [x] Test: Kullanıcı, dashboard sayısını kullanıcı klasöründeki arşiv dosyalarıyla karşılaştırıp olumlu sonuç bildirdi.
 
