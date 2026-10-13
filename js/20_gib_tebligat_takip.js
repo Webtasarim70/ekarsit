@@ -10,6 +10,31 @@ async function gibTebligatWrite(d){
   if(!userStore?.directoryHandle)throw new Error('Önce kullanıcı klasörünü bağlayın.');
   const h=await userStore.directoryHandle.getFileHandle(GIB_TEBLIGAT_FILE,{create:true});const w=await h.createWritable();await w.write(JSON.stringify(d,null,2));await w.close();await userScanCurrentFolder();
 }
+const gibTebligatPdfRequests=new Map();
+function gibTebligatRequestPdf(record){
+  const requestId='pdf-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);
+  return new Promise((resolve,reject)=>{const timeout=setTimeout(()=>{gibTebligatPdfRequests.delete(requestId);reject(new Error('GİB PDF isteği zaman aşımına uğradı. GİB e-Tebligat sekmesini açık tutup yeniden deneyin.'));},90000);
+    gibTebligatPdfRequests.set(requestId,{resolve,reject,timeout,record});window.postMessage({source:'ekarsit-gib-app',type:'GIB_TEBLIGAT_DOWNLOAD_PDF',requestId,record},'*');});
+}
+window.addEventListener('message',async e=>{
+  if(e.source!==window||e.data?.source!=='ekarsit-gib-extension'||e.data.type!=='GIB_TEBLIGAT_PDF_RESULT')return;
+  const request=gibTebligatPdfRequests.get(e.data.requestId);if(!request)return;clearTimeout(request.timeout);gibTebligatPdfRequests.delete(e.data.requestId);
+  if(!e.data.ok){request.reject(new Error(e.data.message||'PDF alınamadı.'));return;}
+  try{
+    const pdf=e.data.pdf;if(!pdf?.base64)throw new Error('GİB PDF verisi boş geldi.');
+    const binary=atob(pdf.base64),bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+    if(bytes.length<5||String.fromCharCode(...bytes.subarray(0,5))!=='%PDF-')throw new Error('İndirilen dosya geçerli PDF değil.');
+    const fileName=String(pdf.filename||'tebligat.pdf').replace(/[\\/:*?"<>|]/g,'_'),handle=await userStore.directoryHandle.getFileHandle(fileName,{create:true});
+    const writer=await handle.createWritable();await writer.write(new Blob([bytes],{type:'application/pdf'}));await writer.close();
+    const data=await gibTebligatRead(),savedRecord=data.records.find(r=>gibTebligatKey(r)===gibTebligatKey(request.record));
+    if(savedRecord){savedRecord._pdfSaved=true;savedRecord._pdfFilename=fileName;savedRecord._pdfSavedAt=new Date().toISOString();await gibTebligatWrite(data);}
+    request.resolve({filename:fileName});if(typeof renderGibTebligatTakipPage==='function'&&currentPage==='gib-tebligat-takip')await renderGibTebligatTakipPage();
+  }catch(err){request.reject(err);}
+});
+async function gibTebligatOpenPdf(record){
+  if(!userStore?.directoryHandle)throw new Error('Önce kullanıcı klasörünü bağlayın.');if(!record?._pdfFilename)throw new Error('Bu tebligat için kayıtlı PDF bilgisi bulunamadı.');
+  const handle=await userStore.directoryHandle.getFileHandle(record._pdfFilename),file=await handle.getFile(),url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
 function gibTebligatKey(r){return String(r?.tebligId||r?.tebligSecureId||r?.belgeNo||'').trim();}
 function gibTebligatDate(v){return String(v||'').trim();}
 async function gibTebligatMerge(payload){
@@ -52,9 +77,14 @@ async function renderGibTebligatTakipPage(){
     let visibleRows=d.records.slice();
     const table=el('table',{class:'editable-table'}),thead=el('thead'),trh=el('tr');
     const cols=[['Gönderen Kurum','kurumAciklama'],['Alt Birim','altKurum'],['Belge Türü','belgeTuruAciklama'],['Belge No','belgeNo'],['Gönderme Tarihi','gonderimZamani'],['Tebliğ Tarihi','tebligZamani'],['Mükellef Okuma Tarihi','mukellefOkumaZamani']];
-    cols.forEach(([h])=>trh.appendChild(el('th',{},h)));thead.appendChild(trh);table.appendChild(thead);const tbody=el('tbody');table.appendChild(tbody);
+    cols.forEach(([h])=>trh.appendChild(el('th',{},h)));trh.appendChild(el('th',{},'PDF'));thead.appendChild(trh);table.appendChild(thead);const tbody=el('tbody');table.appendChild(tbody);
     let rows=d.records.slice();
-    const draw=()=>{const q=String(search.value||'').toLocaleLowerCase('tr-TR');const shown=rows.filter(r=>cols.some(([,k])=>String(r[k]||'').toLocaleLowerCase('tr-TR').includes(q)));visibleRows=shown;tbody.innerHTML='';shown.forEach(r=>{const tr=el('tr');cols.forEach(([,k])=>tr.appendChild(el('td',{},r[k]||'—')));tbody.appendChild(tr);});if(!shown.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:7,style:'text-align:center;padding:16px;'},'Kayıt bulunamadı.')]));};
+    const draw=()=>{const q=String(search.value||'').toLocaleLowerCase('tr-TR');const shown=rows.filter(r=>cols.some(([,k])=>String(r[k]||'').toLocaleLowerCase('tr-TR').includes(q)));visibleRows=shown;tbody.innerHTML='';shown.forEach(r=>{
+      const tr=el('tr');cols.forEach(([,k])=>tr.appendChild(el('td',{},r[k]||'—')));const cell=el('td',{style:'white-space:nowrap;'});
+      if(r._pdfSaved&&r._pdfFilename){cell.appendChild(el('span',{title:'PDF kayıtlı',style:'margin-right:6px;'},'📄'));cell.appendChild(el('button',{class:'btn btn-secondary',onclick:async()=>{try{await gibTebligatOpenPdf(r);}catch(e){alert('PDF açılamadı: '+e.message);}}},'PDF’yi Aç'));}
+      else{cell.appendChild(el('button',{class:'btn btn-primary',onclick:async ev=>{const btn=ev?.currentTarget;try{if(!userStore?.directoryHandle)throw new Error('Önce Kullanıcı bölümünden kayıt klasörünü bağlayın.');if(btn){btn.disabled=true;btn.textContent='PDF alınıyor…';}const result=await gibTebligatRequestPdf(r);alert('PDF kullanıcı klasörüne kaydedildi: '+result.filename);}catch(e){alert('PDF kaydedilemedi: '+e.message);}finally{if(btn){btn.disabled=false;btn.textContent='PDF Kaydet';}}}},'PDF Kaydet'));}
+      tbody.appendChild(tr);
+    });if(!shown.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:8,style:'text-align:center;padding:16px;'},'Kayıt bulunamadı.')]));};
     search.addEventListener('input',draw);draw();const scroll=el('div',{class:'table-scroll'});scroll.appendChild(table);card.appendChild(scroll);host.appendChild(card);
   };
   await render();
