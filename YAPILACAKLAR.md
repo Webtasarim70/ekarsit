@@ -30,7 +30,7 @@
 ### GİB ve tarayıcı eklentisi
 - [ ] **GİB Tebligat Takip modülü:** Ayrı menü, yerel JSON kayıt dosyası, tablo/arama/Excel dışa aktarımı ve e-Tebligat sayfasından eklentiyle çok sayfalı aktarım eklendi.
   - [x] Test: 67 kaydın tamamı tabloda görünüyor; ikinci aktarımda mükerrer kayıt oluşmuyor; Excel çıktısı açılıyor ve tarihler doğru. Kullanıcı tarafından doğrulandı.
-- [ ] **Eksiklik yazısını GİB e-Tebligat sayfasından alma:** PDF belgesini alma/ilişkilendirme akışını ayrıca araştır ve uygula.
+- [ ] **Eksiklik yazısını GİB e-Tebligat sayfasından alma:** İsteğe bağlı “PDF Kaydet” ve kayıtlı PDF’yi açma akışı eklendi; gerçek GİB oturumuyla uçtan uca test bekliyor.
 - [ ] **GİB e-Karşıt aktarımı:** Daha önce “Pasife Çekilmiş” durumunda olup sonradan onaylanan kayıtların durumlarını doğru şekilde güncelle.
 - [ ] **“GİB İadem Nerede” menüsünü yakalama** akışını ekle.
 - [ ] **YMM Yazıları menüsünü** tamamlama.
