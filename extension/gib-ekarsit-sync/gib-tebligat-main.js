@@ -56,9 +56,9 @@
     return {records:[...map.values()],total,fetchedPages:totalPages};
   }
 
-  async function gibJsonPost(path,data){
+  async function gibJsonPost(path,data,wrapData=true){
     if(!authHeader)throw new Error('GİB oturumu bulunamadı. GİB e-Tebligat sekmesini yenileyip yeniden deneyin.');
-    const response=await fetch(path,{method:'POST',headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','Authorization':authHeader,'page-name':'e-tebligat','ui-client':'fe'},credentials:'include',body:JSON.stringify({data})});
+    const response=await fetch(path,{method:'POST',headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','Authorization':authHeader,'page-name':'e-tebligat','ui-client':'fe'},credentials:'include',body:JSON.stringify(wrapData?{data}:data)});
     if(!response.ok){
       let detail='';
       try{
@@ -79,7 +79,7 @@
   async function getTebligatPdf(record){
     const tebligId=record?.tebligId||record?.id,tebligSecureId=record?.tebligSecureId||record?.secureId;
     if(!tebligId||!tebligSecureId)throw new Error('Bu kayıtta GİB belge kimlikleri yok. Listeyi GİB üzerinden yeniden aktarın.');
-    const ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId});
+    const ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},false);
     const belge=gibFindObject(ekler,x=>x.adi&&x.id&&x.secureId&&String(x.uzanti||'').toLowerCase()==='pdf')||gibFindObject(ekler,x=>x.tebligBelge?.adi)?.tebligBelge;
     if(!belge)throw new Error('GİB yanıtında PDF belge bulunamadı.');
     const tarafId=record?.tarafId||record?.mukellefId||record?.taraf?.id||record?.tarafBilgileri?.id;
