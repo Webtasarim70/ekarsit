@@ -61,6 +61,7 @@
   - [x] Test: Aynı İşlem ID tekrar GİB üzerinden aktarılınca mevcut kayıt güncelleniyor ve mükerrer kayıt oluşmuyor.
   - [x] Test: Aynı İşlem ID tekrar GİB üzerinden aktarıldığında mevcut “Not” alanının korunduğu kullanıcı tarafından doğrulandı.
   - [ ] Test: Yeni kayıt ve güncellenen kayıt sayıları doğru raporlanıyor mu?
+    - [ ] Not: Kullanıcı şu an yeni kayıt oluşturamadığı için yeni kayıt sayısının doğrulanması bekliyor; mevcut kayıtların tekrar aktarımındaki sayaçlar ayrıca kontrol edilebilir.
 - [ ] **Değişiklikler sonrası genel kontrol**
   - [ ] İlgili JavaScript dosyalarında sözdizimi kontrolü yap.
   - [ ] Filtreler, Excel içe/dışa aktarma ve kayıt düzenleme akışlarında geriye dönük hata olmadığını kontrol et.
