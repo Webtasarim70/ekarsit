@@ -52,7 +52,7 @@
   - [x] Dashboard filtresinin başka sayfalara taşınıp tabloyu kalıcı olarak daraltması düzeltildi; filtre artık yalnızca dashboard kartından açılan sayfa görünümüne uygulanıyor.
   - [x] Test: Kullanıcı, “Süresi Gelen Yazılar” kartının yalnızca son tarihi bugün ile sonraki 5 gün arasında olan kayıtları gösterdiğini doğruladı.
   - [x] Test: Kullanıcı, “Cevap Bekliyor” ve pasif/iptal onay taleplerinin ilgili durum filtresi seçili olarak açıldığını doğruladı.
-  - [ ] Filtre uygulanmış tablodan başka bir dashboard kartına geçince eski filtre temizleniyor mu?
+  - [x] Test: Kullanıcı, filtre uygulanmış tablodan başka bir dashboard kartına geçildiğinde eski filtrenin temizlenip yeni kartın filtresinin doğru uygulandığını doğruladı.
 - [ ] **GİB Chrome/Edge eklentisinin son sürümünü doğrula**
   - [ ] Eklentiyi tarayıcıda yeniden yükle.
   - [ ] “e-Karşıt Takip’e Aktar” ve “Excel’e Aktar” işlemlerini ayrı ayrı dene; birbirini tetiklemediklerini doğrula.
