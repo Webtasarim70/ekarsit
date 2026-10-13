@@ -58,9 +58,9 @@
   - [x] “e-Karşıt Takip’e Aktar” ve “Excel’e Aktar” işlemleri ayrı ayrı denendi; kullanıcı ikisinin de sorunsuz çalıştığını doğruladı.
   - [x] Excel dışa aktarımı ve dosyanın açılması kullanıcı tarafından doğrulandı.
 - [ ] **e-Karşıt kayıt birleştirmesini kontrol et**
-  - [ ] Aynı İşlem ID tekrar aktarılınca kayıt güncelleniyor mu?
-  - [ ] Var olan “Not” alanı GİB aktarımı veya Excel içe aktarımı sırasında korunuyor mu?
-  - [ ] Yeni kayıt ve güncellenen kayıt sayıları doğru raporlanıyor mu?
+  - [x] Test: Aynı İşlem ID tekrar GİB üzerinden aktarılınca mevcut kayıt güncelleniyor ve mükerrer kayıt oluşmuyor.
+  - [ ] Test: Var olan “Not” alanı GİB aktarımı veya Excel içe aktarımı sırasında korunuyor mu?
+  - [ ] Test: Yeni kayıt ve güncellenen kayıt sayıları doğru raporlanıyor mu?
 - [ ] **Değişiklikler sonrası genel kontrol**
   - [ ] İlgili JavaScript dosyalarında sözdizimi kontrolü yap.
   - [ ] Filtreler, Excel içe/dışa aktarma ve kayıt düzenleme akışlarında geriye dönük hata olmadığını kontrol et.
