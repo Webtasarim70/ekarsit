@@ -7,6 +7,9 @@
   const remember=v=>{const x=String(v||'').trim();if(/^Bearer\s+\S+$/i.test(x))authHeader=x;};
   const ekListeEndpointPart='/apigateway/etebligat/etebligat/belge-ek-listele';
   const observedTebligSecureIds=new Map();
+  const observedZarfDetails=new Map();
+  const zarfDetailEndpointPart='/apigateway/etebligat/etebligat/zarf-detay-sorgula';
+  const rememberZarfDetail=(value)=>{try{const root=typeof value==='string'?JSON.parse(value):value;const data=root?.data||root;const id=String(data?.tebligId||'').trim();if(id&&data?.tebligSecureId)observedZarfDetails.set(id,data);}catch(_){}};
   const rememberEkListeBody=(body)=>{
     try{
       const data=typeof body==='string'?JSON.parse(body):body;
@@ -29,6 +32,7 @@
     if(url.includes(ekListeEndpointPart)&&response.ok){
       try{const requestData=typeof body==='string'?JSON.parse(body):body;const id=String(requestData?.tebligId||requestData?.data?.tebligId||'').trim();const secure=String(requestData?.tebligSecureId||requestData?.data?.tebligSecureId||'').trim();if(id&&secure)observedTebligSecureIds.set(id,secure);}catch(_){}
     }
+    if(url.includes(zarfDetailEndpointPart)&&response.ok){try{rememberZarfDetail(await response.clone().json());}catch(_){}}
     return response;
   };
   const oldOpen=XMLHttpRequest.prototype.open;
@@ -40,6 +44,9 @@
     try{
       const url=String(this.__ekarsitTebligatUrl||'');
       if(url.includes(endpointPart)&&typeof body==='string')listRequestBody=JSON.parse(body);
+      if(url.includes(zarfDetailEndpointPart)){
+        this.addEventListener('load',function(){if(this.status>=200&&this.status<300){try{rememberZarfDetail(this.responseText);}catch(_){}}});
+      }
       if(url.includes(ekListeEndpointPart)){
         let data;try{data=typeof body==='string'?JSON.parse(body):body;}catch(_){}
         this.addEventListener('load',function(){
@@ -116,20 +123,28 @@
   }
   function toBase64(bytes){let binary='';const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));return btoa(binary);}
   async function getTebligatPdf(record){
-    // GİB'in başarılı ağ isteğinde belge-ek-listele kök gövde kullanıyor.
-    // id/secureId alanlarına geri düşmek, tebligat kimliği yerine belge kimliğini gönderebilir.
     const tebligId=String(record?.tebligId||'').trim();
-    // GİB arayüzünün belge-ek-listele isteğinde kullandığı güvenli kimlik esas alınır.
-    // Listedeki kayıt alanları eski/başka bir zarfın secureId'si olabildiği için bunlara geri düşülmez.
-    const tebligSecureId=String(observedTebligSecureIds.get(tebligId)||'').trim();
     if(!tebligId)throw new Error('Tebligat kimliği (tebligId) kayıtta bulunamadı. GİB listesini yeniden aktarın.');
-    if(!tebligSecureId)throw new Error('Bu tebligat için GİB arayüzünün kullandığı güncel güvenli kimlik yakalanmadı. GİB sekmesini yenileyin, ilgili kayıtta “Zarf İçeriğini Gör” bölümünü açıp “Belge Görüntüle” işlemini bir kez yapın; ardından PDF Kaydet’i yeniden deneyin.');
+    // Önce kayıtlı listedeki taraf kimlikleriyle zarf-detay-sorgula çağrılır.
+    // Bu yanıt, ilgili tebligata ait güncel tebligSecureId ve taraf kimliklerinin kaynağıdır.
+    let detail=observedZarfDetails.get(tebligId)||null;
+    const listedTarafId=record?.tarafId||record?.mukellefId||record?.taraf?.id||record?.tarafBilgileri?.id;
+    const listedTarafSecureId=record?.tarafSecureId||record?.mukellefSecureId||record?.taraf?.secureId||record?.tarafBilgileri?.secureId;
+    if(listedTarafId&&listedTarafSecureId){
+      const detailResponse=await gibJsonPost('/apigateway/etebligat/etebligat/zarf-detay-sorgula',{tarafId:listedTarafId,tarafSecureId:listedTarafSecureId},false);
+      const candidate=detailResponse?.data||detailResponse;
+      if(String(candidate?.tebligId||'').trim()===tebligId&&candidate?.tebligSecureId){
+        detail=candidate;observedZarfDetails.set(tebligId,candidate);
+      }
+    }
+    const tebligSecureId=String(detail?.tebligSecureId||observedTebligSecureIds.get(tebligId)||'').trim();
+    if(!tebligSecureId)throw new Error('GİB zarf-detay-sorgula yanıtından bu tebligata ait güncel tebligSecureId alınamadı. GİB’de ilgili zarfın detayını açıp yeniden deneyin.');
     const ekler=await gibJsonPost('/apigateway/etebligat/etebligat/belge-ek-listele',{tebligId,tebligSecureId},false);
     const belge=gibFindObject(ekler,x=>x.adi&&x.id&&x.secureId&&String(x.uzanti||'').toLowerCase()==='pdf')||gibFindObject(ekler,x=>x.tebligBelge?.adi)?.tebligBelge;
     if(!belge)throw new Error('GİB yanıtında PDF belge bulunamadı.');
-    const tarafId=record?.tarafId||record?.mukellefId||record?.taraf?.id||record?.tarafBilgileri?.id;
-    const tarafSecureId=record?.tarafSecureId||record?.mukellefSecureId||record?.taraf?.secureId||record?.tarafBilgileri?.secureId;
-    if(!tarafId||!tarafSecureId)throw new Error('Bu tebligat kaydında tarafId/tarafSecureId bilgileri bulunamadı. GİB e-Tebligat listesini yeniden aktarın; bilgiler hâlâ yoksa GİB liste yanıtındaki taraf alanları için ek uyarlama gerekiyor.');
+    const tarafId=detail?.tarafId||listedTarafId;
+    const tarafSecureId=detail?.tarafSecureId||listedTarafSecureId;
+    if(!tarafId||!tarafSecureId)throw new Error('GİB zarf detayında tarafId/tarafSecureId bulunamadı.');
     const belgePayload={
       belgeAdi:belge.adi||belge.belgeAdi,
       belgeTip:String(belge.belgeTip??'0'),
@@ -141,8 +156,10 @@
     };
     if(!belgePayload.belgeAdi||!belgePayload.id||!belgePayload.secureId)throw new Error('GİB belge yanıtında belgeAdi/id/secureId alanları eksik.');
     const getir=await gibJsonPost('/apigateway/etebligat/etebligat/belge-getir',belgePayload);
-    const reportLink=gibFindObject(getir,x=>typeof x.reportLink==='string')?.reportLink;if(!reportLink)throw new Error('GİB belge yanıtında PDF indirme bağlantısı bulunamadı.');
-    const url=new URL(reportLink,location.origin);if(url.origin!==location.origin)throw new Error('Güvenlik nedeniyle GİB dışındaki indirme adresi kabul edilmedi.');
+    const reportLink=gibFindObject(getir,x=>typeof x.reportLink==='string')?.reportLink;
+    if(!reportLink)throw new Error('GİB belge yanıtında PDF indirme bağlantısı bulunamadı.');
+    const url=new URL(reportLink,location.origin);
+    if(url.origin!==location.origin)throw new Error('Güvenlik nedeniyle GİB dışındaki indirme adresi kabul edilmedi.');
     const response=await fetchWithTimeout(url.href,{headers:{'Accept':'application/pdf, application/octet-stream, */*','Authorization':authHeader},credentials:'include'},45000);
     if(!response.ok)throw new Error('PDF indirilemedi: '+response.status+' '+response.statusText);
     const contentType=String(response.headers.get('content-type')||'belirsiz');
@@ -150,15 +167,12 @@
     if(bytes.length<5||String.fromCharCode(...bytes.subarray(0,5))!=='%PDF-'){
       const preview=new TextDecoder().decode(bytes.subarray(0,1200)).trim();
       let reason='PDF imzası yok';
-      if(response.redirected||/text\/html/i.test(contentType)||/^<!doctype html|^<html/i.test(preview))reason='HTML sayfası döndü (oturum/giriş veya yönlendirme olabilir)';
+      if(response.redirected||/text\\/html/i.test(contentType)||/^<!doctype html|^<html/i.test(preview))reason='HTML sayfası döndü (oturum/giriş veya yönlendirme olabilir)';
       else if(/json/i.test(contentType)||/^[{[]/.test(preview)){
-        try{
-          const parsed=JSON.parse(preview);
-          const msg=Array.isArray(parsed?.messages)?parsed.messages.map(x=>x?.text||x?.message||x?.description||x?.code).filter(Boolean).join('; '):'';
-          reason='JSON yanıtı döndü'+(msg?': '+String(msg).slice(0,180):'');
-        }catch(_){reason='JSON veya metin yanıtı döndü';}
+        try{const parsed=JSON.parse(preview);const msg=Array.isArray(parsed?.messages)?parsed.messages.map(x=>x?.text||x?.message||x?.description||x?.code).filter(Boolean).join('; '):'';reason='JSON yanıtı döndü'+(msg?': '+String(msg).slice(0,180):'');}
+        catch(_){reason='JSON veya metin yanıtı döndü';}
       }
-      throw new Error('GİB PDF indirme yanıtı PDF değil ('+reason+'). HTTP '+response.status+'; Content-Type: '+contentType+'; yönlendirme: '+(response.redirected?'evet':'hayır')+'. GİB sekmesini yenileyip yeniden deneyin.');
+      throw new Error('GİB PDF indirme yanıtı PDF değil ('+reason+'). HTTP '+response.status+'; Content-Type: '+contentType+'; yönlendirme: '+(response.redirected?'evet':'hayır')+'.');
     }
     return {base64:toBase64(bytes),filename:String(belge.adi||belge.belgeAdi||'tebligat.pdf').replace(/[\\/:*?"<>|]/g,'_'),mimeType:'application/pdf'};
   }
