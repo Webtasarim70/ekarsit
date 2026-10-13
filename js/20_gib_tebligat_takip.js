@@ -31,12 +31,39 @@ window.addEventListener('message',async e=>{
     request.resolve({filename:fileName});if(typeof renderGibTebligatTakipPage==='function'&&currentPage==='gib-tebligat-takip')await renderGibTebligatTakipPage();
   }catch(err){request.reject(err);}
 });
+async function gibTebligatClearMissingPdf(record){
+  const d=await gibTebligatRead(),saved=d.records.find(r=>gibTebligatKey(r)===gibTebligatKey(record));
+  if(saved){saved._pdfSaved=false;delete saved._pdfFilename;delete saved._pdfSavedAt;await gibTebligatWrite(d);}
+}
+async function gibTebligatCheckPdfStatus(data){
+  let changed=false;
+  for(const record of data.records){
+    if(!record?._pdfSaved||!record?._pdfFilename)continue;
+    try{await userStore.directoryHandle.getFileHandle(record._pdfFilename);}
+    catch(err){
+      if(err?.name!=='NotFoundError')continue;
+      record._pdfSaved=false;delete record._pdfFilename;delete record._pdfSavedAt;changed=true;
+    }
+  }
+  if(changed)await gibTebligatWrite(data);
+  return changed;
+}
 async function gibTebligatOpenPdf(record){
   if(!userStore?.directoryHandle)throw new Error('Önce kullanıcı klasörünü bağlayın.');if(!record?._pdfFilename)throw new Error('Bu tebligat için kayıtlı PDF bilgisi bulunamadı.');
-  const tab=window.open('about:blank','_blank');
-  const handle=await userStore.directoryHandle.getFileHandle(record._pdfFilename),file=await handle.getFile(),url=URL.createObjectURL(file);
-  if(tab){tab.location.href=url;}else{const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.click();}
-  setTimeout(()=>URL.revokeObjectURL(url),60000);
+  let tab=null;
+  try{
+    const handle=await userStore.directoryHandle.getFileHandle(record._pdfFilename),file=await handle.getFile(),url=URL.createObjectURL(file);
+    tab=window.open(url,'_blank');
+    if(!tab){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.click();}
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(err){
+    if(err?.name==='NotFoundError'){
+      await gibTebligatClearMissingPdf(record);
+      if(typeof renderGibTebligatTakipPage==='function'&&currentPage==='gib-tebligat-takip')await renderGibTebligatTakipPage();
+      throw new Error('PDF kullanıcı klasöründe bulunamadı. Bağlantı PDF Kaydet olarak güncellendi.');
+    }
+    throw err;
+  }
 }
 function gibTebligatKey(r){return String(r?.tebligId||r?.tebligSecureId||r?.belgeNo||'').trim();}
 function gibTebligatDate(v){return String(v||'').trim();}
@@ -71,7 +98,7 @@ async function renderGibTebligatTakipPage(){
   const render=async()=>{
     host.innerHTML='';
     if(!userStore?.directoryHandle){host.appendChild(el('div',{class:'hint warn'},'Önce Kullanıcı bölümünden bir kullanıcı klasörü seçin.'));return;}
-    let d;try{d=await gibTebligatRead();}catch(e){host.appendChild(el('div',{class:'hint warn'},'Kayıt dosyası okunamadı: '+e.message));return;}
+    let d;try{d=await gibTebligatRead();await gibTebligatCheckPdfStatus(d);}catch(e){host.appendChild(el('div',{class:'hint warn'},'Kayıt dosyası okunamadı: '+e.message));return;}
     const card=el('div',{class:'card'});
     card.appendChild(el('h3',{},'Tebligat Kayıtları — '+d.records.length+(d.total&&d.total!==d.records.length?' / GİB toplamı '+d.total:'')));
     card.appendChild(el('div',{class:'hint info'},'Son güncelleme: '+(d.lastSync?new Date(d.lastSync).toLocaleString('tr-TR'):'Henüz senkronizasyon yapılmadı')));
