@@ -13,7 +13,8 @@
 - [ ] **Sidebar menüsünü kişiselleştirme:** Kullanıcı bağlantıları pasif hâle getirip görünmez yapabilsin ve menü öğelerinin sırasını değiştirebilsin.
 
 ### e-Karşıt Takip Kayıtları
-- [ ] **Hazır kaydedilmiş filtreler:** e-Karşıt Takip Kayıtları tablosuna, sık kullanılan filtreleri kaydedip daha sonra tek seçimle uygulama fonksiyonu ekle.
+- [x] **Hazır kaydedilmiş filtreler:** e-Karşıt Takip Kayıtları tablosuna arama ve sütun filtrelerini adlandırarak kaydetme, yeniden uygulama ve silme fonksiyonları eklendi. Kayıtlar seçili kullanıcı klasörü adına göre tarayıcıda saklanır.
+  - [ ] Test: Filtre kaydetme, sayfayı yenileyince/yeniden açınca filtreyi uygulama, aynı adla güncelleme ve silme işlemlerini doğrula.
 
 ### Dashboard ve bildirimler
 - [x] **Süresi gelen yazılar bildirimini durum bilgisine göre güncelle**
