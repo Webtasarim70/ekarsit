@@ -44,9 +44,11 @@
   - [x] Test: 67 kaydın tamamı tabloda görünüyor; ikinci aktarımda mükerrer kayıt oluşmuyor; Excel çıktısı açılıyor ve tarihler doğru. Kullanıcı tarafından doğrulandı.
 - [x] **İPTAL — Eksiklik yazısını GİB e-Tebligat sayfasından alma ve kayda bağlama:** Daha önce canlı GİB ekranında her tebligatın zarfı açılarak `İşlem Yap → Zarf içeriğini gör → Belge görüntüle` akışı denendi. Hedef belgeler yetki kısıtı nedeniyle alınamadı. Bu nedenle PDF’yi eklentiyle alma, kayda bağlama ve yeniden açma geliştirmesi şimdilik iptal edildi; yetki sorunu giderilmedikçe yeniden başlatılmayacak.
 - [x] **GİB e-Karşıt aktarımı:** Daha önce “Pasife Çekilmiş” durumunda olup sonradan onaylanan kayıtların durumlarını doğru şekilde güncelle. Kullanıcı, bu görevin daha önce tamamlandığını teyit etti.
-- [ ] **“GİB İadem Nerede” modülü:** Menüyü yakalama akışını ekle ve vergi dairesi üzerinden toplu dönem sorgulama/güncelleme işlevini geliştir.
+- [ ] **ERTELENDİ — “GİB İadem Nerede” modülü:** Menü yakalama ve vergi dairesi üzerinden toplu dönem sorgulama/güncelleme çalışması sonraya bırakıldı; mevcut görev sırası değiştirilerek e-Karşıt Takip’in mükellef uyarlamasına geçildi.
 - [ ] **YMM Yazıları menüsünü** tamamlama.
 - [ ] **e-Karşıt Takip modülünü mükellefe uyarlama:** Takip ekranı ve iş akışlarını mükellef bazında çalışacak şekilde düzenle.
+  - [x] İnceleme notu: YMM sayfasında `POST /apigateway/ymm/karsit-cevap-yazisi/gelen-ve-cevap-verilen-listele` isteği 200 OK dönüyor; yanıt kayıtlarında `nezdindeIncelemeYapilanMukellefVknTckn` alanı bulunuyor.
+  - [ ] Mükellef ekranındaki 403 için o oturumda oluşan gerçek Network isteğini ve yanıtını tespit et. YMM uç noktasını mükellef akışında varsayılan olarak kullanma; mevcut YMM akışını değiştirmeden ayrı uyarlama yap.
 - [ ] **GİB sayfasındaki eklenti butonlarını kaldırma:** Eklentinin GİB sayfasına enjekte ettiği butonlar yerine, işlemleri uygulamanın kendi sayfası içerisinden başlatılabilecek butonlar oluştur.
 
 ### Firma arşivi
