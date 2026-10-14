@@ -48,7 +48,8 @@
 - [ ] **YMM Yazıları menüsünü** tamamlama.
 - [ ] **e-Karşıt Takip modülünü mükellefe uyarlama:** Takip ekranı ve iş akışlarını mükellef bazında çalışacak şekilde düzenle.
   - [x] İnceleme notu: YMM sayfasında `POST /apigateway/ymm/karsit-cevap-yazisi/gelen-ve-cevap-verilen-listele` isteği 200 OK dönüyor; yanıt kayıtlarında `nezdindeIncelemeYapilanMukellefVknTckn` alanı bulunuyor.
-  - [ ] Mükellef ekranındaki 403 için o oturumda oluşan gerçek Network isteğini ve yanıtını tespit et. YMM uç noktasını mükellef akışında varsayılan olarak kullanma; mevcut YMM akışını değiştirmeden ayrı uyarlama yap.
+  - [x] 403 hata kaydı incelendi: mükellef ekranında `POST /apigateway/ymm/karsit-isteme-yazisi/gonderilen-listele` isteği `403 Forbidden` dönüyor; yanıt `Servise erişim yetkiniz bulunmamaktadır.` diyor. Bu, YMM rolüne ait servis için erişim yetkisi olmadığını gösteriyor; tek başına mükellefin eşdeğer bir servisi olduğunu veya yolunu kanıtlamıyor.
+  - [ ] Mükellef ekranında aynı işlevi sağlayan, mükellef oturumunda yetkili gerçek API isteğini Network üzerinden tespit et. YMM uç noktasını mükellef akışında kullanma; mevcut YMM akışını değiştirmeden ayrı uyarlama yap.
 - [ ] **GİB sayfasındaki eklenti butonlarını kaldırma:** Eklentinin GİB sayfasına enjekte ettiği butonlar yerine, işlemleri uygulamanın kendi sayfası içerisinden başlatılabilecek butonlar oluştur.
 
 ### Firma arşivi
