@@ -55,11 +55,42 @@ window.addEventListener('message',async e=>{
   try{const result=await gibTebligatMerge(e.data.payload);window.postMessage({source:'ekarsit-gib-app',type:'GIB_TEBLIGAT_SYNC_RESULT',result},'*');if(typeof renderGibTebligatTakipPage==='function'&&currentPage==='gib-tebligat-takip')await renderGibTebligatTakipPage();}
   catch(err){window.postMessage({source:'ekarsit-gib-app',type:'GIB_TEBLIGAT_SYNC_ERROR',message:err?.message||String(err)},'*');}
 });
+window.addEventListener('message',event=>{
+  if(event.source!==window)return;
+  const ui=window.__gibTebligatSyncUi;
+  if(!ui)return;
+  const data=event.data||{};
+  if(data.source==='ekarsit-gib-extension'&&data.type==='GIB_TEBLIGAT_SYNC_STATUS'){
+    ui.status.textContent=data.message||'İşlem durumu güncelleniyor…';
+    if(data.status==='error'){ui.button.disabled=false;ui.button.textContent='↻ GİB Tebligatlarını Al / Güncelle';}
+    return;
+  }
+  if(data.source!=='ekarsit-gib-app')return;
+  if(data.type==='GIB_TEBLIGAT_SYNC_RESULT'){
+    ui.button.disabled=false;ui.button.textContent='↻ GİB Tebligatlarını Al / Güncelle';
+    ui.status.textContent='Aktarım tamamlandı: '+(data.result?.added||0)+' yeni kayıt eklendi, '+(data.result?.updated||0)+' kayıt güncellendi. Toplam kayıt: '+(data.result?.total||0)+'.';
+  }else if(data.type==='GIB_TEBLIGAT_SYNC_ERROR'){
+    ui.button.disabled=false;ui.button.textContent='↻ GİB Tebligatlarını Al / Güncelle';
+    ui.status.textContent='Aktarım başarısız: '+(data.message||'Bilinmeyen hata')+' GİB e-Tebligat sayfasını açıp oturumunuzu ve listenin yüklendiğini kontrol edin.';
+  }
+});
+
 async function renderGibTebligatTakipPage(){
   currentPage='gib-tebligat-takip';archiveViewParsed=null;currentStep=-1;
   const content=document.getElementById('step-content');content.innerHTML='';
   content.appendChild(el('h2',{class:'step-title'},'GİB Tebligat Takip'));
-  content.appendChild(el('p',{class:'step-desc'},'GİB e-Tebligat listesini ayrı bir yerel dosyada saklar. Eklentiden alınan yeni kayıtlar mevcut kayıtlarla birleştirilir.'));
+  content.appendChild(el('p',{class:'step-desc'},'GİB e-Tebligat kayıtlarını ayrı bir yerel dosyada saklayın, GİB’den güncel listeyi alın ve kayıtlarınızı yönetin.'));
+  const actionCard=el('div',{class:'card',style:'margin:12px 0;'});
+  actionCard.appendChild(el('h3',{},'GİB ile Senkronizasyon'));
+  actionCard.appendChild(el('p',{class:'hint info'},'“GİB Tebligatlarını Al / Güncelle” düğmesi eklenti üzerinden GİB e-Tebligat sayfasını açar veya mevcut sekmeye geçer; listedeki kayıtları alıp bu tablodaki kayıtlarla birleştirir. Yeni kayıtlar eklenir, mevcut kayıtlar güncellenir ve kullanıcı notları korunur.'));
+  const actionBar=el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0;'});
+  const syncBtn=el('button',{class:'btn btn-primary',onclick:()=>{syncBtn.disabled=true;syncBtn.textContent='GİB listesi isteniyor…';syncStatus.textContent='Eklentiyle bağlantı kuruluyor. GİB sayfasının yüklenmesi ve kayıtların alınması birkaç saniye sürebilir.';window.postMessage({source:'ekarsit-app',type:'GIB_TEBLIGAT_START_SYNC'},'*');}},'↻ GİB Tebligatlarını Al / Güncelle');
+  const openGibBtn=el('button',{class:'btn btn-secondary',onclick:()=>window.open('https://dijital.gib.gov.tr/portal/e-tebligat','_blank','noopener')},'GİB e-Tebligat Sayfasını Aç');
+  actionBar.append(syncBtn,openGibBtn);actionCard.appendChild(actionBar);
+  const syncStatus=el('p',{class:'hint info',style:'margin:8px 0;'},'Henüz bu oturumda aktarım başlatılmadı.');actionCard.appendChild(syncStatus);
+  actionCard.appendChild(el('p',{class:'step-desc'},'İşlem hata verirse GİB sayfasında oturum açın, tebligat tablosunun yüklenmesini bekleyin ve tekrar deneyin. Tarayıcı eklentisinin yüklü ve etkin olması gerekir. Kayıtlar, seçtiğiniz kullanıcı klasöründeki GIB_TEBLIGAT_TAKIP.json dosyasında saklanır.'));
+  content.appendChild(actionCard);
+  window.__gibTebligatSyncUi={button:syncBtn,status:syncStatus};
   const host=el('div');content.appendChild(host);
   const render=async()=>{
     host.innerHTML='';

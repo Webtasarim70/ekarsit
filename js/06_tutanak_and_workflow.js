@@ -748,6 +748,7 @@ async function renderWelcomePage(){
   }else{
     let ymmCount=0, tebligatCount=0, yaklasanCount=0, iadeCount=0;
     let eKarsitTotal=0, eKarsitCevapBekliyor=0, eKarsitPasifTalepBekliyor=0, eKarsitIptalTalepBekliyor=0, eKarsitPasifeCekilmis=0;
+    let eKarsitSonTarihGecen=0, eKarsitSonTarihYaklasan=0;
     try{
       if(typeof ymmGuideRead==='function'){
         const yd=await ymmGuideRead(YMM_REHBER_FILE,{kayitlar:[]});
@@ -775,6 +776,16 @@ async function renderWelcomePage(){
         eKarsitPasifTalepBekliyor=records.filter(r=>statusOf(r)==='gönderilen pasif talebi onay bekliyor').length;
         eKarsitIptalTalepBekliyor=records.filter(r=>statusOf(r)==='gönderilen iptal talebi onay bekliyor').length;
         eKarsitPasifeCekilmis=records.filter(r=>statusOf(r)==='pasife çekilmiş').length;
+        if(typeof eKarsitTakipTarihGun==='function'&&typeof eKarsitTakipBugunGun==='function'){
+          const todayDay=eKarsitTakipBugunGun();
+          records.forEach(r=>{
+            if(typeof eKarsitTakipNorm!=='function'||eKarsitTakipNorm(r?.['Durum'])!=='cevapbekliyor')return;
+            const dueDay=eKarsitTakipTarihGun(r?.['Son Tarih']);
+            if(dueDay===null)return;
+            if(dueDay<todayDay)eKarsitSonTarihGecen++;
+            else if(dueDay<=todayDay+5)eKarsitSonTarihYaklasan++;
+          });
+        }
       }
     }catch(e){}
 
@@ -798,7 +809,9 @@ async function renderWelcomePage(){
       ['↩','Cevap Bekliyor',eKarsitCevapBekliyor,'Cevabı beklenen karşıt incelemeler','e-karsit-takip',{field:'Durum',value:'Cevap Bekliyor'}],
       ['⏳','Gönderilen Pasif Talebi Onay Bekliyor',eKarsitPasifTalepBekliyor,'Pasife çekme talebi onay bekleyen kayıtlar','e-karsit-takip',{field:'Durum',value:'Gönderilen Pasif Talebi Onay Bekliyor'}],
       ['⏳','Gönderilen İptal Talebi Onay Bekliyor',eKarsitIptalTalepBekliyor,'İptal talebi onay bekleyen kayıtlar','e-karsit-takip',{field:'Durum',value:'Gönderilen İptal Talebi Onay Bekliyor'}],
-      ['⛔','Pasife Çekilmiş',eKarsitPasifeCekilmis,'Pasife çekilmiş karşıt incelemeler','e-karsit-takip',{field:'Durum',value:'Pasife Çekilmiş'}]
+      ['⛔','Pasife Çekilmiş',eKarsitPasifeCekilmis,'Pasife çekilmiş karşıt incelemeler','e-karsit-takip',{field:'Durum',value:'Pasife Çekilmiş'}],
+      ['⚠','Son Teslim Tarihi Geçen',eKarsitSonTarihGecen,'Son teslim tarihi geçmiş, cevabı beklenen karşıt incelemeler','e-karsit-takip',{mode:'due-overdue'}],
+      ['📅','Son Teslim Tarihi 5 Gün İçinde',eKarsitSonTarihYaklasan,'Son teslim tarihi bugün ile önümüzdeki 5 gün arasında olan karşıt incelemeler','e-karsit-takip',{mode:'due-soon'}]
     ];
     // Dashboard kartlarının sırası ve görünürlüğü kullanıcı bazında tarayıcıda saklanır.
     const dashboardPreferenceScope=String(info?.kullanici?.vkn||info?.kullanici?.adSoyad||userStore?.directoryHandle?.name||'varsayilan').trim().toLocaleLowerCase('tr-TR');

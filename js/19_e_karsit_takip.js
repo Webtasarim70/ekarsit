@@ -5,6 +5,7 @@ const EKARSIT_TAKIP_HEADERS=[
   'İşlem ID',
   'Son Düzenleme Tarihi',
   'Onay Tarihi',
+  'Son Tarih',
   'Durum',
   'Pasiflik Durumu',
   'Karşıt İnceleme Talep Eden YMM VKN/TCKN',
@@ -34,6 +35,7 @@ async function eKarsitTakipRead(){
     const records=sourceRecords.map(r=>{
       const record={...(r||{})};
       EKARSIT_TAKIP_HEADERS.forEach(h=>{if(record[h]===undefined) record[h]='';});
+      record['Son Tarih']=eKarsitTakipSonTarihDurumaGore(record['Onay Tarihi'],record['Durum']);
       return record;
     });
     return {schemaVersion:2,headers:[...EKARSIT_TAKIP_HEADERS],records};
@@ -66,6 +68,21 @@ function eKarsitTakipExcelValue(v){
   if(typeof v==='number') return String(v);
   return String(v).trim();
 }
+function eKarsitTakipSonTarih(value){
+  const raw=String(value??'').trim();
+  if(!raw) return '';
+  let day,month,year,m;
+  if((m=raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/))){day=Number(m[1]);month=Number(m[2]);year=Number(m[3]);}
+  else if((m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/))){year=Number(m[1]);month=Number(m[2]);day=Number(m[3]);}
+  else return '';
+  const date=new Date(Date.UTC(year,month-1,day));
+  if(date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day) return '';
+  date.setUTCDate(date.getUTCDate()+30);
+  return String(date.getUTCDate()).padStart(2,'0')+'.'+String(date.getUTCMonth()+1).padStart(2,'0')+'.'+date.getUTCFullYear();
+}
+function eKarsitTakipSonTarihDurumaGore(onayTarihi,durum){
+  return eKarsitTakipNorm(durum)==='cevapbekliyor'?eKarsitTakipSonTarih(onayTarihi):'';
+}
 function eKarsitTakipNorm(v){
   return String(v??'')
     .toLocaleLowerCase('tr-TR')
@@ -73,6 +90,20 @@ function eKarsitTakipNorm(v){
     .replace(/[İIıi]/g,'i').replace(/[Üü]/g,'u').replace(/[Öö]/g,'o')
     .replace(/[Şş]/g,'s').replace(/[Ğğ]/g,'g').replace(/[Çç]/g,'c')
     .replace(/[^a-z0-9]/g,'');
+}
+function eKarsitTakipTarihGun(value){
+  const raw=String(value??'').trim();
+  let day,month,year,m;
+  if((m=raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/))){day=Number(m[1]);month=Number(m[2]);year=Number(m[3]);}
+  else if((m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/))){year=Number(m[1]);month=Number(m[2]);day=Number(m[3]);}
+  else return null;
+  const date=new Date(Date.UTC(year,month-1,day));
+  if(date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day)return null;
+  return Math.floor(date.getTime()/86400000);
+}
+function eKarsitTakipBugunGun(){
+  const now=new Date();
+  return Math.floor(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/86400000);
 }
 function eKarsitTakipHeaderIndex(headers,name){
   const target=eKarsitTakipNorm(name);
@@ -107,6 +138,7 @@ async function eKarsitTakipExcelImport(file){
     const id=String(values['İşlem ID']||'').trim() || (crypto.randomUUID?crypto.randomUUID():String(Date.now()+ri));
     values['İşlem ID']=id;
     EKARSIT_TAKIP_HEADERS.forEach(h=>{if(values[h]===undefined) values[h]='';});
+    values['Son Tarih']=eKarsitTakipSonTarihDurumaGore(values['Onay Tarihi'],values['Durum']);
     records.push(values);
   });
   return {headers:[...EKARSIT_TAKIP_HEADERS],records};
@@ -141,13 +173,50 @@ function eKarsitTakipStoreSavedFilters(items){
   try{localStorage.setItem(eKarsitTakipSavedFiltersKey(),JSON.stringify(items));return true;}
   catch(e){alert('Filtreler kaydedilemedi. Tarayıcı depolama alanını kontrol edin.');return false;}
 }
+function eKarsitTakipTableViewKey(){
+  return 'ekarsit-table-view-v1:'+String(userStore?.directoryHandle?.name||'varsayilan');
+}
+function eKarsitTakipDefaultTableView(){
+  return {order:[...EKARSIT_TAKIP_HEADERS,'PDF Yazıları'],hidden:[]};
+}
+function eKarsitTakipLoadTableView(){
+  const defaults=eKarsitTakipDefaultTableView();
+  try{
+    const saved=JSON.parse(localStorage.getItem(eKarsitTakipTableViewKey())||'null');
+    if(!saved||!Array.isArray(saved.order)||!Array.isArray(saved.hidden)) return defaults;
+    const all=defaults.order;
+    const order=[...saved.order.filter(h=>all.includes(h)),...all.filter(h=>!saved.order.includes(h))];
+    // Eski kayıtlı tablo düzenlerinde yeni sütunu da Onay Tarihi'nin hemen arkasına yerleştir.
+    if(!saved.order.includes('Son Tarih')){
+      const newIndex=order.indexOf('Son Tarih');
+      const approvalIndex=order.indexOf('Onay Tarihi');
+      if(newIndex>=0&&approvalIndex>=0){order.splice(newIndex,1);order.splice(order.indexOf('Onay Tarihi')+1,0,'Son Tarih');}
+    }
+    return {order,hidden:saved.hidden.filter(h=>all.includes(h))};
+  }catch(e){return defaults;}
+}
+function eKarsitTakipSaveTableView(view){
+  try{localStorage.setItem(eKarsitTakipTableViewKey(),JSON.stringify(view));return true;}
+  catch(e){alert('Tablo görünümü kaydedilemedi. Tarayıcı depolama alanını kontrol edin.');return false;}
+}
 function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
   host.innerHTML='';
   const card=el('div',{class:'card',style:'margin-top:14px;'});
   const titleRow=el('div',{style:'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;'});
   titleRow.appendChild(el('h3',{},'e-Karşıt Takip Kayıtları'));
-  const globalSearch=el('input',{class:'input',placeholder:'Gelişmiş arama: ID, YMM, mükellef, durum…',style:'max-width:420px;'});
-  titleRow.appendChild(globalSearch);card.appendChild(titleRow);
+  card.appendChild(titleRow);
+
+  const controlsDetails=el('details',{style:'margin-top:10px;'});
+  const controlsSummary=el('summary',{style:'cursor:pointer;font-weight:600;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);'},'Filtreleme ve Tablo İşlemleri');
+  const controlsPanel=el('div',{style:'padding-top:10px;'});
+  controlsDetails.appendChild(controlsSummary);
+  controlsDetails.appendChild(controlsPanel);
+  card.appendChild(controlsDetails);
+
+  const globalSearch=el('input',{class:'input',placeholder:'Gelişmiş arama: ID, YMM, mükellef, durum…',style:'max-width:420px;width:100%;'});
+  const searchRow=el('div',{style:'display:flex;justify-content:flex-end;margin-bottom:10px;'});
+  searchRow.appendChild(globalSearch);
+  controlsPanel.appendChild(searchRow);
 
   const presets=el('div',{style:'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;'});
   const presetSelect=el('select',{class:'input',style:'max-width:280px;'});
@@ -156,9 +225,38 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
   const applyPresetBtn=el('button',{class:'btn btn-secondary',type:'button'},'Filtreyi Uygula');
   const deletePresetBtn=el('button',{class:'btn btn-secondary',type:'button'},'Kaydı Sil');
   presets.appendChild(presetSelect);presets.appendChild(applyPresetBtn);presets.appendChild(presetName);presets.appendChild(savePresetBtn);presets.appendChild(deletePresetBtn);
-  card.appendChild(presets);
+  controlsPanel.appendChild(presets);
   const presetHelp=el('div',{class:'hint',style:'margin-top:5px;'},'Mevcut arama ve sütun filtrelerini isim vererek kaydedebilir, daha sonra tek seçimle yeniden uygulayabilirsiniz. Kayıtlar bu tarayıcıda, seçili kullanıcı klasörüne göre saklanır.');
-  card.appendChild(presetHelp);
+  controlsPanel.appendChild(presetHelp);
+
+  let tableView=eKarsitTakipLoadTableView();
+  const viewActions=el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;'});
+  const editViewBtn=el('button',{class:'btn btn-secondary',type:'button'},'⚙ Tablo Görünümünü Düzenle');
+  const saveViewBtn=el('button',{class:'btn btn-primary',type:'button'},'Tablo Görünümünü Kaydet');
+  const defaultViewBtn=el('button',{class:'btn btn-secondary',type:'button'},'Tabloyu Varsayılan Yap');
+  viewActions.appendChild(editViewBtn);viewActions.appendChild(saveViewBtn);viewActions.appendChild(defaultViewBtn);controlsPanel.appendChild(viewActions);
+  const viewEditor=el('div',{class:'card',style:'display:none;margin-top:10px;'});
+  viewEditor.appendChild(el('h4',{},'Sütunları Göster/Gizle ve Sırala'));
+  viewEditor.appendChild(el('div',{class:'hint',style:'margin-bottom:8px;'},'İşaretli sütunlar görünür. Yukarı/aşağı düğmeleri sütun sırasını değiştirir. Kaydettiğiniz görünüm bu tarayıcıda seçili kullanıcı klasörü için hatırlanır.'));
+  const viewList=el('div',{style:'display:flex;flex-direction:column;gap:5px;'});
+  viewEditor.appendChild(viewList);controlsPanel.appendChild(viewEditor);
+  const renderViewEditor=()=>{
+    viewList.innerHTML='';
+    tableView.order.forEach((name,index)=>{
+      const line=el('div',{style:'display:flex;align-items:center;gap:8px;padding:6px;border:1px solid var(--border);border-radius:6px;'});
+      const check=el('input',{type:'checkbox'});check.checked=!tableView.hidden.includes(name);check.setAttribute('aria-label',name+' sütununu göster');
+      check.addEventListener('change',()=>{tableView.hidden=check.checked?tableView.hidden.filter(x=>x!==name):[...tableView.hidden.filter(x=>x!==name),name];draw();});
+      line.appendChild(check);line.appendChild(el('span',{style:'flex:1;'},name));
+      const up=el('button',{class:'btn btn-secondary',type:'button',style:'padding:3px 8px;'},'↑');up.disabled=index===0;up.title='Yukarı taşı';
+      up.addEventListener('click',()=>{if(index===0)return;[tableView.order[index-1],tableView.order[index]]=[tableView.order[index],tableView.order[index-1]];renderViewEditor();draw();});
+      const down=el('button',{class:'btn btn-secondary',type:'button',style:'padding:3px 8px;'},'↓');down.disabled=index===tableView.order.length-1;down.title='Aşağı taşı';
+      down.addEventListener('click',()=>{if(index>=tableView.order.length-1)return;[tableView.order[index+1],tableView.order[index]]=[tableView.order[index],tableView.order[index+1]];renderViewEditor();draw();});
+      line.appendChild(up);line.appendChild(down);viewList.appendChild(line);
+    });
+  };
+  editViewBtn.addEventListener('click',()=>{viewEditor.style.display=viewEditor.style.display==='none'?'block':'none';renderViewEditor();});
+  saveViewBtn.addEventListener('click',()=>{if(eKarsitTakipSaveTableView(tableView)){presetHelp.textContent='✓ Tablo görünümü kaydedildi. Sonraki ziyaretinizde bu düzen kullanılacak.';}});
+  defaultViewBtn.addEventListener('click',()=>{tableView=eKarsitTakipDefaultTableView();renderViewEditor();draw();if(eKarsitTakipSaveTableView(tableView))presetHelp.textContent='Tablo varsayılan sütun sırasına döndürüldü ve kaydedildi.';});
 
   const filtersWrap=el('div',{class:'table-column-filters',style:'margin-top:10px;'});
   const filters=data.headers.map(h=>{
@@ -174,20 +272,19 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
     const input=el('input',{class:'input',placeholder:h+' filtrele…'});
     box.appendChild(input);filtersWrap.appendChild(box);return input;
   });
-  card.appendChild(filtersWrap);
+  controlsPanel.appendChild(filtersWrap);
   let visibleRows=[];
   let sortIndex=-1,sortDirection=1;
   const reset=el('button',{class:'btn btn-secondary',type:'button',style:'margin-top:8px;'},'Filtreleri Temizle');
   reset.addEventListener('click',()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();});
-  card.appendChild(reset);
+  controlsPanel.appendChild(reset);
   const exportBtn=el('button',{class:'btn btn-primary',type:'button',style:'margin:8px 0 0 8px;'},'⬇ Görünen Tabloyu Excel’e Aktar');
   exportBtn.addEventListener('click',async()=>{try{const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Görünen e-Karşıt');ws.columns=data.headers.map((h,i)=>({header:h,key:'c'+i,width:Math.min(55,Math.max(14,h.length+2))}));visibleRows.forEach(r=>ws.addRow(data.headers.map(h=>r[h]??'')));ws.getRow(1).font={bold:true};ws.views=[{state:'frozen',ySplit:1}];const buf=await wb.xlsx.writeBuffer();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download='E_KARSIT_TAKIP_FILTRELENMIS.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){alert('Filtrelenmiş tablo Excel’e aktarılamadı: '+e.message);}});
-  card.appendChild(exportBtn);
+  controlsPanel.appendChild(exportBtn);
 
   const wrap=el('div',{class:'table-scroll',style:'margin-top:10px;max-height:65vh;overflow:auto;'});
-  const table=el('table',{class:'editable-table'});const thead=el('thead');const trh=el('tr');const sortHeads=[];
-  data.headers.forEach((h,i)=>{const th=el('th',{class:'sortable-th',style:'min-width:170px;white-space:nowrap;cursor:pointer;',title:'Sıralamak için tıklayın','aria-sort':'none'},h+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});sortHeads.push(th);trh.appendChild(th);});
-  thead.appendChild(trh);table.appendChild(thead);const tbody=el('tbody');table.appendChild(tbody);wrap.appendChild(table);card.appendChild(wrap);
+  const table=el('table',{class:'editable-table'});const thead=el('thead');const trh=el('tr');const tbody=el('tbody');
+  thead.appendChild(trh);table.appendChild(thead);table.appendChild(tbody);wrap.appendChild(table);card.appendChild(wrap);
 
   const refreshPresetOptions=(selectedId='')=>{
     const saved=eKarsitTakipLoadSavedFilters();
@@ -211,19 +308,64 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
         const target=wanted.toLocaleLowerCase('tr-TR');
         return data.headers[i]==='Durum'?actual===target:actual.includes(target);
       });
-      return searchMatches&&columnMatches;
+      let dashboardMatches=true;
+      if(pageDashboardFilter?.mode==='due-overdue'||pageDashboardFilter?.mode==='due-soon'){
+        const statusIsWaiting=eKarsitTakipNorm(r['Durum'])==='cevapbekliyor';
+        const dueDay=eKarsitTakipTarihGun(r['Son Tarih']);
+        const todayDay=eKarsitTakipBugunGun();
+        dashboardMatches=statusIsWaiting&&dueDay!==null&&(pageDashboardFilter.mode==='due-overdue'
+          ? dueDay<todayDay
+          : dueDay>=todayDay&&dueDay<=todayDay+5);
+      }
+      return searchMatches&&columnMatches&&dashboardMatches;
     });
     if(sortIndex>=0)rows.sort((a,b)=>String(a[data.headers[sortIndex]]??'').localeCompare(String(b[data.headers[sortIndex]]??''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
     visibleRows=rows.slice();
-    sortHeads.forEach((th,i)=>{th.textContent=data.headers[i]+' '+(sortIndex===i?(sortDirection===1?'▲':'▼'):'↕');th.setAttribute('aria-sort',sortIndex===i?(sortDirection===1?'ascending':'descending'):'none');});
     titleRow.querySelector('h3').textContent='e-Karşıt Takip Kayıtları ('+rows.length+' / '+data.records.length+')';
+    trh.innerHTML='';
+    const visibleColumns=tableView.order.filter(h=>!tableView.hidden.includes(h));
+    visibleColumns.forEach(name=>{
+      const th=el('th',{style:'min-width:'+(name==='PDF Yazıları'?'190px':'170px')+';height:72px;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;vertical-align:bottom;padding:12px 8px;line-height:1.35;'+(data.headers.includes(name)?'cursor:pointer;':''),title:data.headers.includes(name)?'Sıralamak için tıklayın':''},name);
+      if(data.headers.includes(name)){
+        const i=data.headers.indexOf(name);th.textContent=name+' '+(sortIndex===i?(sortDirection===1?'▲':'▼'):'↕');
+        th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});
+      }
+      trh.appendChild(th);
+    });
     rows.forEach(r=>{
       const tr=el('tr',{style:'cursor:pointer;',title:'Düzenlemek için tıklayın'});
       tr.addEventListener('click',()=>onRowClick?.(r));
-      data.headers.forEach(h=>tr.appendChild(el('td',{},String(r[h]??''))));
+      const pdfCell=el('td',{style:'white-space:nowrap;'});
+      const makePdfButton=(label,teyitTuru)=>{
+        const button=el('button',{class:'btn btn-secondary',type:'button',style:'margin:2px;padding:5px 8px;font-size:12px;'},label);
+        button.addEventListener('click',event=>{
+          event.preventDefault();event.stopPropagation();
+          const requestId=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2));
+          window.postMessage({source:'ekarsit-app',type:'EKARSIT_DOWNLOAD_PDF',payload:{requestId,islemId:String(r['İşlem ID']||'').trim(),teyitTuru}},'*');
+        });
+        pdfCell.appendChild(button);
+      };
+      makePdfButton('İsteme PDF','ISTEME_YAZISI');
+      const statusNorm=eKarsitTakipNorm(r['Durum']);
+      const hasReply=statusNorm==='cevaplandi';
+      const replyButton=el('button',{class:'btn btn-secondary',type:'button',style:'margin:2px;padding:5px 8px;font-size:12px;'+(hasReply?'':'opacity:.45;cursor:not-allowed;'),disabled:!hasReply,title:hasReply?'Cevap yazısını indir':'Henüz cevaplanmamış kayıt'} ,'Cevap PDF');
+      if(hasReply){
+        replyButton.addEventListener('click',event=>{
+          event.preventDefault();event.stopPropagation();
+          const requestId=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2));
+          window.postMessage({source:'ekarsit-app',type:'EKARSIT_DOWNLOAD_PDF',payload:{requestId,islemId:String(r['İşlem ID']||'').trim(),teyitTuru:'CEVAP_YAZISI'}},'*');
+        });
+      }else{
+        replyButton.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();alert('Henüz cevaplanmamış kayıt için cevap PDF’i indirilemez.');});
+      }
+      pdfCell.appendChild(replyButton);
+      visibleColumns.forEach(name=>{
+        if(name==='PDF Yazıları') tr.appendChild(pdfCell);
+        else tr.appendChild(el('td',{style:name==='Son Tarih'?'color:var(--danger);font-weight:700;white-space:nowrap;':''},String(r[name]??'')));
+      });
       tbody.appendChild(tr);
     });
-    if(!rows.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:String(data.headers.length),style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
+    if(!rows.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:String(Math.max(1,visibleColumns.length)),style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
   };
   savePresetBtn.addEventListener('click',()=>{
     const name=String(presetName.value||'').trim();
@@ -258,6 +400,7 @@ function eKarsitTakipGibNormalizeRecord(source){
   record['İşlem ID']=String(r.islemId??'').trim();
   record['Son Düzenleme Tarihi']=String(r.sonDuzenlemeTarihi??'').trim();
   record['Onay Tarihi']=String(r.onayTarihi??'').trim();
+  record['Son Tarih']=eKarsitTakipSonTarihDurumaGore(record['Onay Tarihi'],record['Durum']);
   // İş akışı durumu ile pasiflik ayrı alanlardır; GİB her ikisini aynı anda true/Cevaplandı gönderebilir.
   record['Durum']=String(r.durum??'').trim();
   record['Pasiflik Durumu']=(r.isPasif===true||r.pasif===true)?'Evet':(r.isPasif===false||r.pasif===false)?'Hayır':'';
@@ -326,11 +469,11 @@ window.addEventListener('message',async event=>{
 });
 
 function eKarsitTakipDateForInput(value){
-  const m=String(value||'').trim().match(/^(\\d{2})\\.(\\d{2})\\.(\\d{4})$/);
+  const m=String(value||'').trim().match(/^(\d{2})\\.(\d{2})\\.(\d{4})$/);
   return m?m[3]+'-'+m[2]+'-'+m[1]:'';
 }
 function eKarsitTakipDateFromInput(value){
-  const m=String(value||'').trim().match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+  const m=String(value||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m?m[3]+'.'+m[2]+'.'+m[1]:'';
 }
 function eKarsitTakipEditor(host,data,record,onSaved){
@@ -345,9 +488,11 @@ function eKarsitTakipEditor(host,data,record,onSaved){
   EKARSIT_TAKIP_HEADERS.forEach(h=>{
     const box=el('div');
     box.appendChild(el('label',{style:'display:block;font-weight:600;margin-bottom:4px;'},h));
-    const input=h==='Not'?el('textarea',{class:'input',style:'width:100%;box-sizing:border-box;min-height:90px;resize:vertical;',placeholder:h}):el('input',{class:'input',style:'width:100%;box-sizing:border-box;',placeholder:h});
+    const input=h==='Not'?el('textarea',{class:'input',style:'width:100%;box-sizing:border-box;min-height:90px;resize:vertical;',placeholder:h}):el('input',{class:'input',style:'width:100%;box-sizing:border-box;'+(h==='Son Tarih'?'color:var(--danger);font-weight:700;':''),placeholder:h});
     if(dateFields.has(h)){input.type='date';input.value=eKarsitTakipDateForInput(record?.[h]);}
-    else{input.type='text';input.value=String(record?.[h]??'');}
+    else{input.type='text';input.value=h==='Son Tarih'?(eKarsitTakipSonTarihDurumaGore(record?.['Onay Tarihi'],record?.['Durum'])||''):String(record?.[h]??'');}
+    if(h==='Son Tarih') input.readOnly=true;
+    if(h==='Onay Tarihi'||h==='Durum') input.addEventListener('change',()=>{if(controls['Son Tarih'])controls['Son Tarih'].value=eKarsitTakipSonTarihDurumaGore(h==='Onay Tarihi'?eKarsitTakipDateFromInput(input.value):controls['Onay Tarihi'].value,h==='Durum'?input.value:controls['Durum'].value);});
     if(h==='İşlem ID'&&editing) input.readOnly=true;
     if(h==='Pasiflik Durumu') input.readOnly=true;
     controls[h]=input;box.appendChild(input);form.appendChild(box);
@@ -363,6 +508,7 @@ function eKarsitTakipEditor(host,data,record,onSaved){
     try{
       const values={};
       EKARSIT_TAKIP_HEADERS.forEach(h=>values[h]=dateFields.has(h)?eKarsitTakipDateFromInput(controls[h].value):String(controls[h].value||'').trim());
+      values['Son Tarih']=eKarsitTakipSonTarih(values['Onay Tarihi']);
       if(!values['İşlem ID']) throw new Error('İşlem ID boş bırakılamaz.');
       if(!values['Durum']) throw new Error('Durum boş bırakılamaz.');
       if(!values['Tasdik Hizmeti Verilen Mükellef VKN/TCKN']) throw new Error('Tasdik Hizmeti Verilen Mükellef VKN/TCKN boş bırakılamaz.');
@@ -430,17 +576,43 @@ async function renderEKarsitTakipPage(){
   const repoLink=el('a',{href:'https://github.com/Webtasarim70/ekarsit/tree/main/extension',target:'_blank',rel:'noopener noreferrer',style:'display:inline-block;margin-top:6px;font-weight:600;'},'GitHub → e-Karşıt Chrome eklentisi');
   helpBody.appendChild(repoLink);help.appendChild(helpBody);card.appendChild(help);
   const input=el('input',{type:'file',accept:'.xlsx,.xlsm',style:'display:none;'});
+  const syncBtn=el('button',{class:'btn btn-primary',type:'button',style:'margin-left:8px;',onclick:()=>{
+    syncBtn.disabled=true;
+    syncBtn.textContent='GİB bağlantısı kuruluyor…';
+    status.style.display='block';status.className='hint info';
+    status.textContent='GİB e-Karşıt sayfası açılıyor veya mevcut oturum kullanılıyor. Aktarım tamamlanana kadar bekleyin.';
+    window.postMessage({source:'ekarsit-app',type:'EKARSIT_START_GIB_SYNC'},'*');
+  }},'↻ GİB’deki Karşıt İncelemeleri Tabloya Aktar');
   const importBtn=el('button',{class:'btn btn-primary',style:'margin-left:8px;',onclick:()=>input.click()},'⬆ Excel Yükle');
   const backupBtn=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:async()=>{try{await eKarsitTakipExcelYedekle();}catch(e){alert('Excel yedeği oluşturulamadı: '+e.message);}}},'⬇ Excel’e Aktar');
   const addBtn=el('button',{class:'btn btn-primary',style:'margin-left:8px;',onclick:()=>openEditor(null)},'➕ Elle Kayıt Ekle');
   const status=el('div',{class:'hint info',style:'margin-top:10px;display:none;'});
   window.addEventListener('message',event=>{
+    if(event.source!==window || event.data?.source!=='ekarsit-gib-extension') return;
+    if(event.data.type==='EKARSIT_PDF_STATUS'){
+      status.style.display='block';
+      status.className=event.data.status==='success'?'hint ok':'hint warn';
+      status.textContent=(event.data.status==='success'?'✓ ':'⚠ ')+(event.data.message||'PDF işlemi tamamlandı.')+(event.data.filename?' '+event.data.filename:'');
+      return;
+    }
+    if(event.data.type==='EKARSIT_GIB_SYNC_STATUS' && event.data.status==='error'){
+      syncBtn.disabled=false;
+      syncBtn.textContent='↻ GİB’deki Karşıt İncelemeleri Tabloya Aktar';
+      status.style.display='block';status.className='hint warn';
+      status.textContent='⚠ GİB aktarımı başlatılamadı: '+(event.data.message||'Eklenti bağlantısını ve GİB oturumunu kontrol edin.');
+    }
+  });
+  window.addEventListener('message',event=>{
     if(event.source!==window || event.data?.source!=='ekarsit-app') return;
     if(event.data.type==='EKARSIT_GIB_APPLY_RESULT'){
       const r=event.data.result||{};
+      syncBtn.disabled=false;
+      syncBtn.textContent='↻ GİB’deki Karşıt İncelemeleri Tabloya Aktar';
       status.style.display='block';status.className='hint ok';
       status.textContent='✓ GİB aktarımı tamamlandı. '+(r.received||0)+' kayıt alındı; '+(r.added||0)+' yeni, '+(r.updated||0)+' güncellendi.';
     }else if(event.data.type==='EKARSIT_GIB_APPLY_ERROR'){
+      syncBtn.disabled=false;
+      syncBtn.textContent='↻ GİB’deki Karşıt İncelemeleri Tabloya Aktar';
       status.style.display='block';status.className='hint warn';
       status.textContent='⚠ Kayıtlar alınamadı: '+(event.data.message||'Bilinmeyen hata.');
     }
@@ -450,14 +622,14 @@ async function renderEKarsitTakipPage(){
     try{
       const imported=await eKarsitTakipExcelImport(file);
       const byId=new Map(data.records.map(r=>[String(r['İşlem ID']||''),r]));let added=0,updated=0;
-      imported.records.forEach(r=>{const id=String(r['İşlem ID']||'');if(byId.has(id)){const existing=byId.get(id);const notValue=existing['Not']??'';Object.assign(existing,r);existing['Not']=notValue;updated++;}else{data.records.unshift(r);byId.set(id,r);added++;}});
+      imported.records.forEach(r=>{r['Son Tarih']=eKarsitTakipSonTarihDurumaGore(r['Onay Tarihi'],r['Durum']);const id=String(r['İşlem ID']||'');if(byId.has(id)){const existing=byId.get(id);const notValue=existing['Not']??'';Object.assign(existing,r);existing['Not']=notValue;updated++;}else{data.records.unshift(r);byId.set(id,r);added++;}});
       data.headers=[...EKARSIT_TAKIP_HEADERS];await eKarsitTakipWrite(data);data=await eKarsitTakipRead();
       status.style.display='block';status.className='hint ok';status.textContent='✓ Excel aktarıldı. '+added+' yeni kayıt, '+updated+' güncellenen kayıt.';
       eKarsitTakipRenderTable(tableHost,data,openEditor,pageDashboardFilter);
     }catch(e){status.style.display='block';status.className='hint warn';status.textContent='⚠️ Excel aktarılamadı: '+e.message;}
     input.value='';
   });
-  card.appendChild(importBtn);card.appendChild(backupBtn);card.appendChild(addBtn);card.appendChild(input);
+  card.appendChild(syncBtn);card.appendChild(importBtn);card.appendChild(backupBtn);card.appendChild(addBtn);card.appendChild(input);
   card.appendChild(status);
   host.appendChild(card);host.appendChild(editorHost);host.appendChild(tableHost);
   eKarsitTakipRenderTable(tableHost,data,openEditor,pageDashboardFilter);
