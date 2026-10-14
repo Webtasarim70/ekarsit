@@ -32,6 +32,13 @@
 - [x] **Dashboard arşiv dosyaları bildirimi:** Sayacın tüm Excel dosyalarını firma arşivi olarak sayması düzeltildi; yalnızca `ARSIV_...` adlı arşiv çalışma kitapları sayılıyor.
   - [x] Test: Kullanıcı, dashboard sayısını kullanıcı klasöründeki arşiv dosyalarıyla karşılaştırıp olumlu sonuç bildirdi.
 
+### Canlı GitHub Pages test kaydı — 14.10.2026
+- [x] **e-Karşıt güncelleme — uygulama sayfası:** Canlı GitHub Pages üzerinden kullanıcı tarafından test edildi; başarılı.
+- [x] **e-Karşıt güncelleme — tarayıcı eklentisi:** Kullanıcı tarafından test edildi; başarılı.
+- [x] **Tebligat güncelleme — uygulama sayfası:** Canlı GitHub Pages üzerinden kullanıcı tarafından test edildi; başarılı.
+- [x] **Tebligat güncelleme — tarayıcı eklentisi:** Kullanıcı tarafından test edildi; başarılı.
+- [x] **Canlı test sonucu:** Kullanıcı dört akışın tamamında hata almadığını bildirdi. Testler localhost yerine yayınlanan GitHub Pages ve canlı GİB/eklenti akışları üzerinden yapıldı.
+
 ### GİB ve tarayıcı eklentisi
 - [x] **GİB Tebligat Takip modülü:** Ayrı menü, yerel JSON kayıt dosyası, tablo/arama/Excel dışa aktarımı ve e-Tebligat sayfasından eklentiyle çok sayfalı aktarım eklendi.
   - [x] Test: 67 kaydın tamamı tabloda görünüyor; ikinci aktarımda mükerrer kayıt oluşmuyor; Excel çıktısı açılıyor ve tarihler doğru. Kullanıcı tarafından doğrulandı.
@@ -81,6 +88,11 @@
 - [x] Takip tablolarına filtrelenmiş görünümü Excel’e aktarma özelliği eklendi.
 - [x] Dashboard kartlarına tıklanınca hedef tabloda ilgili filtreyi uygulama çalışması yapıldı; uçtan uca test bekliyor.
 - [x] e-Karşıt dashboard filtresinin değişken kapsamı hatası düzeltildi; filtreleme testinde sorun olmadığı kullanıcı tarafından doğrulandı.
+
+## Dal uzlaştırma notu — 14.10.2026
+- [x] `main` ve `develop` karşılaştırıldı: GİB/eklenti akışıyla ilişkili 9 dosyanın içerikleri birebir aynı.
+- [x] Bu PR yalnızca canlı test sonuçlarını çalışma defterine ekler; çalışan uygulama ve eklenti kodları değiştirilmez.
+- [ ] Dalların commit geçmişleri ayrışmış olduğundan gelecekteki genel dal birleştirmelerinde yalnızca dosya/işlev farkları incelenerek kontrollü uzlaştırma yapılmalı.
 
 ## Çalışma notları
 
