@@ -32,6 +32,13 @@
 - [x] **Dashboard arşiv dosyaları bildirimi:** Sayacın tüm Excel dosyalarını firma arşivi olarak sayması düzeltildi; yalnızca `ARSIV_...` adlı arşiv çalışma kitapları sayılıyor.
   - [x] Test: Kullanıcı, dashboard sayısını kullanıcı klasöründeki arşiv dosyalarıyla karşılaştırıp olumlu sonuç bildirdi.
 
+### Canlı GitHub Pages test kaydı — 14.10.2026
+- [x] **e-Karşıt güncelleme — uygulama sayfası:** Canlı GitHub Pages üzerinden kullanıcı tarafından test edildi; başarılı.
+- [x] **e-Karşıt güncelleme — tarayıcı eklentisi:** Canlı GİB sayfası ve eklenti üzerinden kullanıcı tarafından test edildi; başarılı.
+- [x] **Tebligat güncelleme — uygulama sayfası:** Canlı GitHub Pages üzerinden kullanıcı tarafından test edildi; başarılı.
+- [x] **Tebligat güncelleme — tarayıcı eklentisi:** Canlı GİB e-Tebligat sayfası ve eklenti üzerinden kullanıcı tarafından test edildi; başarılı.
+- [x] **Canlı test sonucu:** Kullanıcı dört akışın tamamında hata almadığını bildirdi. Bu testler localhost üzerinde değil, yayınlanan GitHub Pages ve canlı GİB/eklenti akışları üzerinden yapıldı.
+
 ### GİB ve tarayıcı eklentisi
 - [x] **GİB Tebligat Takip modülü:** Ayrı menü, yerel JSON kayıt dosyası, tablo/arama/Excel dışa aktarımı ve e-Tebligat sayfasından eklentiyle çok sayfalı aktarım eklendi.
   - [x] Test: 67 kaydın tamamı tabloda görünüyor; ikinci aktarımda mükerrer kayıt oluşmuyor; Excel çıktısı açılıyor ve tarihler doğru. Kullanıcı tarafından doğrulandı.
@@ -86,4 +93,5 @@
 
 - Aktif geliştirme dalı: `develop`
 - `main` dalına kendiliğinden birleştirme yapılmaz.
+- **Birleştirme ön kontrolü (14.10.2026):** GitHub karşılaştırmasında `main` ve `develop` dalları ayrışmış görünüyor (`develop`, `main` üzerinde 30 commit önde ve 40 commit geride). Bu nedenle doğrudan `develop → main` PR açılmamalı; birleştirme öncesinde dal farkları ve özellikle önceki GİB/eklenti değişiklikleri incelenerek kontrollü bir uzlaştırma yapılmalı.
 - Yeni istekler önce “Sıradaki işler” bölümüne eklenir; tamamlanınca işaretlenip gerekiyorsa “Tamamlananlar” bölümüne taşınır.
