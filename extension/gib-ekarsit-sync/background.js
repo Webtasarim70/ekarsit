@@ -22,6 +22,14 @@ async function getOrOpenGibTab(){
   return tab;
 }
 
+async function sendPdfStatusToApp(payload){
+  const tabs=await chrome.tabs.query({url:APP_URL+'*'});
+  const tab=tabs[0];
+  if(tab?.id){
+    try{await chrome.tabs.sendMessage(tab.id,{type:'EKARSIT_PDF_STATUS',...payload});}catch(_){}
+  }
+}
+
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
   if(message?.type==='EKARSIT_START_GIB_SYNC'){
     // Uygulamaya hemen yanıt ver; GİB açılması/aktarımı uzun sürebilir.
@@ -47,6 +55,43 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
         }
       }
     })();
+    return true;
+  }
+
+  if(message?.type==='EKARSIT_REQUEST_PDF'){
+    const payload=message.payload||{};
+    const islemId=String(payload.islemId||'').trim();
+    const teyitTuru=String(payload.teyitTuru||'').trim();
+    const requestId=String(payload.requestId||'');
+    if(!islemId || !['ISTEME_YAZISI','CEVAP_YAZISI'].includes(teyitTuru)){
+      sendResponse({ok:false,message:'Geçersiz İşlem ID veya yazı türü.'});
+      return true;
+    }
+    sendResponse({ok:true,message:'PDF isteği GİB sayfasına iletiliyor.'});
+    (async()=>{
+      try{
+        const tab=await getOrOpenGibTab();
+        await chrome.tabs.update(tab.id,{active:true});
+        await chrome.tabs.sendMessage(tab.id,{type:'EKARSIT_FETCH_PDF',payload:{islemId,teyitTuru,requestId}});
+      }catch(error){
+        await sendPdfStatusToApp({requestId,status:'error',message:error?.message||String(error)});
+      }
+    })();
+    return true;
+  }
+
+  if(message?.type==='EKARSIT_DOWNLOAD_PDF'){
+    chrome.downloads.download({url:message.dataUrl,filename:message.filename||'Karsit_Inceleme_Yazisi.pdf',saveAs:true},downloadId=>{
+      if(chrome.runtime.lastError) sendResponse({ok:false,message:chrome.runtime.lastError.message});
+      else sendResponse({ok:true,downloadId});
+    });
+    return true;
+  }
+
+  if(message?.type==='EKARSIT_PDF_STATUS_TO_APP'){
+    sendPdfStatusToApp({requestId:message.requestId,status:message.status,message:message.message||'',filename:message.filename||''})
+      .then(()=>sendResponse({ok:true}))
+      .catch(error=>sendResponse({ok:false,message:error?.message||String(error)}));
     return true;
   }
 
