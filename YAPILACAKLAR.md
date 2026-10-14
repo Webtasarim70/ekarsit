@@ -47,9 +47,10 @@
 - [ ] **ERTELENDİ — “GİB İadem Nerede” modülü:** Menü yakalama ve vergi dairesi üzerinden toplu dönem sorgulama/güncelleme çalışması sonraya bırakıldı; mevcut görev sırası değiştirilerek e-Karşıt Takip’in mükellef uyarlamasına geçildi.
 - [ ] **YMM Yazıları menüsünü** tamamlama.
 - [ ] **e-Karşıt Takip modülünü mükellefe uyarlama:** Takip ekranı ve iş akışlarını mükellef bazında çalışacak şekilde düzenle.
-  - [x] İnceleme notu: YMM sayfasında `POST /apigateway/ymm/karsit-cevap-yazisi/gelen-ve-cevap-verilen-listele` isteği 200 OK dönüyor; yanıt kayıtlarında `nezdindeIncelemeYapilanMukellefVknTckn` alanı bulunuyor.
-  - [x] 403 hata kaydı incelendi: mükellef ekranında `POST /apigateway/ymm/karsit-isteme-yazisi/gonderilen-listele` isteği `403 Forbidden` dönüyor; yanıt `Servise erişim yetkiniz bulunmamaktadır.` diyor. Bu, YMM rolüne ait servis için erişim yetkisi olmadığını gösteriyor; tek başına mükellefin eşdeğer bir servisi olduğunu veya yolunu kanıtlamıyor.
-  - [ ] Mükellef ekranında aynı işlevi sağlayan, mükellef oturumunda yetkili gerçek API isteğini Network üzerinden tespit et. YMM uç noktasını mükellef akışında kullanma; mevcut YMM akışını değiştirmeden ayrı uyarlama yap.
+  - [x] İnceleme notu: mükellef hesabında `POST /apigateway/ymm/karsit-cevap-yazisi/gelen-ve-cevap-verilen-listele` isteği 200 OK dönüyor; liste alanı `gelenVeCevapVerilenDtoList`, sayfalama bilgisi `pageDetail` içinde.
+  - [x] 403 bulgusu: mükellef hesabında `POST /apigateway/ymm/karsit-isteme-yazisi/gonderilen-listele` isteği `403 Forbidden` ve `Servise erişim yetkiniz bulunmamaktadır.` yanıtı veriyor.
+  - [x] İlk uyarlama `develop` dalında: mevcut YMM listeleme isteği korunuyor; yalnızca 403 dönerse doğrulanmış mükellef listeleme servisine geçiliyor. Mükellef isteğine `toBeReported:false` ve `sortType:DESC` ekleniyor; iki servisin farklı yanıt liste alanları ayrı işleniyor.
+  - [ ] Test: YMM hesabında eski aktarımın değişmediğini, mükellef hesabında ise 403 sonrası kayıtların tüm sayfalarıyla alınıp İşlem ID üzerinden birleştirildiğini canlı GİB oturumlarında doğrula.
 - [ ] **GİB sayfasındaki eklenti butonlarını kaldırma:** Eklentinin GİB sayfasına enjekte ettiği butonlar yerine, işlemleri uygulamanın kendi sayfası içerisinden başlatılabilecek butonlar oluştur.
 
 ### Firma arşivi
