@@ -239,7 +239,7 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
       tr.appendChild(pdfCell);
       tbody.appendChild(tr);
     });
-    if(!rows.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:String(data.headers.length),style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
+    if(!rows.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:String(data.headers.length+1),style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
   };
   savePresetBtn.addEventListener('click',()=>{
     const name=String(presetName.value||'').trim();
