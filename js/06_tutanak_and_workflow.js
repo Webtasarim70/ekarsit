@@ -849,12 +849,28 @@ async function renderWelcomePage(){
       el('h3',{style:'margin:0;'},'Dashboard Kişiselleştirme'),
       el('div',{class:'hint',style:'margin-top:4px;'},'Kartları gizleyin veya sıralarını değiştirin. Tercihler bu kullanıcı için tarayıcıda saklanır.')
     ]));
-    const preferenceToggle=el('button',{class:'btn btn-secondary',type:'button'},'Kartları Düzenle');
+    const preferenceToggle=el('button',{
+      class:'btn btn-secondary dashboard-preference-toggle',
+      type:'button',
+      title:'Kartları kişiselleştir',
+      'aria-label':'Kartları kişiselleştir',
+      'aria-expanded':'false',
+      style:'display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;padding:0;font-size:20px;'
+    },'⚙');
     preferenceHeader.appendChild(preferenceToggle);
     preferenceCard.appendChild(preferenceHeader);
     const preferencePanel=el('div',{style:'display:none;margin-top:12px;'});
+    let draggedDashboardTitle=null;
+    const persistDashboardOrder=()=>{
+      dashboardPreferences.order=dashboardCards.map(x=>x[1]);
+      saveDashboardPreferences();
+      renderDashboardGrid();
+      renderPreferencePanel();
+    };
     const renderPreferencePanel=()=>{
       preferencePanel.innerHTML='';
+      const panelHint=el('div',{class:'hint info'},'Kartları tutup sürükleyerek sıralayın. İsterseniz ok düğmelerini de kullanabilirsiniz.');
+      preferencePanel.appendChild(panelHint);
       const resetButton=el('button',{class:'btn btn-ghost',type:'button',style:'margin-bottom:10px;'},'Varsayılan Sıraya Dön ve Tüm Kartları Göster');
       resetButton.addEventListener('click',()=>{
         dashboardPreferences={order:[],hidden:[]};
@@ -862,7 +878,43 @@ async function renderWelcomePage(){
       });
       preferencePanel.appendChild(resetButton);
       dashboardCards.forEach(([icon,title])=>{
-        const row=el('div',{style:'display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border-color,#ddd);flex-wrap:wrap;'});
+        const row=el('div',{
+          class:'dashboard-preference-row',
+          draggable:true,
+          style:'display:flex;align-items:center;gap:8px;padding:8px;border-top:1px solid var(--border);border-radius:6px;flex-wrap:wrap;transition:background .15s,opacity .15s;'
+        });
+        row.addEventListener('dragstart',e=>{
+          draggedDashboardTitle=title;
+          row.style.opacity='.45';
+          if(e.dataTransfer){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',title);}
+        });
+        row.addEventListener('dragend',()=>{
+          draggedDashboardTitle=null;
+          row.style.opacity='';
+          row.style.background='';
+          preferencePanel.querySelectorAll('.dashboard-preference-row').forEach(r=>r.style.background='');
+        });
+        row.addEventListener('dragover',e=>{
+          e.preventDefault();
+          if(draggedDashboardTitle && draggedDashboardTitle!==title) row.style.background='var(--panel-hover, rgba(21,94,117,.10))';
+          if(e.dataTransfer)e.dataTransfer.dropEffect='move';
+        });
+        row.addEventListener('dragleave',()=>{row.style.background='';});
+        row.addEventListener('drop',e=>{
+          e.preventDefault();
+          row.style.background='';
+          const sourceTitle=draggedDashboardTitle || (e.dataTransfer?e.dataTransfer.getData('text/plain'):'');
+          if(!sourceTitle || sourceTitle===title)return;
+          sortDashboardCards();
+          const from=dashboardCards.findIndex(x=>x[1]===sourceTitle);
+          const to=dashboardCards.findIndex(x=>x[1]===title);
+          if(from<0||to<0)return;
+          const [moved]=dashboardCards.splice(from,1);
+          dashboardCards.splice(to,0,moved);
+          persistDashboardOrder();
+        });
+        const grip=el('span',{title:'Sürükleyerek sırala','aria-hidden':'true',style:'cursor:grab;touch-action:none;font-size:18px;color:var(--muted);padding:0 4px;'},'⠿');
+        row.appendChild(grip);
         const checkbox=el('input',{type:'checkbox',checked:!dashboardPreferences.hidden.includes(title),'aria-label':title+' kartını göster'});
         checkbox.addEventListener('change',()=>{
           if(checkbox.checked) dashboardPreferences.hidden=dashboardPreferences.hidden.filter(x=>x!==title);
@@ -872,26 +924,31 @@ async function renderWelcomePage(){
         row.appendChild(checkbox);
         row.appendChild(el('span',{style:'flex:1;min-width:180px;'},title));
         const up=el('button',{class:'btn btn-ghost',type:'button',title:'Yukarı taşı','aria-label':title+' kartını yukarı taşı'},'↑');
+        const down=el('button',{class:'btn btn-ghost',type:'button',title:'Aşağı taşı','aria-label':title+' kartını aşağı taşı'},'↓');
         up.disabled=dashboardCards.findIndex(x=>x[1]===title)===0;
+        down.disabled=dashboardCards.findIndex(x=>x[1]===title)===dashboardCards.length-1;
         up.addEventListener('click',()=>{
           sortDashboardCards();
           const i=dashboardCards.findIndex(x=>x[1]===title);
-          if(i>0){[dashboardCards[i-1],dashboardCards[i]]=[dashboardCards[i],dashboardCards[i-1]];dashboardPreferences.order=dashboardCards.map(x=>x[1]);saveDashboardPreferences();renderDashboardGrid();renderPreferencePanel();}
+          if(i>0){[dashboardCards[i-1],dashboardCards[i]]=[dashboardCards[i],dashboardCards[i-1]];persistDashboardOrder();}
         });
-        const down=el('button',{class:'btn btn-ghost',type:'button',title:'Aşağı taşı','aria-label':title+' kartını aşağı taşı'},'↓');
-        down.disabled=dashboardCards.findIndex(x=>x[1]===title)===dashboardCards.length-1;
         down.addEventListener('click',()=>{
           sortDashboardCards();
           const i=dashboardCards.findIndex(x=>x[1]===title);
-          if(i>=0&&i<dashboardCards.length-1){[dashboardCards[i+1],dashboardCards[i]]=[dashboardCards[i],dashboardCards[i+1]];dashboardPreferences.order=dashboardCards.map(x=>x[1]);saveDashboardPreferences();renderDashboardGrid();renderPreferencePanel();}
+          if(i>=0&&i<dashboardCards.length-1){[dashboardCards[i+1],dashboardCards[i]]=[dashboardCards[i],dashboardCards[i+1]];persistDashboardOrder();}
         });
-        row.appendChild(up);row.appendChild(down);preferencePanel.appendChild(row);
+        row.appendChild(up);
+        row.appendChild(down);
+        preferencePanel.appendChild(row);
       });
     };
     preferenceToggle.addEventListener('click',()=>{
       const opening=preferencePanel.style.display==='none';
       preferencePanel.style.display=opening?'block':'none';
-      preferenceToggle.textContent=opening?'Düzenlemeyi Kapat':'Kartları Düzenle';
+      preferenceToggle.setAttribute('aria-expanded',String(opening));
+      preferenceToggle.setAttribute('aria-label',opening?'Kart kişiselleştirme ayarlarını kapat':'Kartları kişiselleştir');
+      preferenceToggle.title=opening?'Kart kişiselleştirme ayarlarını kapat':'Kartları kişiselleştir';
+      preferenceToggle.textContent=opening?'×':'⚙';
       if(opening) renderPreferencePanel();
     });
     preferenceCard.appendChild(preferencePanel);
