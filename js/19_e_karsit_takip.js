@@ -234,8 +234,18 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
       };
       makePdfButton('İsteme PDF','ISTEME_YAZISI');
       const statusNorm=eKarsitTakipNorm(r['Durum']);
-      const hasReply=!!String(r['Onay Tarihi']||'').trim()||['cevaplandi','onaylandi','onayli'].some(s=>statusNorm.includes(s));
-      if(hasReply) makePdfButton('Cevap PDF','CEVAP_YAZISI');
+      const hasReply=statusNorm==='cevaplandi';
+      const replyButton=el('button',{class:'btn btn-secondary',type:'button',style:'margin:2px;padding:5px 8px;font-size:12px;'+(hasReply?'':'opacity:.45;cursor:not-allowed;'),disabled:!hasReply,title:hasReply?'Cevap yazısını indir':'Henüz cevaplanmamış kayıt'} ,'Cevap PDF');
+      if(hasReply){
+        replyButton.addEventListener('click',event=>{
+          event.preventDefault();event.stopPropagation();
+          const requestId=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2));
+          window.postMessage({source:'ekarsit-app',type:'EKARSIT_DOWNLOAD_PDF',payload:{requestId,islemId:String(r['İşlem ID']||'').trim(),teyitTuru:'CEVAP_YAZISI'}},'*');
+        });
+      }else{
+        replyButton.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();alert('Henüz cevaplanmamış kayıt için cevap PDF’i indirilemez.');});
+      }
+      pdfCell.appendChild(replyButton);
       tr.appendChild(pdfCell);
       tbody.appendChild(tr);
     });
