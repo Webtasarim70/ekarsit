@@ -23,34 +23,61 @@
     return oldSet.apply(this, arguments);
   };
 
-  const endpoint = '/apigateway/ymm/karsit-isteme-yazisi/gonderilen-listele';
+  // YMM gönderilen liste mevcut akış olarak korunur. Mükellef oturumunda bu servis
+  // 403 dönerse, mükellef ekranında doğrulanmış gelen/cevap verilen servisine geçilir.
+  const listStrategies = [
+    {
+      endpoint: '/apigateway/ymm/karsit-isteme-yazisi/gonderilen-listele',
+      listKey: 'gonderilenVeCevapAlinanList',
+      source: 'ymm-gonderilen',
+      includeToBeReported: false
+    },
+    {
+      endpoint: '/apigateway/ymm/karsit-cevap-yazisi/gelen-ve-cevap-verilen-listele',
+      listKey: 'gelenVeCevapVerilenDtoList',
+      source: 'mukellef-gelen-cevap',
+      includeToBeReported: true
+    }
+  ];
 
-  async function getPage(pageNo, basTarihi, bitTarihi) {
+  async function getPage(strategy, pageNo, basTarihi, bitTarihi) {
     if (!authHeader) throw new Error('GİB oturum yetkilendirmesi yakalanamadı. Sayfayı yenileyip tekrar deneyin.');
     const body = {
       data: {basTarihi, bitTarihi},
-      meta: {pagination: {pageNo, pageSize: 20}, filters: [], sortFieldName: 'sonDuzenlemeTarihi'}
+      meta: {
+        pagination: {pageNo, pageSize: 20},
+        filters: [],
+        sortFieldName: 'sonDuzenlemeTarihi',
+        ...(strategy.includeToBeReported ? {sortType: 'DESC'} : {})
+      }
     };
-    const response = await fetch(endpoint, {
+    if (strategy.includeToBeReported) body.toBeReported = false;
+    const response = await fetch(strategy.endpoint, {
       method: 'POST',
       headers: {'Accept':'application/json, text/plain, */*','Content-Type':'application/json','Authorization':authHeader},
       credentials: 'include',
       body: JSON.stringify(body)
     });
-    if (!response.ok) throw new Error('GİB API '+response.status+' '+response.statusText);
+    if (!response.ok) {
+      const error = new Error('GİB API '+response.status+' '+response.statusText);
+      error.status = response.status;
+      throw error;
+    }
     return response.json();
   }
 
-  async function getAll(basTarihi, bitTarihi) {
-    const first = await getPage(1, basTarihi, bitTarihi);
+  async function getAllForStrategy(strategy, basTarihi, bitTarihi) {
+    const first = await getPage(strategy, 1, basTarihi, bitTarihi);
     const detail = first?.pageDetail || {};
     const totalPage = Number(detail.totalPage || 1);
     const total = Number(detail.total || 0);
-    const records = Array.isArray(first?.gonderilenVeCevapAlinanList) ? [...first.gonderilenVeCevapAlinanList] : [];
+    const firstRecords = first?.[strategy.listKey];
+    const records = Array.isArray(firstRecords) ? [...firstRecords] : [];
 
     for (let pageNo=2; pageNo<=totalPage; pageNo++) {
-      const page = await getPage(pageNo, basTarihi, bitTarihi);
-      if (Array.isArray(page?.gonderilenVeCevapAlinanList)) records.push(...page.gonderilenVeCevapAlinanList);
+      const page = await getPage(strategy, pageNo, basTarihi, bitTarihi);
+      const pageRecords = page?.[strategy.listKey];
+      if (Array.isArray(pageRecords)) records.push(...pageRecords);
     }
 
     const unique = new Map();
@@ -58,7 +85,27 @@
       const id=String(r?.islemId||'').trim();
       if(id) unique.set(id,r);
     });
-    return {records:[...unique.values()],total,fetchedPages:totalPage,basTarihi,bitTarihi};
+    return {
+      records:[...unique.values()],
+      total,
+      fetchedPages:totalPage,
+      basTarihi,
+      bitTarihi,
+      source:strategy.source
+    };
+  }
+
+  async function getAll(basTarihi, bitTarihi) {
+    try {
+      return await getAllForStrategy(listStrategies[0], basTarihi, bitTarihi);
+    } catch (error) {
+      // Yalnızca erişim reddinde mükellef listesini dene; diğer hatalarda
+      // YMM akışındaki mevcut hata davranışını koru.
+      if (error?.status !== 403) throw error;
+      const result = await getAllForStrategy(listStrategies[1], basTarihi, bitTarihi);
+      result.fallbackReason = 'ymm-endpoint-403';
+      return result;
+    }
   }
 
   window.addEventListener('message', async event => {
