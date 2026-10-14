@@ -47,6 +47,10 @@
 - [ ] **“GİB İadem Nerede” modülü:** Menüyü yakalama akışını ekle ve vergi dairesi üzerinden toplu dönem sorgulama/güncelleme işlevini geliştir.
 - [ ] **YMM Yazıları menüsünü** tamamlama.
 - [ ] **e-Karşıt Takip modülünü mükellefe uyarlama:** Takip ekranı ve iş akışlarını mükellef bazında çalışacak şekilde düzenle.
+  - [x] Mükellef hesabında `POST /apigateway/ymm/karsit-cevap-yazisi/gelen-ve-cevap-verilen-listele` isteğinin 200 OK döndüğü; yanıt listesinin `gelenVeCevapVerilenDtoList` alanında olduğu doğrulandı.
+  - [x] Mükellef hesabında `POST /apigateway/ymm/karsit-isteme-yazisi/gonderilen-listele` isteğinin 403 ve `Servise erişim yetkiniz bulunmamaktadır.` yanıtı verdiği kaydedildi.
+  - [x] `main` dalına kontrollü uyarlama: mevcut YMM isteği korundu; yalnızca 403 durumunda doğrulanmış mükellef listeleme servisine geçiş eklendi. Sayfalama ve İşlem ID ile tekilleştirme destekleniyor.
+  - [ ] Canlı test: mükellef hesabında kayıt aktarımını ve YMM hesabında mevcut akışın etkilenmediğini doğrula.
 - [ ] **GİB sayfasındaki eklenti butonlarını kaldırma:** Eklentinin GİB sayfasına enjekte ettiği butonlar yerine, işlemleri uygulamanın kendi sayfası içerisinden başlatılabilecek butonlar oluştur.
 
 ### Firma arşivi
