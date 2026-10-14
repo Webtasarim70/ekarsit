@@ -187,6 +187,7 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
   const wrap=el('div',{class:'table-scroll',style:'margin-top:10px;max-height:65vh;overflow:auto;'});
   const table=el('table',{class:'editable-table'});const thead=el('thead');const trh=el('tr');const sortHeads=[];
   data.headers.forEach((h,i)=>{const th=el('th',{class:'sortable-th',style:'min-width:170px;white-space:nowrap;cursor:pointer;',title:'Sıralamak için tıklayın','aria-sort':'none'},h+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});sortHeads.push(th);trh.appendChild(th);});
+  trh.appendChild(el('th',{style:'min-width:190px;white-space:nowrap;'},'PDF Yazıları'));
   thead.appendChild(trh);table.appendChild(thead);const tbody=el('tbody');table.appendChild(tbody);wrap.appendChild(table);card.appendChild(wrap);
 
   const refreshPresetOptions=(selectedId='')=>{
@@ -221,6 +222,21 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
       const tr=el('tr',{style:'cursor:pointer;',title:'Düzenlemek için tıklayın'});
       tr.addEventListener('click',()=>onRowClick?.(r));
       data.headers.forEach(h=>tr.appendChild(el('td',{},String(r[h]??''))));
+      const pdfCell=el('td',{style:'white-space:nowrap;'});
+      const makePdfButton=(label,teyitTuru)=>{
+        const button=el('button',{class:'btn btn-secondary',type:'button',style:'margin:2px;padding:5px 8px;font-size:12px;'},label);
+        button.addEventListener('click',event=>{
+          event.preventDefault();event.stopPropagation();
+          const requestId=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2));
+          window.postMessage({source:'ekarsit-app',type:'EKARSIT_DOWNLOAD_PDF',payload:{requestId,islemId:String(r['İşlem ID']||'').trim(),teyitTuru}},'*');
+        });
+        pdfCell.appendChild(button);
+      };
+      makePdfButton('İsteme PDF','ISTEME_YAZISI');
+      const statusNorm=eKarsitTakipNorm(r['Durum']);
+      const hasReply=!!String(r['Onay Tarihi']||'').trim()||['cevaplandi','onaylandi','onayli'].some(s=>statusNorm.includes(s));
+      if(hasReply) makePdfButton('Cevap PDF','CEVAP_YAZISI');
+      tr.appendChild(pdfCell);
       tbody.appendChild(tr);
     });
     if(!rows.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:String(data.headers.length),style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
@@ -434,6 +450,15 @@ async function renderEKarsitTakipPage(){
   const backupBtn=el('button',{class:'btn btn-secondary',style:'margin-left:8px;',onclick:async()=>{try{await eKarsitTakipExcelYedekle();}catch(e){alert('Excel yedeği oluşturulamadı: '+e.message);}}},'⬇ Excel’e Aktar');
   const addBtn=el('button',{class:'btn btn-primary',style:'margin-left:8px;',onclick:()=>openEditor(null)},'➕ Elle Kayıt Ekle');
   const status=el('div',{class:'hint info',style:'margin-top:10px;display:none;'});
+  window.addEventListener('message',event=>{
+    if(event.source!==window || event.data?.source!=='ekarsit-gib-extension') return;
+    if(event.data.type==='EKARSIT_PDF_STATUS'){
+      status.style.display='block';
+      status.className=event.data.status==='success'?'hint ok':'hint warn';
+      status.textContent=(event.data.status==='success'?'✓ ':'⚠ ')+(event.data.message||'PDF işlemi tamamlandı.')+(event.data.filename?' '+event.data.filename:'');
+      return;
+    }
+  });
   window.addEventListener('message',event=>{
     if(event.source!==window || event.data?.source!=='ekarsit-app') return;
     if(event.data.type==='EKARSIT_GIB_APPLY_RESULT'){
