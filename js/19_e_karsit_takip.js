@@ -204,8 +204,19 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
   const card=el('div',{class:'card',style:'margin-top:14px;'});
   const titleRow=el('div',{style:'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;'});
   titleRow.appendChild(el('h3',{},'e-Karşıt Takip Kayıtları'));
-  const globalSearch=el('input',{class:'input',placeholder:'Gelişmiş arama: ID, YMM, mükellef, durum…',style:'max-width:420px;'});
-  titleRow.appendChild(globalSearch);card.appendChild(titleRow);
+  card.appendChild(titleRow);
+
+  const controlsDetails=el('details',{style:'margin-top:10px;'});
+  const controlsSummary=el('summary',{style:'cursor:pointer;font-weight:600;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);'},'Filtreleme ve Tablo İşlemleri');
+  const controlsPanel=el('div',{style:'padding-top:10px;'});
+  controlsDetails.appendChild(controlsSummary);
+  controlsDetails.appendChild(controlsPanel);
+  card.appendChild(controlsDetails);
+
+  const globalSearch=el('input',{class:'input',placeholder:'Gelişmiş arama: ID, YMM, mükellef, durum…',style:'max-width:420px;width:100%;'});
+  const searchRow=el('div',{style:'display:flex;justify-content:flex-end;margin-bottom:10px;'});
+  searchRow.appendChild(globalSearch);
+  controlsPanel.appendChild(searchRow);
 
   const presets=el('div',{style:'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;'});
   const presetSelect=el('select',{class:'input',style:'max-width:280px;'});
@@ -214,21 +225,21 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
   const applyPresetBtn=el('button',{class:'btn btn-secondary',type:'button'},'Filtreyi Uygula');
   const deletePresetBtn=el('button',{class:'btn btn-secondary',type:'button'},'Kaydı Sil');
   presets.appendChild(presetSelect);presets.appendChild(applyPresetBtn);presets.appendChild(presetName);presets.appendChild(savePresetBtn);presets.appendChild(deletePresetBtn);
-  card.appendChild(presets);
+  controlsPanel.appendChild(presets);
   const presetHelp=el('div',{class:'hint',style:'margin-top:5px;'},'Mevcut arama ve sütun filtrelerini isim vererek kaydedebilir, daha sonra tek seçimle yeniden uygulayabilirsiniz. Kayıtlar bu tarayıcıda, seçili kullanıcı klasörüne göre saklanır.');
-  card.appendChild(presetHelp);
+  controlsPanel.appendChild(presetHelp);
 
   let tableView=eKarsitTakipLoadTableView();
   const viewActions=el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;'});
   const editViewBtn=el('button',{class:'btn btn-secondary',type:'button'},'⚙ Tablo Görünümünü Düzenle');
   const saveViewBtn=el('button',{class:'btn btn-primary',type:'button'},'Tablo Görünümünü Kaydet');
   const defaultViewBtn=el('button',{class:'btn btn-secondary',type:'button'},'Tabloyu Varsayılan Yap');
-  viewActions.appendChild(editViewBtn);viewActions.appendChild(saveViewBtn);viewActions.appendChild(defaultViewBtn);card.appendChild(viewActions);
+  viewActions.appendChild(editViewBtn);viewActions.appendChild(saveViewBtn);viewActions.appendChild(defaultViewBtn);controlsPanel.appendChild(viewActions);
   const viewEditor=el('div',{class:'card',style:'display:none;margin-top:10px;'});
   viewEditor.appendChild(el('h4',{},'Sütunları Göster/Gizle ve Sırala'));
   viewEditor.appendChild(el('div',{class:'hint',style:'margin-bottom:8px;'},'İşaretli sütunlar görünür. Yukarı/aşağı düğmeleri sütun sırasını değiştirir. Kaydettiğiniz görünüm bu tarayıcıda seçili kullanıcı klasörü için hatırlanır.'));
   const viewList=el('div',{style:'display:flex;flex-direction:column;gap:5px;'});
-  viewEditor.appendChild(viewList);card.appendChild(viewEditor);
+  viewEditor.appendChild(viewList);controlsPanel.appendChild(viewEditor);
   const renderViewEditor=()=>{
     viewList.innerHTML='';
     tableView.order.forEach((name,index)=>{
@@ -261,15 +272,15 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
     const input=el('input',{class:'input',placeholder:h+' filtrele…'});
     box.appendChild(input);filtersWrap.appendChild(box);return input;
   });
-  card.appendChild(filtersWrap);
+  controlsPanel.appendChild(filtersWrap);
   let visibleRows=[];
   let sortIndex=-1,sortDirection=1;
   const reset=el('button',{class:'btn btn-secondary',type:'button',style:'margin-top:8px;'},'Filtreleri Temizle');
   reset.addEventListener('click',()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();});
-  card.appendChild(reset);
+  controlsPanel.appendChild(reset);
   const exportBtn=el('button',{class:'btn btn-primary',type:'button',style:'margin:8px 0 0 8px;'},'⬇ Görünen Tabloyu Excel’e Aktar');
   exportBtn.addEventListener('click',async()=>{try{const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Görünen e-Karşıt');ws.columns=data.headers.map((h,i)=>({header:h,key:'c'+i,width:Math.min(55,Math.max(14,h.length+2))}));visibleRows.forEach(r=>ws.addRow(data.headers.map(h=>r[h]??'')));ws.getRow(1).font={bold:true};ws.views=[{state:'frozen',ySplit:1}];const buf=await wb.xlsx.writeBuffer();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download='E_KARSIT_TAKIP_FILTRELENMIS.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){alert('Filtrelenmiş tablo Excel’e aktarılamadı: '+e.message);}});
-  card.appendChild(exportBtn);
+  controlsPanel.appendChild(exportBtn);
 
   const wrap=el('div',{class:'table-scroll',style:'margin-top:10px;max-height:65vh;overflow:auto;'});
   const table=el('table',{class:'editable-table'});const thead=el('thead');const trh=el('tr');const tbody=el('tbody');
