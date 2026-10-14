@@ -27,6 +27,16 @@
 
   window.addEventListener('message',event=>{
     if(event.source!==window || event.data?.source!=='ekarsit-app') return;
+    if(event.data.type==='GIB_TEBLIGAT_START_SYNC'){
+      chrome.runtime.sendMessage({type:'GIB_TEBLIGAT_START_SYNC'},response=>{
+        if(chrome.runtime.lastError||!response?.ok){
+          window.postMessage({source:'ekarsit-gib-extension',type:'GIB_TEBLIGAT_SYNC_STATUS',status:'error',message:response?.message||chrome.runtime.lastError?.message||'Eklentiyle bağlantı kurulamadı. Eklentinin yüklü ve etkin olduğunu kontrol edin.'},'*');
+        }else{
+          window.postMessage({source:'ekarsit-gib-extension',type:'GIB_TEBLIGAT_SYNC_STATUS',status:'working',message:'GİB e-Tebligat sayfası açılıyor veya etkinleştiriliyor…'},'*');
+        }
+      });
+      return;
+    }
     if(event.data.type==='EKARSIT_DOWNLOAD_PDF'){
       chrome.runtime.sendMessage({type:'EKARSIT_REQUEST_PDF',payload:event.data.payload},response=>{
         if(chrome.runtime.lastError || !response?.ok){
