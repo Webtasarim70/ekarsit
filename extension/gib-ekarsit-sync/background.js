@@ -71,7 +71,6 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
     (async()=>{
       try{
         const tab=await getOrOpenGibTab();
-        await chrome.tabs.update(tab.id,{active:true});
         await chrome.tabs.sendMessage(tab.id,{type:'EKARSIT_FETCH_PDF',payload:{islemId,teyitTuru,requestId}});
       }catch(error){
         await sendPdfStatusToApp({requestId,status:'error',message:error?.message||String(error)});
