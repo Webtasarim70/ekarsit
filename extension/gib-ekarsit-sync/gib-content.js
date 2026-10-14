@@ -3,12 +3,44 @@
   window.__ekarsitGibContentInstalled = true;
 
   const wrap=document.createElement('div');
-  Object.assign(wrap.style,{position:'fixed',right:'18px',bottom:'18px',zIndex:'2147483647',display:'flex',gap:'8px',alignItems:'center'});
+  Object.assign(wrap.style,{
+    position:'fixed',right:'18px',bottom:'18px',zIndex:'2147483647',
+    display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'10px',
+    fontFamily:'Arial,sans-serif'
+  });
 
-  const makeButton=(text,bg)=>{const b=document.createElement('button');b.type='button';b.textContent=text;Object.assign(b.style,{padding:'11px 16px',border:'0',borderRadius:'8px',background:bg,color:'#fff',font:'600 14px Arial,sans-serif',boxShadow:'0 4px 14px rgba(0,0,0,.25)',cursor:'pointer'});return b};
+  const menu=document.createElement('div');
+  Object.assign(menu.style,{display:'none',flexDirection:'column',alignItems:'flex-end',gap:'8px'});
+  menu.setAttribute('role','group');
+  menu.setAttribute('aria-label','e-Karşıt GİB işlemleri');
+
+  const makeButton=(text,bg)=>{const b=document.createElement('button');b.type='button';b.textContent=text;Object.assign(b.style,{padding:'11px 16px',border:'0',borderRadius:'10px',background:bg,color:'#fff',font:'600 14px Arial,sans-serif',boxShadow:'0 4px 14px rgba(0,0,0,.25)',cursor:'pointer',whiteSpace:'nowrap'});return b};
   const syncButton=makeButton('↻ e-Karşıt Takip’e Aktar','#1769aa');
   const excelButton=makeButton('⇩ Excel’e Aktar','#2e7d32');
-  wrap.append(syncButton,excelButton);
+  menu.append(syncButton,excelButton);
+
+  const fab=document.createElement('button');
+  fab.type='button';
+  fab.setAttribute('aria-label','e-Karşıt GİB işlemlerini aç');
+  fab.setAttribute('aria-expanded','false');
+  fab.title='e-Karşıt GİB işlemleri';
+  fab.innerHTML='<span aria-hidden="true" style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:20px;font-weight:800;letter-spacing:-1.5px;color:#fff">eK</span>';
+  Object.assign(fab.style,{
+    width:'58px',height:'58px',padding:'0',border:'2px solid rgba(255,255,255,.9)',
+    borderRadius:'50%',background:'linear-gradient(145deg,#2185d0,#124c87)',
+    boxShadow:'0 5px 18px rgba(0,0,0,.32)',cursor:'pointer',
+    display:'flex',alignItems:'center',justifyContent:'center'
+  });
+
+  const setMenuOpen=open=>{
+    menu.style.display=open?'flex':'none';
+    fab.setAttribute('aria-expanded',String(open));
+    fab.setAttribute('aria-label',open?'e-Karşıt GİB işlemlerini kapat':'e-Karşıt GİB işlemlerini aç');
+    fab.innerHTML='<span aria-hidden="true" style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:'+(open?'25px':'20px')+';font-weight:800;letter-spacing:'+(open?'0':'-1.5px')+';color:#fff">'+(open?'×':'eK')+'</span>';
+  };
+
+  fab.addEventListener('click',()=>setMenuOpen(menu.style.display!=='flex'));
+  wrap.append(menu,fab);
   document.documentElement.appendChild(wrap);
 
   let activeAction=null;
