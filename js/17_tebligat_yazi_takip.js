@@ -133,6 +133,9 @@ function tebligatYaziTakipIsDueSoon(rec){
   return due>=today&&due<=end;
 }
 
+function tebligatYaziSavedFiltersKey(){return 'tebligat-yazi-saved-filters-v1:'+String(userStore?.directoryHandle?.name||'varsayilan');}
+function tebligatYaziLoadSavedFilters(){try{const value=JSON.parse(localStorage.getItem(tebligatYaziSavedFiltersKey())||'[]');return Array.isArray(value)?value:[];}catch(e){return [];}}
+function tebligatYaziStoreSavedFilters(items){try{localStorage.setItem(tebligatYaziSavedFiltersKey(),JSON.stringify(items));return true;}catch(e){alert('Filtreler kaydedilemedi. Tarayıcı depolama alanını kontrol edin.');return false;}}
 let tebligatEditingId=null;
 async function renderTebligatYaziTakipPage(){
   const pageDashboardFilter=window.dashboardTableFilter||null;
@@ -228,8 +231,20 @@ async function renderTebligatYaziTakipPage(){
     tools.appendChild(globalSearch);
     const fieldFilters=el('div',{class:'table-column-filters'});
     const filters=columns.map(([label])=>{const box=el('div',{class:'field'});box.appendChild(el('label',{},label+' filtresi'));const input=el('input',{class:'input',placeholder:label+' ara…'});box.appendChild(input);fieldFilters.appendChild(box);return input;});
+    const presets=el('div',{style:'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0;'});
+    const presetSelect=el('select',{class:'input',style:'max-width:280px;'});const presetName=el('input',{class:'input',placeholder:'Filtreye ad verin',style:'max-width:220px;'});
+    const applyPresetBtn=el('button',{class:'btn btn-secondary',type:'button'},'Filtreyi Uygula');const savePresetBtn=el('button',{class:'btn btn-primary',type:'button'},'Filtreyi Kaydet');const deletePresetBtn=el('button',{class:'btn btn-secondary',type:'button'},'Kaydı Sil');
+    presets.appendChild(presetSelect);presets.appendChild(applyPresetBtn);presets.appendChild(presetName);presets.appendChild(savePresetBtn);presets.appendChild(deletePresetBtn);
+    const presetHelp=el('div',{class:'hint',style:'margin:4px 0 8px;'},'Arama ve sütun filtrelerini adlandırarak kaydedin; daha sonra seçip yeniden uygulayın. Kayıtlar bu tarayıcıda, seçili kullanıcı klasörüne göre saklanır.');
+    const refreshPresetOptions=(selectedId='')=>{const saved=tebligatYaziLoadSavedFilters();presetSelect.innerHTML='';presetSelect.appendChild(el('option',{value:''},'Kayıtlı filtre seçin…'));saved.forEach(item=>presetSelect.appendChild(el('option',{value:item.id},item.name)));presetSelect.value=selectedId;applyPresetBtn.disabled=!presetSelect.value;deletePresetBtn.disabled=!presetSelect.value;};
+    savePresetBtn.addEventListener('click',()=>{const name=String(presetName.value||'').trim();if(!name){alert('Kaydedilmiş filtre için bir ad girin.');presetName.focus();return;}const saved=tebligatYaziLoadSavedFilters();const existing=saved.find(x=>String(x.name).toLocaleLowerCase('tr-TR')===name.toLocaleLowerCase('tr-TR'));const item={id:existing?.id||('filter-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)),name,search:globalSearch.value||'',filters:filters.map(x=>x.value||'')};const next=existing?saved.map(x=>x.id===existing.id?item:x):[...saved,item];if(tebligatYaziStoreSavedFilters(next)){refreshPresetOptions(item.id);presetName.value='';presetHelp.textContent='✓ “'+name+'” filtresi kaydedildi.';}});
+    applyPresetBtn.addEventListener('click',()=>{const item=tebligatYaziLoadSavedFilters().find(x=>x.id===presetSelect.value);if(!item)return;globalSearch.value=item.search||'';filters.forEach((input,i)=>input.value=item.filters?.[i]||'');sortIndex=-1;sortDirection=1;draw();presetHelp.textContent='✓ “'+item.name+'” filtresi uygulandı.';});
+    deletePresetBtn.addEventListener('click',()=>{const item=tebligatYaziLoadSavedFilters().find(x=>x.id===presetSelect.value);if(!item)return;if(!confirm('“'+item.name+'” kayıtlı filtresi silinsin mi?'))return;if(tebligatYaziStoreSavedFilters(tebligatYaziLoadSavedFilters().filter(x=>x.id!==item.id))){refreshPresetOptions();presetHelp.textContent='Kayıtlı filtre silindi.';}});
+    presetSelect.addEventListener('change',()=>{applyPresetBtn.disabled=!presetSelect.value;deletePresetBtn.disabled=!presetSelect.value;});
+    refreshPresetOptions();
     const reset=el('button',{class:'btn btn-secondary',type:'button',style:'align-self:flex-start;',onclick:()=>{globalSearch.value='';filters.forEach(x=>x.value='');sortIndex=-1;sortDirection=1;draw();}},'Filtreleri Temizle');const exportBtn=el('button',{class:'btn btn-primary',type:'button',style:'align-self:flex-start;',onclick:async()=>{try{const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Görünen Tebligatlar');ws.columns=columns.map(([header],i)=>({header,key:'c'+i,width:Math.min(40,Math.max(14,header.length+2))}));visibleRows.forEach(r=>ws.addRow(columns.map(([,get])=>get(r)??'')));ws.getRow(1).font={bold:true};ws.views=[{state:'frozen',ySplit:1}];const buf=await wb.xlsx.writeBuffer();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download='TEBLIGAT_YAZI_TAKIP_FILTRELENMIS.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){alert('Filtrelenmiş tablo Excel’e aktarılamadı: '+e.message);}}},'⬇ Görünen Tabloyu Excel’e Aktar');tools.appendChild(fieldFilters);tools.appendChild(reset);tools.appendChild(exportBtn);
     const filterPanel=el('div');
+    filterPanel.appendChild(presets);filterPanel.appendChild(presetHelp);
     filterPanel.appendChild(globalSearch);filterPanel.appendChild(fieldFilters);filterPanel.appendChild(reset);filterPanel.appendChild(exportBtn);
     tools.innerHTML='';
     const filterHeading=el('h4',{style:'margin:0 0 10px;cursor:pointer;'},'▾ Filtreleme ve Arama');

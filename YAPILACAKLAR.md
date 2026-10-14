@@ -6,11 +6,16 @@
 
 ### Sayfa ve GitHub açıklamaları
 - [x] **Sayfa başlığı ve açıklamasını güncelle:** HTML `title` ve meta açıklaması güncellendi.
-- [ ] **GitHub açıklamalarını güncelle:** Depo açıklamasını GitHub üzerindeki kısa tanıtım alanında güncelle. README proje kapsamı ve kullanım bağlantısıyla yenilendi.
+- [x] **GitHub açıklamalarını güncelle:** Depo açıklaması ve konuları güncellendi.
 
 ### Kullanıcı kişiselleştirme ayarları
-- [ ] **Dashboard bildirimlerini kişiselleştirme:** Kullanıcı bildirim kartlarının yerini değiştirebilsin ve istemediği bildirimleri kapatabilsin.
-- [ ] **Sidebar menüsünü kişiselleştirme:** Kullanıcı bağlantıları pasif hâle getirip görünmez yapabilsin ve menü öğelerinin sırasını değiştirebilsin.
+- [x] **Dashboard bildirimlerini kişiselleştirme:** Kartları yukarı/aşağı taşıma, sürükle-bırak ile sıralama, kartları gizleme/gösterme ve varsayılan düzene dönme kontrolleri eklendi; tercihler kullanıcı anahtarıyla tarayıcıda saklanıyor.
+  - [x] Test: Kullanıcı, dişli simgesini ve kartları sürükleyerek sıralamayı başarıyla test etti.
+  - [ ] Mobil test: Telefon/tablet ekranlarında görünüm, dokunmatik sürükleme, ok düğmeleri ve tercihlerin korunması kontrol edilecek.
+- [x] **Sidebar menüsünü kişiselleştirme:** Menü bölümlerini gizleme/gösterme ve sıralarını değiştirme; görünür alt bağlantıları tek tek gizleme/gösterme ayarları eklendi. Tarayıcıda kullanıcı klasörüne göre saklanır.
+  - [x] Test: Kullanıcı bölüm sıralama, gizleme/gösterme, tercihlerin korunması ve sayfa bağlantılarını test etti; sorun bildirmedi.
+  - [x] Tasarım kararı: “Karşıt İnceleme Doldur” adımları birbirine bağlı olduğundan alt menüde ayrıca listelenmeyecek.
+  - [ ] Mobil test: Menü görünümü ve dokunmatik etkileşimler daha sonra kontrol edilecek.
 
 ### e-Karşıt Takip Kayıtları
 - [x] **Hazır kaydedilmiş filtreler:** e-Karşıt Takip Kayıtları tablosuna arama ve sütun filtrelerini adlandırarak kaydetme, yeniden uygulama ve silme fonksiyonları eklendi. Kayıtlar seçili kullanıcı klasörü adına göre tarayıcıda saklanır.
@@ -28,11 +33,11 @@
   - [x] Test: Kullanıcı, dashboard sayısını kullanıcı klasöründeki arşiv dosyalarıyla karşılaştırıp olumlu sonuç bildirdi.
 
 ### GİB ve tarayıcı eklentisi
-- [ ] **GİB Tebligat Takip modülü:** Ayrı menü, yerel JSON kayıt dosyası, tablo/arama/Excel dışa aktarımı ve e-Tebligat sayfasından eklentiyle çok sayfalı aktarım eklendi.
+- [x] **GİB Tebligat Takip modülü:** Ayrı menü, yerel JSON kayıt dosyası, tablo/arama/Excel dışa aktarımı ve e-Tebligat sayfasından eklentiyle çok sayfalı aktarım eklendi.
   - [x] Test: 67 kaydın tamamı tabloda görünüyor; ikinci aktarımda mükerrer kayıt oluşmuyor; Excel çıktısı açılıyor ve tarihler doğru. Kullanıcı tarafından doğrulandı.
 - [ ] **Eksiklik yazısını GİB e-Tebligat sayfasından alma:** İsteğe bağlı “PDF Kaydet” ve kayıtlı PDF’yi açma akışı eklendi; gerçek GİB oturumuyla uçtan uca test bekliyor.
 - [ ] **GİB e-Karşıt aktarımı:** Daha önce “Pasife Çekilmiş” durumunda olup sonradan onaylanan kayıtların durumlarını doğru şekilde güncelle.
-- [ ] **“GİB İadem Nerede” menüsünü yakalama** akışını ekle.
+- [ ] **“GİB İadem Nerede” modülü:** Menüyü yakalama akışını ekle ve vergi dairesi üzerinden toplu dönem sorgulama/güncelleme işlevini geliştir.
 - [ ] **YMM Yazıları menüsünü** tamamlama.
 - [ ] **e-Karşıt Takip modülünü mükellefe uyarlama:** Takip ekranı ve iş akışlarını mükellef bazında çalışacak şekilde düzenle.
 - [ ] **GİB sayfasındaki eklenti butonlarını kaldırma:** Eklentinin GİB sayfasına enjekte ettiği butonlar yerine, işlemleri uygulamanın kendi sayfası içerisinden başlatılabilecek butonlar oluştur.

@@ -800,8 +800,30 @@ async function renderWelcomePage(){
       ['⏳','Gönderilen İptal Talebi Onay Bekliyor',eKarsitIptalTalepBekliyor,'İptal talebi onay bekleyen kayıtlar','e-karsit-takip',{field:'Durum',value:'Gönderilen İptal Talebi Onay Bekliyor'}],
       ['⛔','Pasife Çekilmiş',eKarsitPasifeCekilmis,'Pasife çekilmiş karşıt incelemeler','e-karsit-takip',{field:'Durum',value:'Pasife Çekilmiş'}]
     ];
-    dashboardCards.forEach(([icon,title,count,desc,page,filter])=>{
-      const card=el('div',{class:'card',style:'margin:0;cursor:pointer;min-height:132px;transition:transform .15s,box-shadow .15s;',onclick:()=>{
+    // Dashboard kartlarının sırası ve görünürlüğü kullanıcı bazında tarayıcıda saklanır.
+    const dashboardPreferenceScope=String(info?.kullanici?.vkn||info?.kullanici?.adSoyad||userStore?.directoryHandle?.name||'varsayilan').trim().toLocaleLowerCase('tr-TR');
+    const dashboardPreferenceKey='ekarsit-dashboard-cards:'+dashboardPreferenceScope;
+    const readDashboardPreferences=()=>{
+      try{
+        const saved=JSON.parse(localStorage.getItem(dashboardPreferenceKey)||'{}');
+        return {order:Array.isArray(saved.order)?saved.order:[],hidden:Array.isArray(saved.hidden)?saved.hidden:[]};
+      }catch(e){return {order:[],hidden:[]};}
+    };
+    let dashboardPreferences=readDashboardPreferences();
+    const saveDashboardPreferences=()=>{
+      try{localStorage.setItem(dashboardPreferenceKey,JSON.stringify(dashboardPreferences));}
+      catch(e){alert('Dashboard tercihleri tarayıcıya kaydedilemedi. Tarayıcı depolama alanını kontrol edin.');}
+    };
+    const sortDashboardCards=()=>{
+      const positions=new Map(dashboardPreferences.order.map((title,index)=>[title,index]));
+      dashboardCards.sort((a,b)=>(positions.get(a[1])??9999)-(positions.get(b[1])??9999));
+    };
+    const renderDashboardGrid=()=>{
+      grid.innerHTML='';
+      sortDashboardCards();
+      dashboardCards.forEach(([icon,title,count,desc,page,filter])=>{
+        if(dashboardPreferences.hidden.includes(title)) return;
+        const card=el('div',{class:'card',style:'margin:0;cursor:pointer;min-height:132px;transition:transform .15s,box-shadow .15s;',onclick:()=>{
         window.dashboardTableFilter=filter||null;
         if(page==='archive-upload') renderArchiveUploadPage();
         else if(page==='user-info') renderUserInfoPage();
@@ -817,7 +839,120 @@ async function renderWelcomePage(){
       card.appendChild(el('div',{style:'font-weight:700;margin-top:4px;'},title));
       card.appendChild(el('div',{class:'hint',style:'margin-top:4px;'},desc));
       grid.appendChild(card);
+      });
+    };
+    renderDashboardGrid();
+
+    const preferenceCard=el('div',{class:'card',style:'margin-top:14px;'});
+    const preferenceHeader=el('div',{style:'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;'});
+    preferenceHeader.appendChild(el('div',{},[
+      el('h3',{style:'margin:0;'},'Dashboard Kişiselleştirme'),
+      el('div',{class:'hint',style:'margin-top:4px;'},'Kartları gizleyin veya sıralarını değiştirin. Tercihler bu kullanıcı için tarayıcıda saklanır.')
+    ]));
+    const preferenceToggle=el('button',{
+      class:'btn btn-secondary dashboard-preference-toggle',
+      type:'button',
+      title:'Kartları kişiselleştir',
+      'aria-label':'Kartları kişiselleştir',
+      'aria-expanded':'false',
+      style:'display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;padding:0;font-size:20px;'
+    },'⚙');
+    preferenceHeader.appendChild(preferenceToggle);
+    preferenceCard.appendChild(preferenceHeader);
+    const preferencePanel=el('div',{style:'display:none;margin-top:12px;'});
+    let draggedDashboardTitle=null;
+    const persistDashboardOrder=()=>{
+      dashboardPreferences.order=dashboardCards.map(x=>x[1]);
+      saveDashboardPreferences();
+      renderDashboardGrid();
+      renderPreferencePanel();
+    };
+    const renderPreferencePanel=()=>{
+      preferencePanel.innerHTML='';
+      const panelHint=el('div',{class:'hint info'},'Kartları tutup sürükleyerek sıralayın. İsterseniz ok düğmelerini de kullanabilirsiniz.');
+      preferencePanel.appendChild(panelHint);
+      const resetButton=el('button',{class:'btn btn-ghost',type:'button',style:'margin-bottom:10px;'},'Varsayılan Sıraya Dön ve Tüm Kartları Göster');
+      resetButton.addEventListener('click',()=>{
+        dashboardPreferences={order:[],hidden:[]};
+        saveDashboardPreferences();renderDashboardGrid();renderPreferencePanel();
+      });
+      preferencePanel.appendChild(resetButton);
+      dashboardCards.forEach(([icon,title])=>{
+        const row=el('div',{
+          class:'dashboard-preference-row',
+          draggable:true,
+          style:'display:flex;align-items:center;gap:8px;padding:8px;border-top:1px solid var(--border);border-radius:6px;flex-wrap:wrap;transition:background .15s,opacity .15s;'
+        });
+        row.addEventListener('dragstart',e=>{
+          draggedDashboardTitle=title;
+          row.style.opacity='.45';
+          if(e.dataTransfer){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',title);}
+        });
+        row.addEventListener('dragend',()=>{
+          draggedDashboardTitle=null;
+          row.style.opacity='';
+          row.style.background='';
+          preferencePanel.querySelectorAll('.dashboard-preference-row').forEach(r=>r.style.background='');
+        });
+        row.addEventListener('dragover',e=>{
+          e.preventDefault();
+          if(draggedDashboardTitle && draggedDashboardTitle!==title) row.style.background='var(--panel-hover, rgba(21,94,117,.10))';
+          if(e.dataTransfer)e.dataTransfer.dropEffect='move';
+        });
+        row.addEventListener('dragleave',()=>{row.style.background='';});
+        row.addEventListener('drop',e=>{
+          e.preventDefault();
+          row.style.background='';
+          const sourceTitle=draggedDashboardTitle || (e.dataTransfer?e.dataTransfer.getData('text/plain'):'');
+          if(!sourceTitle || sourceTitle===title)return;
+          sortDashboardCards();
+          const from=dashboardCards.findIndex(x=>x[1]===sourceTitle);
+          const to=dashboardCards.findIndex(x=>x[1]===title);
+          if(from<0||to<0)return;
+          const [moved]=dashboardCards.splice(from,1);
+          dashboardCards.splice(to,0,moved);
+          persistDashboardOrder();
+        });
+        const grip=el('span',{title:'Sürükleyerek sırala','aria-hidden':'true',style:'cursor:grab;touch-action:none;font-size:18px;color:var(--muted);padding:0 4px;'},'⠿');
+        row.appendChild(grip);
+        const checkbox=el('input',{type:'checkbox',checked:!dashboardPreferences.hidden.includes(title),'aria-label':title+' kartını göster'});
+        checkbox.addEventListener('change',()=>{
+          if(checkbox.checked) dashboardPreferences.hidden=dashboardPreferences.hidden.filter(x=>x!==title);
+          else dashboardPreferences.hidden=[...dashboardPreferences.hidden,title];
+          saveDashboardPreferences();renderDashboardGrid();
+        });
+        row.appendChild(checkbox);
+        row.appendChild(el('span',{style:'flex:1;min-width:180px;'},title));
+        const up=el('button',{class:'btn btn-ghost',type:'button',title:'Yukarı taşı','aria-label':title+' kartını yukarı taşı'},'↑');
+        const down=el('button',{class:'btn btn-ghost',type:'button',title:'Aşağı taşı','aria-label':title+' kartını aşağı taşı'},'↓');
+        up.disabled=dashboardCards.findIndex(x=>x[1]===title)===0;
+        down.disabled=dashboardCards.findIndex(x=>x[1]===title)===dashboardCards.length-1;
+        up.addEventListener('click',()=>{
+          sortDashboardCards();
+          const i=dashboardCards.findIndex(x=>x[1]===title);
+          if(i>0){[dashboardCards[i-1],dashboardCards[i]]=[dashboardCards[i],dashboardCards[i-1]];persistDashboardOrder();}
+        });
+        down.addEventListener('click',()=>{
+          sortDashboardCards();
+          const i=dashboardCards.findIndex(x=>x[1]===title);
+          if(i>=0&&i<dashboardCards.length-1){[dashboardCards[i+1],dashboardCards[i]]=[dashboardCards[i],dashboardCards[i+1]];persistDashboardOrder();}
+        });
+        row.appendChild(up);
+        row.appendChild(down);
+        preferencePanel.appendChild(row);
+      });
+    };
+    preferenceToggle.addEventListener('click',()=>{
+      const opening=preferencePanel.style.display==='none';
+      preferencePanel.style.display=opening?'block':'none';
+      preferenceToggle.setAttribute('aria-expanded',String(opening));
+      preferenceToggle.setAttribute('aria-label',opening?'Kart kişiselleştirme ayarlarını kapat':'Kartları kişiselleştir');
+      preferenceToggle.title=opening?'Kart kişiselleştirme ayarlarını kapat':'Kartları kişiselleştir';
+      preferenceToggle.textContent=opening?'×':'⚙';
+      if(opening) renderPreferencePanel();
     });
+    preferenceCard.appendChild(preferencePanel);
+    content.appendChild(preferenceCard);
     content.appendChild(grid);
 
     const activeArchive=state?.existingArchiveParsed?.mukellef;
