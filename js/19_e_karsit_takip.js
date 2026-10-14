@@ -91,6 +91,20 @@ function eKarsitTakipNorm(v){
     .replace(/[Şş]/g,'s').replace(/[Ğğ]/g,'g').replace(/[Çç]/g,'c')
     .replace(/[^a-z0-9]/g,'');
 }
+function eKarsitTakipTarihGun(value){
+  const raw=String(value??'').trim();
+  let day,month,year,m;
+  if((m=raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/))){day=Number(m[1]);month=Number(m[2]);year=Number(m[3]);}
+  else if((m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/))){year=Number(m[1]);month=Number(m[2]);day=Number(m[3]);}
+  else return null;
+  const date=new Date(Date.UTC(year,month-1,day));
+  if(date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day)return null;
+  return Math.floor(date.getTime()/86400000);
+}
+function eKarsitTakipBugunGun(){
+  const now=new Date();
+  return Math.floor(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/86400000);
+}
 function eKarsitTakipHeaderIndex(headers,name){
   const target=eKarsitTakipNorm(name);
   return headers.findIndex(h=>eKarsitTakipNorm(h)===target);
@@ -283,7 +297,16 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
         const target=wanted.toLocaleLowerCase('tr-TR');
         return data.headers[i]==='Durum'?actual===target:actual.includes(target);
       });
-      return searchMatches&&columnMatches;
+      let dashboardMatches=true;
+      if(pageDashboardFilter?.mode==='due-overdue'||pageDashboardFilter?.mode==='due-soon'){
+        const statusIsWaiting=eKarsitTakipNorm(r['Durum'])==='cevapbekliyor';
+        const dueDay=eKarsitTakipTarihGun(r['Son Tarih']);
+        const todayDay=eKarsitTakipBugunGun();
+        dashboardMatches=statusIsWaiting&&dueDay!==null&&(pageDashboardFilter.mode==='due-overdue'
+          ? dueDay<todayDay
+          : dueDay>=todayDay&&dueDay<=todayDay+5);
+      }
+      return searchMatches&&columnMatches&&dashboardMatches;
     });
     if(sortIndex>=0)rows.sort((a,b)=>String(a[data.headers[sortIndex]]??'').localeCompare(String(b[data.headers[sortIndex]]??''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
     visibleRows=rows.slice();
