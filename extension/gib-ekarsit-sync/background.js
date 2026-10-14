@@ -1,5 +1,6 @@
 const APP_URL='https://webtasarim70.github.io/ekarsit/';
 const GIB_URL='https://eymm.gib.gov.tr/portal/karsitIncelemeTutanagi*';
+let preferredTebligatAppTabId=null;
 
 async function getOrOpenGibTab(){
   const tabs=await chrome.tabs.query({url:GIB_URL});
@@ -40,7 +41,7 @@ async function getOrOpenTebligatTab(){
 
 async function sendTebligatStatusToApp(status,message){
   const tabs=await chrome.tabs.query({url:[APP_URL+'*','http://localhost/*','http://127.0.0.1/*']});
-  const tab=tabs.find(t=>t.active&&t.id)||tabs.find(t=>t.id);
+  const tab=tabs.find(t=>t.id===preferredTebligatAppTabId)||tabs.find(t=>t.active&&t.id)||tabs.find(t=>t.id);
   if(tab?.id){try{await chrome.tabs.sendMessage(tab.id,{type:'GIB_TEBLIGAT_SYNC_STATUS',status,message:message||''});}catch(_){}}
 }
 
@@ -55,6 +56,7 @@ async function sendPdfStatusToApp(payload){
 
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
   if(message?.type==='GIB_TEBLIGAT_START_SYNC'){
+    preferredTebligatAppTabId=sender?.tab?.id||null;
     sendResponse({ok:true,message:'GİB e-Tebligat senkronizasyonu başlatıldı.'});
     (async()=>{
       try{
@@ -147,7 +149,7 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
   if(message?.type==='GIB_TEBLIGAT_SEND_TO_APP'){
     (async()=>{
       const tabs=await chrome.tabs.query({url:[APP_URL+'*','http://localhost/*','http://127.0.0.1/*']});
-      let tab=tabs.find(t=>t.active&&t.id)||tabs.find(t=>t.id);
+      let tab=tabs.find(t=>t.id===preferredTebligatAppTabId)||tabs.find(t=>t.active&&t.id)||tabs.find(t=>t.id);
       if(!tab?.id){
         tab=await chrome.tabs.create({url:APP_URL});
         await new Promise(resolve=>{
@@ -158,6 +160,7 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
       if(!tab?.id)throw new Error('e-Karşıt uygulama sekmesi açılamadı.');
       await chrome.tabs.sendMessage(tab.id,{type:'GIB_TEBLIGAT_DATA',payload:message.payload});
       await chrome.tabs.update(tab.id,{active:true});
+      preferredTebligatAppTabId=null;
       sendResponse({ok:true});
     })().catch(error=>sendResponse({ok:false,message:error?.message||String(error)}));
     return true;
