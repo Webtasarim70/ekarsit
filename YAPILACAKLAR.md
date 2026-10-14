@@ -6,10 +6,11 @@
 
 ### Sayfa ve GitHub açıklamaları
 - [x] **Sayfa başlığı ve açıklamasını güncelle:** HTML `title` ve meta açıklaması güncellendi.
-- [ ] **GitHub açıklamalarını güncelle:** Depo açıklamasını GitHub üzerindeki kısa tanıtım alanında güncelle. README proje kapsamı ve kullanım bağlantısıyla yenilendi.
+- [x] **GitHub açıklamalarını güncelle:** Depo açıklaması ve konuları güncellendi.
 
 ### Kullanıcı kişiselleştirme ayarları
-- [ ] **Dashboard bildirimlerini kişiselleştirme:** Kullanıcı bildirim kartlarının yerini değiştirebilsin ve istemediği bildirimleri kapatabilsin.
+- [x] **Dashboard bildirimlerini kişiselleştirme:** Kartları yukarı/aşağı taşıma, kartları gizleme/gösterme ve varsayılan düzene dönme kontrolleri eklendi; tercihler kullanıcı anahtarıyla tarayıcıda saklanıyor.
+  - [ ] Test: Kart sırasının ve gizleme tercihlerinin sayfa yenilendiğinde korunduğunu; kart bağlantıları ve sayaçların değişmediğini kullanıcı doğrulasın.
 - [ ] **Sidebar menüsünü kişiselleştirme:** Kullanıcı bağlantıları pasif hâle getirip görünmez yapabilsin ve menü öğelerinin sırasını değiştirebilsin.
 
 ### e-Karşıt Takip Kayıtları
