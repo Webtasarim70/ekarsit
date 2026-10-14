@@ -43,6 +43,68 @@
   wrap.append(menu,fab);
   document.documentElement.appendChild(wrap);
 
+  // Kullanıcı logolu yüzen butonu sürükleyerek taşıyabilir; konumu sayfa yenilemelerinde korunur.
+  fab.style.touchAction='none';
+  fab.style.cursor='grab';
+  const positionKey='ekarsitGibFabPosition';
+  const clamp=(value,min,max)=>Math.min(Math.max(value,min),Math.max(min,max));
+  const placeWrap=(left,top)=>{
+    const margin=8;
+    const rect=wrap.getBoundingClientRect();
+    const x=clamp(left,margin,window.innerWidth-rect.width-margin);
+    const y=clamp(top,margin,window.innerHeight-rect.height-margin);
+    wrap.style.left=x+'px';
+    wrap.style.top=y+'px';
+    wrap.style.right='auto';
+    wrap.style.bottom='auto';
+    return {x,y};
+  };
+  try {
+    const saved=JSON.parse(localStorage.getItem(positionKey)||'null');
+    if(saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+      requestAnimationFrame(()=>placeWrap(saved.x,saved.y));
+    }
+  } catch (_) {}
+  let dragState=null;
+  let suppressNextClick=false;
+  fab.addEventListener('pointerdown',event=>{
+    if(event.button!==0 && event.pointerType!=='touch') return;
+    const rect=wrap.getBoundingClientRect();
+    dragState={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,left:rect.left,top:rect.top,moved:false};
+    fab.style.cursor='grabbing';
+    try { fab.setPointerCapture(event.pointerId); } catch (_) {}
+  });
+  fab.addEventListener('pointermove',event=>{
+    if(!dragState || event.pointerId!==dragState.pointerId) return;
+    const dx=event.clientX-dragState.startX, dy=event.clientY-dragState.startY;
+    if(Math.abs(dx)>4 || Math.abs(dy)>4) dragState.moved=true;
+    if(dragState.moved) {
+      event.preventDefault();
+      const p=placeWrap(dragState.left+dx,dragState.top+dy);
+      try { localStorage.setItem(positionKey,JSON.stringify({x:p.x,y:p.y})); } catch (_) {}
+    }
+  });
+  const finishDrag=event=>{
+    if(!dragState || event.pointerId!==dragState.pointerId) return;
+    suppressNextClick=dragState.moved;
+    dragState=null;
+    fab.style.cursor='grab';
+  };
+  fab.addEventListener('pointerup',finishDrag);
+  fab.addEventListener('pointercancel',finishDrag);
+  fab.addEventListener('click',event=>{
+    if(suppressNextClick) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      suppressNextClick=false;
+    }
+  },true);
+  window.addEventListener('resize',()=>{
+    const rect=wrap.getBoundingClientRect();
+    const p=placeWrap(rect.left,rect.top);
+    try { localStorage.setItem(positionKey,JSON.stringify({x:p.x,y:p.y})); } catch (_) {}
+  });
+
   let activeAction=null;
 
   const reset=()=>{
