@@ -22,6 +22,28 @@ async function getOrOpenGibTab(){
   return tab;
 }
 
+async function getOrOpenTebligatTab(){
+  const pattern='https://dijital.gib.gov.tr/portal/e-tebligat*';
+  const tabs=await chrome.tabs.query({url:pattern});
+  let tab=tabs[0];
+  if(!tab?.id){
+    tab=await chrome.tabs.create({url:'https://dijital.gib.gov.tr/portal/e-tebligat'});
+    await new Promise((resolve,reject)=>{
+      const timeout=setTimeout(()=>{chrome.tabs.onUpdated.removeListener(listener);reject(new Error('GİB e-Tebligat sayfası zamanında açılamadı.'));},30000);
+      const listener=(tabId,info)=>{if(tabId===tab.id&&info.status==='complete'){clearTimeout(timeout);chrome.tabs.onUpdated.removeListener(listener);resolve();}};
+      chrome.tabs.onUpdated.addListener(listener);
+    });
+  }
+  if(!tab?.id)throw new Error('GİB e-Tebligat sayfası açılamadı.');
+  return tab;
+}
+
+async function sendTebligatStatusToApp(status,message){
+  const tabs=await chrome.tabs.query({url:[APP_URL+'*','http://localhost/*','http://127.0.0.1/*']});
+  const tab=tabs.find(t=>t.active&&t.id)||tabs.find(t=>t.id);
+  if(tab?.id){try{await chrome.tabs.sendMessage(tab.id,{type:'GIB_TEBLIGAT_SYNC_STATUS',status,message:message||''});}catch(_){}}
+}
+
 async function sendPdfStatusToApp(payload){
   // PDF durumunu hem yayımlanmış uygulamaya hem localhost test sekmesine ilet.
   const tabs=await chrome.tabs.query({url:[APP_URL+'*','http://localhost/*','http://127.0.0.1/*']});
@@ -32,6 +54,21 @@ async function sendPdfStatusToApp(payload){
 }
 
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
+  if(message?.type==='GIB_TEBLIGAT_START_SYNC'){
+    sendResponse({ok:true,message:'GİB e-Tebligat senkronizasyonu başlatıldı.'});
+    (async()=>{
+      try{
+        const tab=await getOrOpenTebligatTab();
+        await chrome.tabs.update(tab.id,{active:true});
+        await chrome.tabs.sendMessage(tab.id,{type:'GIB_TEBLIGAT_TRIGGER_SYNC'});
+        await sendTebligatStatusToApp('working','GİB e-Tebligat listesinden kayıtlar alınıyor…');
+      }catch(error){
+        await sendTebligatStatusToApp('error',error?.message||String(error));
+      }
+    })();
+    return true;
+  }
+
   if(message?.type==='EKARSIT_START_GIB_SYNC'){
     // Uygulamaya hemen yanıt ver; GİB açılması/aktarımı uzun sürebilir.
     // Aksi halde uygulamadaki kısa timeout, eklenti çalışıyor olsa bile
@@ -109,8 +146,8 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
 
   if(message?.type==='GIB_TEBLIGAT_SEND_TO_APP'){
     (async()=>{
-      const tabs=await chrome.tabs.query({url:APP_URL+'*'});
-      let tab=tabs[0];
+      const tabs=await chrome.tabs.query({url:[APP_URL+'*','http://localhost/*','http://127.0.0.1/*']});
+      let tab=tabs.find(t=>t.active&&t.id)||tabs.find(t=>t.id);
       if(!tab?.id){
         tab=await chrome.tabs.create({url:APP_URL});
         await new Promise(resolve=>{
