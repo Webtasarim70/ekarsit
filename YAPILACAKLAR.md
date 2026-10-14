@@ -9,9 +9,11 @@
 - [x] **GitHub açıklamalarını güncelle:** Depo açıklaması ve konuları güncellendi.
 
 ### Kullanıcı kişiselleştirme ayarları
-- [x] **Dashboard bildirimlerini kişiselleştirme:** Kartları yukarı/aşağı taşıma, kartları gizleme/gösterme ve varsayılan düzene dönme kontrolleri eklendi; tercihler kullanıcı anahtarıyla tarayıcıda saklanıyor.
-  - [ ] Test: Kart sırasının ve gizleme tercihlerinin sayfa yenilendiğinde korunduğunu; kart bağlantıları ve sayaçların değişmediğini kullanıcı doğrulasın.
-- [ ] **Sidebar menüsünü kişiselleştirme:** Kullanıcı bağlantıları pasif hâle getirip görünmez yapabilsin ve menü öğelerinin sırasını değiştirebilsin.
+- [x] **Dashboard bildirimlerini kişiselleştirme:** Kartları yukarı/aşağı taşıma, sürükle-bırak ile sıralama, kartları gizleme/gösterme ve varsayılan düzene dönme kontrolleri eklendi; tercihler kullanıcı anahtarıyla tarayıcıda saklanıyor.
+  - [x] Test: Kullanıcı, dişli simgesini ve kartları sürükleyerek sıralamayı başarıyla test etti.
+  - [ ] Mobil test: Telefon/tablet ekranlarında görünüm, dokunmatik sürükleme, ok düğmeleri ve tercihlerin korunması kontrol edilecek.
+- [ ] **Sidebar menüsünü kişiselleştirme:** Menü bölümlerini gizleme/gösterme ve sıralarını değiştirme; görünür alt bağlantıları tek tek gizleme/gösterme ayarları eklendi. Tarayıcıda kullanıcı klasörüne göre saklanır.
+  - [ ] Test: Bölüm sıralama, gizleme/gösterme, yenileme sonrası tercihlerin korunması ve sayfa bağlantıları kontrol edilecek.
 
 ### e-Karşıt Takip Kayıtları
 - [x] **Hazır kaydedilmiş filtreler:** e-Karşıt Takip Kayıtları tablosuna arama ve sütun filtrelerini adlandırarak kaydetme, yeniden uygulama ve silme fonksiyonları eklendi. Kayıtlar seçili kullanıcı klasörü adına göre tarayıcıda saklanır.
