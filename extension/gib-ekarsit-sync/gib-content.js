@@ -97,8 +97,35 @@
   syncButton.addEventListener('click',()=>start('sync'));
   excelButton.addEventListener('click',()=>start('excel'));
 
+  const reportPdfStatus=(requestId,status,message='',filename='')=>{
+    chrome.runtime.sendMessage({type:'EKARSIT_PDF_STATUS_TO_APP',requestId,status,message,filename},()=>{});
+  };
+
   window.addEventListener('message',event=>{
-    if(event.source!==window || event.data?.source!=='ekarsit-gib-main') return;
+    if(event.source!==window) return;
+    if(event.data?.source==='ekarsit-extension' && event.data.type==='EKARSIT_FETCH_PDF'){
+      window.postMessage({source:'ekarsit-extension',type:'EKARSIT_FETCH_PDF',payload:event.data.payload},'*');
+      return;
+    }
+    if(event.data?.source!=='ekarsit-gib-main') return;
+
+    if(event.data.type==='EKARSIT_PDF_RESULT'){
+      const {requestId,result}=event.data;
+      const rawName=String(result?.fileName||'Karşıt İnceleme Yazısı').replace(/\\.(pdf)$/i,'');
+      const filename=(rawName.replace(/[\\\\/:*?"<>|]+/g,'_').trim()||'Karsit_Inceleme_Yazisi')+'.pdf';
+      chrome.runtime.sendMessage({type:'EKARSIT_DOWNLOAD_PDF',dataUrl:'data:application/pdf;base64,'+result.file,filename},response=>{
+        if(chrome.runtime.lastError || !response?.ok){
+          reportPdfStatus(requestId,'error',response?.message||chrome.runtime.lastError?.message||'PDF indirilemedi.',filename);
+        }else{
+          reportPdfStatus(requestId,'success','PDF indirme başlatıldı.',filename);
+        }
+      });
+      return;
+    }
+    if(event.data.type==='EKARSIT_PDF_ERROR'){
+      reportPdfStatus(event.data.requestId,'error',event.data.message||'PDF alınamadı.');
+      return;
+    }
 
     if(event.data.type==='EKARSIT_FETCH_STATUS'){
       if(activeAction==='sync') syncButton.textContent='GİB kayıtları alınıyor…';
@@ -133,6 +160,11 @@
   });
 
   chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
+    if(message?.type==='EKARSIT_FETCH_PDF'){
+      window.postMessage({source:'ekarsit-extension',type:'EKARSIT_FETCH_PDF',payload:message.payload},'*');
+      sendResponse({ok:true});
+      return true;
+    }
     if(message?.type==='EKARSIT_TRIGGER_SYNC'){
       start('sync');
       sendResponse({ok:true});
