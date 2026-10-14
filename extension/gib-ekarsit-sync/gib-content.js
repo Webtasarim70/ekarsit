@@ -103,10 +103,6 @@
 
   window.addEventListener('message',event=>{
     if(event.source!==window) return;
-    if(event.data?.source==='ekarsit-extension' && event.data.type==='EKARSIT_FETCH_PDF'){
-      window.postMessage({source:'ekarsit-extension',type:'EKARSIT_FETCH_PDF',payload:event.data.payload},'*');
-      return;
-    }
     if(event.data?.source!=='ekarsit-gib-main') return;
 
     if(event.data.type==='EKARSIT_PDF_RESULT'){
