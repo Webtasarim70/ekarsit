@@ -267,7 +267,7 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
     trh.innerHTML='';
     const visibleColumns=tableView.order.filter(h=>!tableView.hidden.includes(h));
     visibleColumns.forEach(name=>{
-      const th=el('th',{style:'min-width:'+(name==='PDF Yazıları'?'190px':'170px')+';white-space:nowrap;'+(data.headers.includes(name)?'cursor:pointer;':''),title:data.headers.includes(name)?'Sıralamak için tıklayın':''},name);
+      const th=el('th',{style:'min-width:'+(name==='PDF Yazıları'?'190px':'170px')+';height:72px;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;vertical-align:bottom;padding:12px 8px;line-height:1.35;'+(data.headers.includes(name)?'cursor:pointer;':''),title:data.headers.includes(name)?'Sıralamak için tıklayın':''},name);
       if(data.headers.includes(name)){
         const i=data.headers.indexOf(name);th.textContent=name+' '+(sortIndex===i?(sortDirection===1?'▲':'▼'):'↕');
         th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});
