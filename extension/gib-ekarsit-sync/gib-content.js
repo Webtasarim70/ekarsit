@@ -107,8 +107,8 @@
 
     if(event.data.type==='EKARSIT_PDF_RESULT'){
       const {requestId,result}=event.data;
-      const rawName=String(result?.fileName||'Karşıt İnceleme Yazısı').replace(/\\.(pdf)$/i,'');
-      const filename=(rawName.replace(/[\\\\/:*?"<>|]+/g,'_').trim()||'Karsit_Inceleme_Yazisi')+'.pdf';
+      const rawName=String(result?.fileName||'Karşıt İnceleme Yazısı').replace(/\.pdf$/i,'');
+      const filename=(rawName.replace(/[\\/:*?"<>|]+/g,'_').trim()||'Karsit_Inceleme_Yazisi')+'.pdf';
       chrome.runtime.sendMessage({type:'EKARSIT_DOWNLOAD_PDF',dataUrl:'data:application/pdf;base64,'+result.file,filename},response=>{
         if(chrome.runtime.lastError || !response?.ok){
           reportPdfStatus(requestId,'error',response?.message||chrome.runtime.lastError?.message||'PDF indirilemedi.',filename);
