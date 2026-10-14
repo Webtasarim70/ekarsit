@@ -47,8 +47,18 @@
     const first = group.querySelector('.nav-item');
     return first ? itemLabel(first) : '';
   };
-  const itemKey = (groupId, item) => groupId + '::' + itemLabel(item);
-
+  const itemKey = (groupId, itemOrLabel) => groupId + '::' + (typeof itemOrLabel === 'string' ? normalize(itemOrLabel) : itemLabel(itemOrLabel));
+  // Alt bağlantıların tamamı burada tanımlıdır; menü kapalı olsa da ayar panelinde görünür.
+  const knownItems = {
+    'Kullanıcı': ['Kullanıcı','YMM Rehberi','Firma Rehberi','Eksiklik/Cevap Yazısı Takip','GİB Tebligat Takip','İade Takip Listesi','e-Karşıt Takip'],
+    'Firma Arşiv İşlemleri': ['Firma Arşiv Dosyası Yükle / Oluştur','Firma Arşiv Görüntüle','Firma Arşiv Düzenle','Dosyadan Veri Al','Güncel Firma Arşivini İndir'],
+    'Karşıt İnceleme Doldur': ['1. Karşıt İnceleme Doldur','Karşıt İnceleme Doldur'],
+    'Tutanak Cevabı İnceleme': ['Tutanak Yükle','Tabloları Yükle','Tutanak Görüntüle','Eksik Bilgi Kontrolü'],
+    'Araçlar': ['e-Defter XML / Berat Görüntüle','e-Fatura XML Görüntüle','XML’den KDV Listesi Oluştur'],
+    'YMM Yazıları': ['Ayarlar','Bilgi İstenen Fatura','Gerekli Bilgiler','Sonuç'],
+    'Geri Bildirim / Hata Bildir': ['Geri Bildirim / Hata Bildir'],
+    'Hoş Geldiniz': ['Hoş Geldiniz']
+  };
   function applyPreferencesAndToolbar(){
     const nav = document.getElementById('step-nav');
     if (!nav) return;
@@ -116,13 +126,11 @@
         top.appendChild(up); top.appendChild(down);
         row.appendChild(top);
 
-        const items = Array.from(group.querySelectorAll('.nav-item'));
-        const hasChildren = items.length > 1;
-        const children = hasChildren ? items.slice(1) : items;
-        if (children.length) {
+        const labels = knownItems[id] || [];
+        if (labels.length) {
           const sub = make('div', undefined, 'margin:7px 0 0 20px;display:flex;flex-direction:column;gap:5px;');
-          children.forEach(item => {
-            const key = itemKey(id, item);
+          labels.forEach(label => {
+            const key = itemKey(id, label);
             const line = make('label', undefined, 'display:flex;align-items:flex-start;gap:6px;font-size:12px;line-height:1.35;');
             const check = make('input');
             check.type = 'checkbox'; check.checked = !prefs.hiddenItems.includes(key);
@@ -131,7 +139,7 @@
               next.hiddenItems = check.checked ? next.hiddenItems.filter(x => x !== key) : [...new Set([...next.hiddenItems, key])];
               savePreferences(next); window.renderNav();
             });
-            line.appendChild(check); line.appendChild(make('span', itemLabel(item)));
+            line.appendChild(check); line.appendChild(make('span', label));
             sub.appendChild(line);
           });
           row.appendChild(sub);
