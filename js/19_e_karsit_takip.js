@@ -6,6 +6,7 @@ const EKARSIT_TAKIP_HEADERS=[
   'Son Düzenleme Tarihi',
   'Onay Tarihi',
   'Durum',
+  'Pasiflik Durumu',
   'Karşıt İnceleme Talep Eden YMM VKN/TCKN',
   'Karşıt İnceleme Talep Eden YMM Adı Soyadı/Ünvanı',
   'Tasdik Hizmeti Verilen Mükellef VKN/TCKN',
@@ -21,16 +22,21 @@ const EKARSIT_TAKIP_HEADERS=[
 ];
 
 function eKarsitTakipDefaultData(){
-  return {schemaVersion:1,headers:[...EKARSIT_TAKIP_HEADERS],records:[]};
+  return {schemaVersion:2,headers:[...EKARSIT_TAKIP_HEADERS],records:[]};
 }
 async function eKarsitTakipRead(){
   if(!userStore?.directoryHandle) return eKarsitTakipDefaultData();
   try{
     const h=await userStore.directoryHandle.getFileHandle(EKARSIT_TAKIP_FILE);
     const d=JSON.parse(await (await h.getFile()).text());
-    const headers=Array.isArray(d?.headers)&&d.headers.length?d.headers:[...EKARSIT_TAKIP_HEADERS];
-    const records=Array.isArray(d?.records)?d.records:[];
-    return {schemaVersion:1,headers,records};
+    const sourceRecords=Array.isArray(d?.records)?d.records:[];
+    // Şemayı güncel tut: eski kayıtlarda bulunmayan Pasiflik Durumu alanı boş bırakılır.
+    const records=sourceRecords.map(r=>{
+      const record={...(r||{})};
+      EKARSIT_TAKIP_HEADERS.forEach(h=>{if(record[h]===undefined) record[h]='';});
+      return record;
+    });
+    return {schemaVersion:2,headers:[...EKARSIT_TAKIP_HEADERS],records};
   }catch(e){
     if(e?.name==='NotFoundError') return eKarsitTakipDefaultData();
     throw e;
@@ -252,7 +258,9 @@ function eKarsitTakipGibNormalizeRecord(source){
   record['İşlem ID']=String(r.islemId??'').trim();
   record['Son Düzenleme Tarihi']=String(r.sonDuzenlemeTarihi??'').trim();
   record['Onay Tarihi']=String(r.onayTarihi??'').trim();
-  record['Durum']=r.isPasif===true||r.pasif===true?'Pasife Çekilmiş':String(r.durum??'').trim();
+  // İş akışı durumu ile pasiflik ayrı alanlardır; GİB her ikisini aynı anda true/Cevaplandı gönderebilir.
+  record['Durum']=String(r.durum??'').trim();
+  record['Pasiflik Durumu']=(r.isPasif===true||r.pasif===true)?'Evet':(r.isPasif===false||r.pasif===false)?'Hayır':'';
   record['Karşıt İnceleme Talep Eden YMM VKN/TCKN']=String(r.karsitIsteyenYmmVkn??'').trim();
   record['Karşıt İnceleme Talep Eden YMM Adı Soyadı/Ünvanı']=String(r.karsitIsteyenYmmAdSoyad??'').trim();
   record['Tasdik Hizmeti Verilen Mükellef VKN/TCKN']=String(r.karsitIsteyenMukellefVknTckn??'').trim();
@@ -341,6 +349,7 @@ function eKarsitTakipEditor(host,data,record,onSaved){
     if(dateFields.has(h)){input.type='date';input.value=eKarsitTakipDateForInput(record?.[h]);}
     else{input.type='text';input.value=String(record?.[h]??'');}
     if(h==='İşlem ID'&&editing) input.readOnly=true;
+    if(h==='Pasiflik Durumu') input.readOnly=true;
     controls[h]=input;box.appendChild(input);form.appendChild(box);
   });
   card.appendChild(form);
