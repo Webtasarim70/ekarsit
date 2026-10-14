@@ -141,6 +141,26 @@ function eKarsitTakipStoreSavedFilters(items){
   try{localStorage.setItem(eKarsitTakipSavedFiltersKey(),JSON.stringify(items));return true;}
   catch(e){alert('Filtreler kaydedilemedi. Tarayıcı depolama alanını kontrol edin.');return false;}
 }
+function eKarsitTakipTableViewKey(){
+  return 'ekarsit-table-view-v1:'+String(userStore?.directoryHandle?.name||'varsayilan');
+}
+function eKarsitTakipDefaultTableView(){
+  return {order:[...EKARSIT_TAKIP_HEADERS,'PDF Yazıları'],hidden:[]};
+}
+function eKarsitTakipLoadTableView(){
+  const defaults=eKarsitTakipDefaultTableView();
+  try{
+    const saved=JSON.parse(localStorage.getItem(eKarsitTakipTableViewKey())||'null');
+    if(!saved||!Array.isArray(saved.order)||!Array.isArray(saved.hidden)) return defaults;
+    const all=defaults.order;
+    const order=[...saved.order.filter(h=>all.includes(h)),...all.filter(h=>!saved.order.includes(h))];
+    return {order,hidden:saved.hidden.filter(h=>all.includes(h))};
+  }catch(e){return defaults;}
+}
+function eKarsitTakipSaveTableView(view){
+  try{localStorage.setItem(eKarsitTakipTableViewKey(),JSON.stringify(view));return true;}
+  catch(e){alert('Tablo görünümü kaydedilemedi. Tarayıcı depolama alanını kontrol edin.');return false;}
+}
 function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
   host.innerHTML='';
   const card=el('div',{class:'card',style:'margin-top:14px;'});
@@ -159,6 +179,35 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
   card.appendChild(presets);
   const presetHelp=el('div',{class:'hint',style:'margin-top:5px;'},'Mevcut arama ve sütun filtrelerini isim vererek kaydedebilir, daha sonra tek seçimle yeniden uygulayabilirsiniz. Kayıtlar bu tarayıcıda, seçili kullanıcı klasörüne göre saklanır.');
   card.appendChild(presetHelp);
+
+  let tableView=eKarsitTakipLoadTableView();
+  const viewActions=el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;'});
+  const editViewBtn=el('button',{class:'btn btn-secondary',type:'button'},'⚙ Tablo Görünümünü Düzenle');
+  const saveViewBtn=el('button',{class:'btn btn-primary',type:'button'},'Tablo Görünümünü Kaydet');
+  const defaultViewBtn=el('button',{class:'btn btn-secondary',type:'button'},'Tabloyu Varsayılan Yap');
+  viewActions.appendChild(editViewBtn);viewActions.appendChild(saveViewBtn);viewActions.appendChild(defaultViewBtn);card.appendChild(viewActions);
+  const viewEditor=el('div',{class:'card',style:'display:none;margin-top:10px;'});
+  viewEditor.appendChild(el('h4',{},'Sütunları Göster/Gizle ve Sırala'));
+  viewEditor.appendChild(el('div',{class:'hint',style:'margin-bottom:8px;'},'İşaretli sütunlar görünür. Yukarı/aşağı düğmeleri sütun sırasını değiştirir. Kaydettiğiniz görünüm bu tarayıcıda seçili kullanıcı klasörü için hatırlanır.'));
+  const viewList=el('div',{style:'display:flex;flex-direction:column;gap:5px;'});
+  viewEditor.appendChild(viewList);card.appendChild(viewEditor);
+  const renderViewEditor=()=>{
+    viewList.innerHTML='';
+    tableView.order.forEach((name,index)=>{
+      const line=el('div',{style:'display:flex;align-items:center;gap:8px;padding:6px;border:1px solid var(--border);border-radius:6px;'});
+      const check=el('input',{type:'checkbox'});check.checked=!tableView.hidden.includes(name);check.setAttribute('aria-label',name+' sütununu göster');
+      check.addEventListener('change',()=>{tableView.hidden=check.checked?tableView.hidden.filter(x=>x!==name):[...tableView.hidden.filter(x=>x!==name),name];draw();});
+      line.appendChild(check);line.appendChild(el('span',{style:'flex:1;'},name));
+      const up=el('button',{class:'btn btn-secondary',type:'button',style:'padding:3px 8px;'},'↑');up.disabled=index===0;up.title='Yukarı taşı';
+      up.addEventListener('click',()=>{if(index===0)return;[tableView.order[index-1],tableView.order[index]]=[tableView.order[index],tableView.order[index-1]];renderViewEditor();draw();});
+      const down=el('button',{class:'btn btn-secondary',type:'button',style:'padding:3px 8px;'},'↓');down.disabled=index===tableView.order.length-1;down.title='Aşağı taşı';
+      down.addEventListener('click',()=>{if(index>=tableView.order.length-1)return;[tableView.order[index+1],tableView.order[index]]=[tableView.order[index],tableView.order[index+1]];renderViewEditor();draw();});
+      line.appendChild(up);line.appendChild(down);viewList.appendChild(line);
+    });
+  };
+  editViewBtn.addEventListener('click',()=>{viewEditor.style.display=viewEditor.style.display==='none'?'block':'none';renderViewEditor();});
+  saveViewBtn.addEventListener('click',()=>{if(eKarsitTakipSaveTableView(tableView)){presetHelp.textContent='✓ Tablo görünümü kaydedildi. Sonraki ziyaretinizde bu düzen kullanılacak.';}});
+  defaultViewBtn.addEventListener('click',()=>{tableView=eKarsitTakipDefaultTableView();renderViewEditor();draw();if(eKarsitTakipSaveTableView(tableView))presetHelp.textContent='Tablo varsayılan sütun sırasına döndürüldü ve kaydedildi.';});
 
   const filtersWrap=el('div',{class:'table-column-filters',style:'margin-top:10px;'});
   const filters=data.headers.map(h=>{
@@ -185,10 +234,8 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
   card.appendChild(exportBtn);
 
   const wrap=el('div',{class:'table-scroll',style:'margin-top:10px;max-height:65vh;overflow:auto;'});
-  const table=el('table',{class:'editable-table'});const thead=el('thead');const trh=el('tr');const sortHeads=[];
-  data.headers.forEach((h,i)=>{const th=el('th',{class:'sortable-th',style:'min-width:170px;white-space:nowrap;cursor:pointer;',title:'Sıralamak için tıklayın','aria-sort':'none'},h+' ↕');th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});sortHeads.push(th);trh.appendChild(th);});
-  trh.appendChild(el('th',{style:'min-width:190px;white-space:nowrap;'},'PDF Yazıları'));
-  thead.appendChild(trh);table.appendChild(thead);const tbody=el('tbody');table.appendChild(tbody);wrap.appendChild(table);card.appendChild(wrap);
+  const table=el('table',{class:'editable-table'});const thead=el('thead');const trh=el('tr');const tbody=el('tbody');
+  thead.appendChild(trh);table.appendChild(thead);table.appendChild(tbody);wrap.appendChild(table);card.appendChild(wrap);
 
   const refreshPresetOptions=(selectedId='')=>{
     const saved=eKarsitTakipLoadSavedFilters();
@@ -216,12 +263,20 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
     });
     if(sortIndex>=0)rows.sort((a,b)=>String(a[data.headers[sortIndex]]??'').localeCompare(String(b[data.headers[sortIndex]]??''),'tr',{numeric:true,sensitivity:'base'})*sortDirection);
     visibleRows=rows.slice();
-    sortHeads.forEach((th,i)=>{th.textContent=data.headers[i]+' '+(sortIndex===i?(sortDirection===1?'▲':'▼'):'↕');th.setAttribute('aria-sort',sortIndex===i?(sortDirection===1?'ascending':'descending'):'none');});
     titleRow.querySelector('h3').textContent='e-Karşıt Takip Kayıtları ('+rows.length+' / '+data.records.length+')';
+    trh.innerHTML='';
+    const visibleColumns=tableView.order.filter(h=>!tableView.hidden.includes(h));
+    visibleColumns.forEach(name=>{
+      const th=el('th',{style:'min-width:'+(name==='PDF Yazıları'?'190px':'170px')+';white-space:nowrap;'+(data.headers.includes(name)?'cursor:pointer;':''),title:data.headers.includes(name)?'Sıralamak için tıklayın':''},name);
+      if(data.headers.includes(name)){
+        const i=data.headers.indexOf(name);th.textContent=name+' '+(sortIndex===i?(sortDirection===1?'▲':'▼'):'↕');
+        th.addEventListener('click',()=>{sortDirection=sortIndex===i?-sortDirection:1;sortIndex=i;draw();});
+      }
+      trh.appendChild(th);
+    });
     rows.forEach(r=>{
       const tr=el('tr',{style:'cursor:pointer;',title:'Düzenlemek için tıklayın'});
       tr.addEventListener('click',()=>onRowClick?.(r));
-      data.headers.forEach(h=>tr.appendChild(el('td',{},String(r[h]??''))));
       const pdfCell=el('td',{style:'white-space:nowrap;'});
       const makePdfButton=(label,teyitTuru)=>{
         const button=el('button',{class:'btn btn-secondary',type:'button',style:'margin:2px;padding:5px 8px;font-size:12px;'},label);
@@ -246,10 +301,13 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
         replyButton.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();alert('Henüz cevaplanmamış kayıt için cevap PDF’i indirilemez.');});
       }
       pdfCell.appendChild(replyButton);
-      tr.appendChild(pdfCell);
+      visibleColumns.forEach(name=>{
+        if(name==='PDF Yazıları') tr.appendChild(pdfCell);
+        else tr.appendChild(el('td',{},String(r[name]??'')));
+      });
       tbody.appendChild(tr);
     });
-    if(!rows.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:String(data.headers.length+1),style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
+    if(!rows.length)tbody.appendChild(el('tr',{},[el('td',{colSpan:String(Math.max(1,visibleColumns.length)),style:'text-align:center;padding:18px;color:var(--muted);'},'Filtreye uygun kayıt bulunamadı.')]));
   };
   savePresetBtn.addEventListener('click',()=>{
     const name=String(presetName.value||'').trim();
