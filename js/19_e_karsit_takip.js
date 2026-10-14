@@ -169,6 +169,12 @@ function eKarsitTakipLoadTableView(){
     if(!saved||!Array.isArray(saved.order)||!Array.isArray(saved.hidden)) return defaults;
     const all=defaults.order;
     const order=[...saved.order.filter(h=>all.includes(h)),...all.filter(h=>!saved.order.includes(h))];
+    // Eski kayıtlı tablo düzenlerinde yeni sütunu da Onay Tarihi'nin hemen arkasına yerleştir.
+    if(!saved.order.includes('Son Tarih')){
+      const newIndex=order.indexOf('Son Tarih');
+      const approvalIndex=order.indexOf('Onay Tarihi');
+      if(newIndex>=0&&approvalIndex>=0){order.splice(newIndex,1);order.splice(order.indexOf('Onay Tarihi')+1,0,'Son Tarih');}
+    }
     return {order,hidden:saved.hidden.filter(h=>all.includes(h))};
   }catch(e){return defaults;}
 }
