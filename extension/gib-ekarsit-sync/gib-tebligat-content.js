@@ -99,6 +99,14 @@
     btn.disabled=true;btn.textContent='Tebligatlar alınıyor…';
     window.postMessage({source:'ekarsit-extension',type:'GIB_TEBLIGAT_FETCH'},'*');
   });
+
+  chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
+    if(message?.type!=='GIB_TEBLIGAT_TRIGGER_SYNC')return;
+    btn.disabled=true;btn.textContent='Tebligatlar alınıyor…';
+    window.postMessage({source:'ekarsit-extension',type:'GIB_TEBLIGAT_FETCH'},'*');
+    sendResponse({ok:true});
+    return true;
+  });
   const reset=()=>{btn.disabled=false;btn.textContent='↻ Tebligat Takip’e Aktar / Güncelle';};
   window.addEventListener('message',event=>{
     if(event.source!==window||event.data?.source!=='ekarsit-tebligat-main')return;
