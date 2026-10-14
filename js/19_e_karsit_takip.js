@@ -35,7 +35,7 @@ async function eKarsitTakipRead(){
     const records=sourceRecords.map(r=>{
       const record={...(r||{})};
       EKARSIT_TAKIP_HEADERS.forEach(h=>{if(record[h]===undefined) record[h]='';});
-      record['Son Tarih']=eKarsitTakipSonTarih(record['Onay Tarihi'])||record['Son Tarih']||'';
+      record['Son Tarih']=eKarsitTakipSonTarihDurumaGore(record['Onay Tarihi'],record['Durum']);
       return record;
     });
     return {schemaVersion:2,headers:[...EKARSIT_TAKIP_HEADERS],records};
@@ -80,6 +80,9 @@ function eKarsitTakipSonTarih(value){
   date.setUTCDate(date.getUTCDate()+30);
   return String(date.getUTCDate()).padStart(2,'0')+'.'+String(date.getUTCMonth()+1).padStart(2,'0')+'.'+date.getUTCFullYear();
 }
+function eKarsitTakipSonTarihDurumaGore(onayTarihi,durum){
+  return eKarsitTakipNorm(durum)==='cevapbekliyor'?eKarsitTakipSonTarih(onayTarihi):'';
+}
 function eKarsitTakipNorm(v){
   return String(v??'')
     .toLocaleLowerCase('tr-TR')
@@ -121,7 +124,7 @@ async function eKarsitTakipExcelImport(file){
     const id=String(values['İşlem ID']||'').trim() || (crypto.randomUUID?crypto.randomUUID():String(Date.now()+ri));
     values['İşlem ID']=id;
     EKARSIT_TAKIP_HEADERS.forEach(h=>{if(values[h]===undefined) values[h]='';});
-    values['Son Tarih']=eKarsitTakipSonTarih(values['Onay Tarihi'])||'';
+    values['Son Tarih']=eKarsitTakipSonTarihDurumaGore(values['Onay Tarihi'],values['Durum']);
     records.push(values);
   });
   return {headers:[...EKARSIT_TAKIP_HEADERS],records};
@@ -363,7 +366,7 @@ function eKarsitTakipGibNormalizeRecord(source){
   record['İşlem ID']=String(r.islemId??'').trim();
   record['Son Düzenleme Tarihi']=String(r.sonDuzenlemeTarihi??'').trim();
   record['Onay Tarihi']=String(r.onayTarihi??'').trim();
-  record['Son Tarih']=eKarsitTakipSonTarih(record['Onay Tarihi']);
+  record['Son Tarih']=eKarsitTakipSonTarihDurumaGore(record['Onay Tarihi'],record['Durum']);
   // İş akışı durumu ile pasiflik ayrı alanlardır; GİB her ikisini aynı anda true/Cevaplandı gönderebilir.
   record['Durum']=String(r.durum??'').trim();
   record['Pasiflik Durumu']=(r.isPasif===true||r.pasif===true)?'Evet':(r.isPasif===false||r.pasif===false)?'Hayır':'';
@@ -453,9 +456,9 @@ function eKarsitTakipEditor(host,data,record,onSaved){
     box.appendChild(el('label',{style:'display:block;font-weight:600;margin-bottom:4px;'},h));
     const input=h==='Not'?el('textarea',{class:'input',style:'width:100%;box-sizing:border-box;min-height:90px;resize:vertical;',placeholder:h}):el('input',{class:'input',style:'width:100%;box-sizing:border-box;'+(h==='Son Tarih'?'color:var(--danger);font-weight:700;':''),placeholder:h});
     if(dateFields.has(h)){input.type='date';input.value=eKarsitTakipDateForInput(record?.[h]);}
-    else{input.type='text';input.value=h==='Son Tarih'?(eKarsitTakipSonTarih(record?.['Onay Tarihi'])||''):String(record?.[h]??'');}
+    else{input.type='text';input.value=h==='Son Tarih'?(eKarsitTakipSonTarihDurumaGore(record?.['Onay Tarihi'],record?.['Durum'])||''):String(record?.[h]??'');}
     if(h==='Son Tarih') input.readOnly=true;
-    if(h==='Onay Tarihi') input.addEventListener('change',()=>{if(controls['Son Tarih'])controls['Son Tarih'].value=eKarsitTakipSonTarih(eKarsitTakipDateFromInput(input.value));});
+    if(h==='Onay Tarihi'||h==='Durum') input.addEventListener('change',()=>{if(controls['Son Tarih'])controls['Son Tarih'].value=eKarsitTakipSonTarihDurumaGore(h==='Onay Tarihi'?eKarsitTakipDateFromInput(input.value):controls['Onay Tarihi'].value,h==='Durum'?input.value:controls['Durum'].value);});
     if(h==='İşlem ID'&&editing) input.readOnly=true;
     if(h==='Pasiflik Durumu') input.readOnly=true;
     controls[h]=input;box.appendChild(input);form.appendChild(box);
@@ -568,7 +571,7 @@ async function renderEKarsitTakipPage(){
     try{
       const imported=await eKarsitTakipExcelImport(file);
       const byId=new Map(data.records.map(r=>[String(r['İşlem ID']||''),r]));let added=0,updated=0;
-      imported.records.forEach(r=>{r['Son Tarih']=eKarsitTakipSonTarih(r['Onay Tarihi'])||'';const id=String(r['İşlem ID']||'');if(byId.has(id)){const existing=byId.get(id);const notValue=existing['Not']??'';Object.assign(existing,r);existing['Not']=notValue;updated++;}else{data.records.unshift(r);byId.set(id,r);added++;}});
+      imported.records.forEach(r=>{r['Son Tarih']=eKarsitTakipSonTarihDurumaGore(r['Onay Tarihi'],r['Durum']);const id=String(r['İşlem ID']||'');if(byId.has(id)){const existing=byId.get(id);const notValue=existing['Not']??'';Object.assign(existing,r);existing['Not']=notValue;updated++;}else{data.records.unshift(r);byId.set(id,r);added++;}});
       data.headers=[...EKARSIT_TAKIP_HEADERS];await eKarsitTakipWrite(data);data=await eKarsitTakipRead();
       status.style.display='block';status.className='hint ok';status.textContent='✓ Excel aktarıldı. '+added+' yeni kayıt, '+updated+' güncellenen kayıt.';
       eKarsitTakipRenderTable(tableHost,data,openEditor,pageDashboardFilter);
