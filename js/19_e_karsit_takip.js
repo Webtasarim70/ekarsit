@@ -5,6 +5,7 @@ const EKARSIT_TAKIP_HEADERS=[
   'İşlem ID',
   'Son Düzenleme Tarihi',
   'Onay Tarihi',
+  'Son Tarih',
   'Durum',
   'Pasiflik Durumu',
   'Karşıt İnceleme Talep Eden YMM VKN/TCKN',
@@ -34,6 +35,7 @@ async function eKarsitTakipRead(){
     const records=sourceRecords.map(r=>{
       const record={...(r||{})};
       EKARSIT_TAKIP_HEADERS.forEach(h=>{if(record[h]===undefined) record[h]='';});
+      record['Son Tarih']=eKarsitTakipSonTarih(record['Onay Tarihi'])||record['Son Tarih']||'';
       return record;
     });
     return {schemaVersion:2,headers:[...EKARSIT_TAKIP_HEADERS],records};
@@ -65,6 +67,18 @@ function eKarsitTakipExcelValue(v){
   }
   if(typeof v==='number') return String(v);
   return String(v).trim();
+}
+function eKarsitTakipSonTarih(value){
+  const raw=String(value??'').trim();
+  if(!raw) return '';
+  let day,month,year,m;
+  if((m=raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/))){day=Number(m[1]);month=Number(m[2]);year=Number(m[3]);}
+  else if((m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/))){year=Number(m[1]);month=Number(m[2]);day=Number(m[3]);}
+  else return '';
+  const date=new Date(Date.UTC(year,month-1,day));
+  if(date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day) return '';
+  date.setUTCDate(date.getUTCDate()+30);
+  return String(date.getUTCDate()).padStart(2,'0')+'.'+String(date.getUTCMonth()+1).padStart(2,'0')+'.'+date.getUTCFullYear();
 }
 function eKarsitTakipNorm(v){
   return String(v??'')
@@ -107,6 +121,7 @@ async function eKarsitTakipExcelImport(file){
     const id=String(values['İşlem ID']||'').trim() || (crypto.randomUUID?crypto.randomUUID():String(Date.now()+ri));
     values['İşlem ID']=id;
     EKARSIT_TAKIP_HEADERS.forEach(h=>{if(values[h]===undefined) values[h]='';});
+    values['Son Tarih']=eKarsitTakipSonTarih(values['Onay Tarihi'])||'';
     records.push(values);
   });
   return {headers:[...EKARSIT_TAKIP_HEADERS],records};
@@ -303,7 +318,7 @@ function eKarsitTakipRenderTable(host,data,onRowClick,pageDashboardFilter=null){
       pdfCell.appendChild(replyButton);
       visibleColumns.forEach(name=>{
         if(name==='PDF Yazıları') tr.appendChild(pdfCell);
-        else tr.appendChild(el('td',{},String(r[name]??'')));
+        else tr.appendChild(el('td',{style:name==='Son Tarih'?'color:var(--danger);font-weight:700;white-space:nowrap;':''},String(r[name]??'')));
       });
       tbody.appendChild(tr);
     });
@@ -342,6 +357,7 @@ function eKarsitTakipGibNormalizeRecord(source){
   record['İşlem ID']=String(r.islemId??'').trim();
   record['Son Düzenleme Tarihi']=String(r.sonDuzenlemeTarihi??'').trim();
   record['Onay Tarihi']=String(r.onayTarihi??'').trim();
+  record['Son Tarih']=eKarsitTakipSonTarih(record['Onay Tarihi']);
   // İş akışı durumu ile pasiflik ayrı alanlardır; GİB her ikisini aynı anda true/Cevaplandı gönderebilir.
   record['Durum']=String(r.durum??'').trim();
   record['Pasiflik Durumu']=(r.isPasif===true||r.pasif===true)?'Evet':(r.isPasif===false||r.pasif===false)?'Hayır':'';
@@ -429,9 +445,11 @@ function eKarsitTakipEditor(host,data,record,onSaved){
   EKARSIT_TAKIP_HEADERS.forEach(h=>{
     const box=el('div');
     box.appendChild(el('label',{style:'display:block;font-weight:600;margin-bottom:4px;'},h));
-    const input=h==='Not'?el('textarea',{class:'input',style:'width:100%;box-sizing:border-box;min-height:90px;resize:vertical;',placeholder:h}):el('input',{class:'input',style:'width:100%;box-sizing:border-box;',placeholder:h});
+    const input=h==='Not'?el('textarea',{class:'input',style:'width:100%;box-sizing:border-box;min-height:90px;resize:vertical;',placeholder:h}):el('input',{class:'input',style:'width:100%;box-sizing:border-box;'+(h==='Son Tarih'?'color:var(--danger);font-weight:700;':''),placeholder:h});
     if(dateFields.has(h)){input.type='date';input.value=eKarsitTakipDateForInput(record?.[h]);}
-    else{input.type='text';input.value=String(record?.[h]??'');}
+    else{input.type='text';input.value=h==='Son Tarih'?(eKarsitTakipSonTarih(record?.['Onay Tarihi'])||''):String(record?.[h]??'');}
+    if(h==='Son Tarih') input.readOnly=true;
+    if(h==='Onay Tarihi') input.addEventListener('change',()=>{if(controls['Son Tarih'])controls['Son Tarih'].value=eKarsitTakipSonTarih(eKarsitTakipDateFromInput(input.value));});
     if(h==='İşlem ID'&&editing) input.readOnly=true;
     if(h==='Pasiflik Durumu') input.readOnly=true;
     controls[h]=input;box.appendChild(input);form.appendChild(box);
@@ -447,6 +465,7 @@ function eKarsitTakipEditor(host,data,record,onSaved){
     try{
       const values={};
       EKARSIT_TAKIP_HEADERS.forEach(h=>values[h]=dateFields.has(h)?eKarsitTakipDateFromInput(controls[h].value):String(controls[h].value||'').trim());
+      values['Son Tarih']=eKarsitTakipSonTarih(values['Onay Tarihi']);
       if(!values['İşlem ID']) throw new Error('İşlem ID boş bırakılamaz.');
       if(!values['Durum']) throw new Error('Durum boş bırakılamaz.');
       if(!values['Tasdik Hizmeti Verilen Mükellef VKN/TCKN']) throw new Error('Tasdik Hizmeti Verilen Mükellef VKN/TCKN boş bırakılamaz.');
@@ -543,7 +562,7 @@ async function renderEKarsitTakipPage(){
     try{
       const imported=await eKarsitTakipExcelImport(file);
       const byId=new Map(data.records.map(r=>[String(r['İşlem ID']||''),r]));let added=0,updated=0;
-      imported.records.forEach(r=>{const id=String(r['İşlem ID']||'');if(byId.has(id)){const existing=byId.get(id);const notValue=existing['Not']??'';Object.assign(existing,r);existing['Not']=notValue;updated++;}else{data.records.unshift(r);byId.set(id,r);added++;}});
+      imported.records.forEach(r=>{r['Son Tarih']=eKarsitTakipSonTarih(r['Onay Tarihi'])||'';const id=String(r['İşlem ID']||'');if(byId.has(id)){const existing=byId.get(id);const notValue=existing['Not']??'';Object.assign(existing,r);existing['Not']=notValue;updated++;}else{data.records.unshift(r);byId.set(id,r);added++;}});
       data.headers=[...EKARSIT_TAKIP_HEADERS];await eKarsitTakipWrite(data);data=await eKarsitTakipRead();
       status.style.display='block';status.className='hint ok';status.textContent='✓ Excel aktarıldı. '+added+' yeni kayıt, '+updated+' güncellenen kayıt.';
       eKarsitTakipRenderTable(tableHost,data,openEditor,pageDashboardFilter);
