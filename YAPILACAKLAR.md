@@ -42,7 +42,7 @@
 ### GİB ve tarayıcı eklentisi
 - [x] **GİB Tebligat Takip modülü:** Ayrı menü, yerel JSON kayıt dosyası, tablo/arama/Excel dışa aktarımı ve e-Tebligat sayfasından eklentiyle çok sayfalı aktarım eklendi.
   - [x] Test: 67 kaydın tamamı tabloda görünüyor; ikinci aktarımda mükerrer kayıt oluşmuyor; Excel çıktısı açılıyor ve tarihler doğru. Kullanıcı tarafından doğrulandı.
-- [ ] **Eksiklik yazısını GİB e-Tebligat sayfasından alma ve kayda bağlama:** Kod incelemesi (14.10.2026) sırasında mevcut `gib-tebligat-main.js`, `gib-tebligat-content.js` ve `js/20_gib_tebligat_takip.js` dosyalarında PDF alma/kaydetme akışı bulunamadı; önce GİB ekranındaki gerçek belge açma/indirme isteği belirlenmeli, sonra PDF alma, ilgili tebligat kaydıyla ilişkilendirme ve kayıtlı PDF’yi yeniden açma uygulanıp canlı oturumda test edilmeli.
+- [x] **İPTAL — Eksiklik yazısını GİB e-Tebligat sayfasından alma ve kayda bağlama:** Daha önce canlı GİB ekranında her tebligatın zarfı açılarak `İşlem Yap → Zarf içeriğini gör → Belge görüntüle` akışı denendi. Hedef belgeler yetki kısıtı nedeniyle alınamadı. Bu nedenle PDF’yi eklentiyle alma, kayda bağlama ve yeniden açma geliştirmesi şimdilik iptal edildi; yetki sorunu giderilmedikçe yeniden başlatılmayacak.
 - [ ] **GİB e-Karşıt aktarımı:** Daha önce “Pasife Çekilmiş” durumunda olup sonradan onaylanan kayıtların durumlarını doğru şekilde güncelle.
 - [ ] **“GİB İadem Nerede” modülü:** Menüyü yakalama akışını ekle ve vergi dairesi üzerinden toplu dönem sorgulama/güncelleme işlevini geliştir.
 - [ ] **YMM Yazıları menüsünü** tamamlama.
