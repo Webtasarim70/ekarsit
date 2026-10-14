@@ -23,8 +23,9 @@ async function getOrOpenGibTab(){
 }
 
 async function sendPdfStatusToApp(payload){
-  const tabs=await chrome.tabs.query({url:APP_URL+'*'});
-  const tab=tabs[0];
+  // PDF durumunu hem yayımlanmış uygulamaya hem localhost test sekmesine ilet.
+  const tabs=await chrome.tabs.query({url:[APP_URL+'*','http://localhost/*','http://127.0.0.1/*']});
+  const tab=tabs.find(t=>t.id);
   if(tab?.id){
     try{await chrome.tabs.sendMessage(tab.id,{type:'EKARSIT_PDF_STATUS',...payload});}catch(_){}
   }
