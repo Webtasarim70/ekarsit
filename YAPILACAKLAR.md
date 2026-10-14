@@ -12,8 +12,10 @@
 - [x] **Dashboard bildirimlerini kişiselleştirme:** Kartları yukarı/aşağı taşıma, sürükle-bırak ile sıralama, kartları gizleme/gösterme ve varsayılan düzene dönme kontrolleri eklendi; tercihler kullanıcı anahtarıyla tarayıcıda saklanıyor.
   - [x] Test: Kullanıcı, dişli simgesini ve kartları sürükleyerek sıralamayı başarıyla test etti.
   - [ ] Mobil test: Telefon/tablet ekranlarında görünüm, dokunmatik sürükleme, ok düğmeleri ve tercihlerin korunması kontrol edilecek.
-- [ ] **Sidebar menüsünü kişiselleştirme:** Menü bölümlerini gizleme/gösterme ve sıralarını değiştirme; görünür alt bağlantıları tek tek gizleme/gösterme ayarları eklendi. Tarayıcıda kullanıcı klasörüne göre saklanır.
-  - [ ] Test: Bölüm sıralama, gizleme/gösterme, yenileme sonrası tercihlerin korunması ve sayfa bağlantıları kontrol edilecek.
+- [x] **Sidebar menüsünü kişiselleştirme:** Menü bölümlerini gizleme/gösterme ve sıralarını değiştirme; görünür alt bağlantıları tek tek gizleme/gösterme ayarları eklendi. Tarayıcıda kullanıcı klasörüne göre saklanır.
+  - [x] Test: Kullanıcı bölüm sıralama, gizleme/gösterme, tercihlerin korunması ve sayfa bağlantılarını test etti; sorun bildirmedi.
+  - [x] Tasarım kararı: “Karşıt İnceleme Doldur” adımları birbirine bağlı olduğundan alt menüde ayrıca listelenmeyecek.
+  - [ ] Mobil test: Menü görünümü ve dokunmatik etkileşimler daha sonra kontrol edilecek.
 
 ### e-Karşıt Takip Kayıtları
 - [x] **Hazır kaydedilmiş filtreler:** e-Karşıt Takip Kayıtları tablosuna arama ve sütun filtrelerini adlandırarak kaydetme, yeniden uygulama ve silme fonksiyonları eklendi. Kayıtlar seçili kullanıcı klasörü adına göre tarayıcıda saklanır.
@@ -31,7 +33,7 @@
   - [x] Test: Kullanıcı, dashboard sayısını kullanıcı klasöründeki arşiv dosyalarıyla karşılaştırıp olumlu sonuç bildirdi.
 
 ### GİB ve tarayıcı eklentisi
-- [ ] **GİB Tebligat Takip modülü:** Ayrı menü, yerel JSON kayıt dosyası, tablo/arama/Excel dışa aktarımı ve e-Tebligat sayfasından eklentiyle çok sayfalı aktarım eklendi.
+- [x] **GİB Tebligat Takip modülü:** Ayrı menü, yerel JSON kayıt dosyası, tablo/arama/Excel dışa aktarımı ve e-Tebligat sayfasından eklentiyle çok sayfalı aktarım eklendi.
   - [x] Test: 67 kaydın tamamı tabloda görünüyor; ikinci aktarımda mükerrer kayıt oluşmuyor; Excel çıktısı açılıyor ve tarihler doğru. Kullanıcı tarafından doğrulandı.
 - [ ] **Eksiklik yazısını GİB e-Tebligat sayfasından alma:** İsteğe bağlı “PDF Kaydet” ve kayıtlı PDF’yi açma akışı eklendi; gerçek GİB oturumuyla uçtan uca test bekliyor.
 - [ ] **GİB e-Karşıt aktarımı:** Daha önce “Pasife Çekilmiş” durumunda olup sonradan onaylanan kayıtların durumlarını doğru şekilde güncelle.
