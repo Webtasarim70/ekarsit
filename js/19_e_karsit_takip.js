@@ -426,11 +426,11 @@ window.addEventListener('message',async event=>{
 });
 
 function eKarsitTakipDateForInput(value){
-  const m=String(value||'').trim().match(/^(\\d{2})\\.(\\d{2})\\.(\\d{4})$/);
+  const m=String(value||'').trim().match(/^(\d{2})\\.(\d{2})\\.(\d{4})$/);
   return m?m[3]+'-'+m[2]+'-'+m[1]:'';
 }
 function eKarsitTakipDateFromInput(value){
-  const m=String(value||'').trim().match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+  const m=String(value||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m?m[3]+'.'+m[2]+'.'+m[1]:'';
 }
 function eKarsitTakipEditor(host,data,record,onSaved){
